@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 interface Step {
   id: string;
   name: string;
-  href: string;
 }
 
 interface StepperProps {
@@ -18,69 +17,34 @@ interface StepperProps {
 export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
   return (
     <nav aria-label="Progress">
-      <ol role="list" className="flex items-center">
+      <ol role="list" className="flex items-center space-x-4">
         {steps.map((step, stepIdx) => (
-          <li
-            key={step.name}
-            className={cn("relative", stepIdx !== steps.length - 1 ? "pr-8 sm:pr-20" : "")}
-          >
-            {stepIdx < currentStep ? (
-              <>
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="h-0.5 w-full bg-primary" />
-                </div>
-                <button
-                  onClick={() => setCurrentStep(stepIdx)}
-                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary hover:bg-primary/90"
-                >
-                  <Check className="h-5 w-5 text-white" aria-hidden="true" />
-                  <span className="sr-only">{step.name}</span>
-                </button>
-              </>
-            ) : stepIdx === currentStep ? (
-              <>
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="h-0.5 w-full bg-gray-200" />
-                </div>
-                <button
-                  onClick={() => setCurrentStep(stepIdx)}
-                  className="relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary bg-background"
-                  aria-current="step"
-                >
-                  <span
-                    className="h-2.5 w-2.5 rounded-full bg-primary"
-                    aria-hidden="true"
-                  />
-                  <span className="sr-only">{step.name}</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <div
-                  className="absolute inset-0 flex items-center"
-                  aria-hidden="true"
-                >
-                  <div className="h-0.5 w-full bg-gray-200" />
-                </div>
-                <button
-                  onClick={() => setCurrentStep(stepIdx)}
-                  className="group relative flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-background hover:border-gray-400"
-                >
-                  <span
-                    className="h-2.5 w-2.5 rounded-full bg-transparent group-hover:bg-gray-300"
-                    aria-hidden="true"
-                  />
-                  <span className="sr-only">{step.name}</span>
-                </button>
-              </>
+          <li key={step.name} className="flex items-center">
+            <button
+              onClick={() => setCurrentStep(stepIdx)}
+              className="flex flex-col items-center space-y-2"
+            >
+              <span
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium",
+                  stepIdx === currentStep
+                    ? "bg-primary text-primary-foreground"
+                    : stepIdx < currentStep
+                    ? "bg-primary/20 text-primary"
+                    : "bg-gray-200 text-gray-500"
+                )}
+              >
+                {stepIdx < currentStep ? <Check className="h-5 w-5" /> : step.id.replace(/^0+/, '')}
+              </span>
+              <span className={cn(
+                "text-sm font-medium",
+                 stepIdx === currentStep ? "text-primary" : "text-gray-500"
+              )}>{step.name}</span>
+            </button>
+
+            {stepIdx < steps.length - 1 && (
+              <div className="h-px w-16 bg-gray-200 ml-4" />
             )}
-             <p className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-center">{step.name}</p>
           </li>
         ))}
       </ol>
