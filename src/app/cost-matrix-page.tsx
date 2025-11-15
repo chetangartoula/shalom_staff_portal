@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit, Copy, Check } from "lucide-react";
+import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit, Copy, Check, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -38,8 +38,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Stepper } from "@/components/ui/stepper";
 import { DatePicker } from "@/components/ui/date-picker";
-import { treks as initialTreks, services } from "@/lib/mock-data";
-import type { Trek } from "@/lib/mock-data";
+import type { Trek, Service } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   Dialog,
@@ -106,8 +105,11 @@ export default function TrekCostingPage() {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
-  const [treks, setTreks] = useState<Trek[]>(initialTreks);
-  const [selectedTrekId, setSelectedTrekId] = useState<string | null>('manaslu');
+  const [treks, setTreks] = useState<Trek[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [selectedTrekId, setSelectedTrekId] = useState<string | null>(null);
   const [groupSize, setGroupSize] = useState<number>(1);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
 
@@ -138,6 +140,38 @@ export default function TrekCostingPage() {
     name: "permits",
   });
 
+  useEffect(() => {
+    setIsClient(true);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [treksRes, servicesRes] = await Promise.all([
+            fetch('/api/treks'),
+            fetch('/api/services')
+        ]);
+        if (!treksRes.ok || !servicesRes.ok) {
+            throw new Error('Failed to fetch data');
+        }
+        const treksData = await treksRes.json();
+        const servicesData = await servicesRes.json();
+        setTreks(treksData.treks);
+        setServices(servicesData.services);
+        if (treksData.treks.length > 0) {
+          setSelectedTrekId(treksData.treks[0].id)
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error fetching data",
+          description: "Could not load treks and services.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [toast]);
+
 
   const selectedTrek = useMemo(
     () => treks.find((trek) => trek.id === selectedTrekId),
@@ -145,11 +179,7 @@ export default function TrekCostingPage() {
   );
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (selectedTrek) {
+    if (selectedTrek && services.length > 0) {
       const initialPermits = selectedTrek.permits.map((permit) => ({
         id: uuidv4(),
         description: permit.name,
@@ -176,7 +206,7 @@ export default function TrekCostingPage() {
       ];
       setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     }
-  }, [selectedTrek, groupSize]);
+  }, [selectedTrek, groupSize, services]);
 
 
   const getSectionState = (sectionId: string): SectionState | undefined => {
@@ -273,23 +303,40 @@ export default function TrekCostingPage() {
     setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
   };
 
-  const handleAddTrekSubmit = (data: AddTrekFormData) => {
-    // Mock API call
-    console.log("New Trek Data:", data);
-    const newTrek: Trek = {
+  const handleAddTrekSubmit = async (data: AddTrekFormData) => {
+    const newTrekData = {
       id: data.name.toLowerCase().replace(/\s+/g, '-'),
       ...data,
     };
-    
-    setTreks(prevTreks => [...prevTreks, newTrek]);
-    
-    toast({
-      title: "Trek Added",
-      description: `${data.name} has been added to the list.`,
-    });
-    
-    addTrekForm.reset();
-    setIsAddTripModalOpen(false);
+    try {
+      const response = await fetch('/api/treks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTrekData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save trek');
+      }
+      
+      const { trek: newTrek } = await response.json();
+      
+      setTreks(prevTreks => [...prevTreks, newTrek]);
+      
+      toast({
+        title: "Trek Added",
+        description: `${data.name} has been added to the list.`,
+      });
+      
+      addTrekForm.reset();
+      setIsAddTripModalOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not save the new trek. Please try again.",
+      });
+    }
   };
 
 
@@ -349,15 +396,15 @@ export default function TrekCostingPage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const groupId = uuidv4();
     const url = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
-    setSavedReportUrl(url);
-
-    const allData = {
+    
+    const reportData = {
       groupId,
       reportUrl: url,
-      trek: selectedTrek,
+      trekId: selectedTrek?.id,
+      trekName: selectedTrek?.name,
       groupSize,
       startDate,
       permits: permitsState,
@@ -373,12 +420,31 @@ export default function TrekCostingPage() {
       }
     };
     
-    console.log("Saving data (mock API call):", JSON.stringify(allData, null, 2));
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportData),
+      });
 
-    toast({
-      title: "Data Saved",
-      description: "Your trek costing details have been saved (mock).",
-    });
+      if (!response.ok) {
+        throw new Error('Failed to save report');
+      }
+
+      setSavedReportUrl(url);
+
+      toast({
+        title: "Data Saved",
+        description: "Your trek costing details have been saved.",
+      });
+
+    } catch(error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not save the report. Please try again.",
+      });
+    }
   };
 
    const handleCopyToClipboard = () => {
@@ -455,6 +521,10 @@ export default function TrekCostingPage() {
 
 
     sectionsToExport.forEach(section => {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = pageTopMargin;
+      }
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text(section.name, pageLeftMargin, yPos);
@@ -491,6 +561,10 @@ export default function TrekCostingPage() {
     });
 
     if (sectionsToExport.length > 0) {
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = pageTopMargin;
+      }
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Summary", pageLeftMargin, yPos);
@@ -508,7 +582,6 @@ export default function TrekCostingPage() {
           theme: 'plain'
       });
     }
-
 
     addFooter();
 
@@ -560,7 +633,6 @@ export default function TrekCostingPage() {
       const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
       XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
     }
-
 
      XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
      toast({ title: "Success", description: "Excel file has been exported." });
@@ -681,6 +753,14 @@ export default function TrekCostingPage() {
   
   const renderStepContent = () => {
     const step = steps[currentStep];
+
+    if (isLoading) {
+      return (
+        <div className="flex justify-center items-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
     
     if (currentStep === 0) {
       return (
@@ -779,7 +859,7 @@ export default function TrekCostingPage() {
                   ))}
                 </div>
               <Separator />
-               {renderCostTable("Extra Details", "extraDetails")}
+               {renderCostTable("Extra Details", "extraDetails", true)}
                <Separator />
                <div className="flex justify-between items-center text-xl font-bold text-primary p-4 bg-primary/5 rounded-lg">
                   <span>Final Cost:</span> 
@@ -881,7 +961,7 @@ export default function TrekCostingPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="mt-6 text-destructive hover:bg-destructive/10"
-                                onClick={() => removePermit(index)}
+                                onClick={() => permitFields.length > 1 ? removePermit(index) : null}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -901,7 +981,10 @@ export default function TrekCostingPage() {
 
                     </div>
                     <DialogFooter>
-                      <Button type="submit">Save Trek</Button>
+                      <Button type="submit" disabled={addTrekForm.formState.isSubmitting}>
+                        {addTrekForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Trek
+                      </Button>
                     </DialogFooter>
                   </form>
                 </Form>
@@ -911,8 +994,8 @@ export default function TrekCostingPage() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="mb-8 md:mb-12">
-                  <div className="flex flex-col md:flex-row items-center justify-center gap-4">
-                    <div className="w-full md:w-auto overflow-x-auto pb-4 hide-scrollbar">
+                   <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
+                    <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
                       <Stepper
                         steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                         currentStep={currentStep}

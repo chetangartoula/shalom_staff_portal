@@ -1,3 +1,4 @@
+
 export interface Permit {
   name: string;
   rate: number;
@@ -16,7 +17,10 @@ export interface Service {
   times: number;
 }
 
-export const treks: Trek[] = [
+// This file will now only contain the initial data. 
+// The API routes will manage the state during runtime.
+
+export const initialTreks: Trek[] = [
   {
     id: "manaslu",
     name: "Manaslu Circuit Trek",

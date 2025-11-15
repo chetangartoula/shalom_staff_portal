@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import React from "react";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -94,14 +95,41 @@ export default function ReportPage() {
     name: "travelers",
   });
 
-  const onSubmit = (data: FormData) => {
-    // Note: In a real app, you would handle file uploads here.
-    // For now, we just log the data.
-    console.log("Submitting data (mock API call):", JSON.stringify(data, null, 2));
-    toast({
-      title: "Details Submitted",
-      description: "Traveler details have been saved (mock).",
-    });
+  const onSubmit = async (data: FormData) => {
+    // Note: In a real app, you would handle file uploads properly (e.g. to a storage bucket)
+    // before sending the data to the API. For this mock, we send metadata only.
+    const submissionData = {
+      groupId,
+      travelers: data.travelers.map(t => ({
+        ...t,
+        passportPhoto: t.passportPhoto?.[0]?.name,
+        visaPhoto: t.visaPhoto?.[0]?.name,
+      }))
+    };
+
+    try {
+       const response = await fetch('/api/travelers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit traveler details');
+      }
+
+      toast({
+        title: "Details Submitted",
+        description: "Traveler details have been saved.",
+      });
+
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Submission Failed",
+        description: "Could not save traveler details. Please try again.",
+      });
+    }
   };
 
   return (
@@ -247,14 +275,13 @@ export default function ReportPage() {
                                 <FormField
                                     control={form.control}
                                     name={`travelers.${index}.passportPhoto`}
-                                    render={({ field: { onChange, value, ...rest } }) => (
+                                    render={({ field }) => (
                                         <FormItem>
                                         <FormLabel>Passport Photo</FormLabel>
                                         <FormControl>
                                             <Input 
                                                 type="file" 
-                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
-                                                {...rest} 
+                                                onChange={(e) => field.onChange(e.target.files)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -264,14 +291,13 @@ export default function ReportPage() {
                                 <FormField
                                     control={form.control}
                                     name={`travelers.${index}.visaPhoto`}
-                                    render={({ field: { onChange, value, ...rest } }) => (
+                                    render={({ field }) => (
                                         <FormItem>
                                         <FormLabel>Visa Photo</FormLabel>
                                         <FormControl>
                                              <Input 
                                                 type="file" 
-                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
-                                                {...rest} 
+                                                onChange={(e) => field.onChange(e.target.files)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -285,7 +311,10 @@ export default function ReportPage() {
                       ))}
                     </Accordion>
                      <CardFooter className="px-0 pt-6">
-                        <Button type="submit">Submit Details</Button>
+                        <Button type="submit" disabled={form.formState.isSubmitting}>
+                          {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Submit Details
+                        </Button>
                     </CardFooter>
                   </form>
                 </Form>
@@ -298,5 +327,3 @@ export default function ReportPage() {
     </>
   );
 }
-
-    
