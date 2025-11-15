@@ -330,7 +330,7 @@ export default function TrekCostingPage() {
     doc.setTextColor(100);
     doc.text(`Group ID: ${groupId}`, 14, yPos);
     doc.addImage(qrCodeDataUrl, 'PNG', 150, 15, 45, 45);
-    yPos = 65; // give space for qr code
+    yPos = 70; // give space for qr code
 
     // Group Details
     doc.setFontSize(12);
@@ -694,7 +694,7 @@ export default function TrekCostingPage() {
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8 mb-8 md:mb-12">
-                  <div className="w-full sm:w-auto overflow-x-auto pb-4">
+                  <div className="w-full sm:w-auto overflow-x-auto sm:overflow-x-visible pb-4">
                     <Stepper
                       steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                       currentStep={currentStep}

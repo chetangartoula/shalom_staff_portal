@@ -32,7 +32,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                 className={cn(
                   "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors border-2",
                   stepIdx === currentStep
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-primary text-primary-foreground border-primary ring-2 ring-offset-2 ring-primary"
                     : stepIdx < currentStep
                     ? "bg-primary/20 text-primary border-primary/30"
                     : "bg-gray-100 text-gray-600 border-gray-300 group-hover:bg-gray-200 group-hover:border-gray-400"
