@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit, Copy, Check, Loader2, LogOut } from "lucide-react";
+import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit, Copy, Check, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -10,8 +9,7 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
@@ -26,14 +24,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -53,11 +43,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/auth-context";
 import { Sidebar } from "@/components/ui/sidebar";
+import { CostTable } from "@/components/cost-table";
+import { DashboardHeader } from "@/components/dashboard-header";
 
 
-interface CostRow {
+export interface CostRow {
   id: string;
   description: string;
   rate: number;
@@ -66,7 +57,7 @@ interface CostRow {
   total: number;
 }
 
-interface SectionState {
+export interface SectionState {
     id: string;
     name: string;
     rows: CostRow[];
@@ -107,9 +98,6 @@ export default function TrekCostingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-  const { logout } = useAuth();
-  const router = useRouter();
-
 
   const [treks, setTreks] = useState<Trek[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -125,7 +113,6 @@ export default function TrekCostingPage() {
   const [customSections, setCustomSections] = useState<SectionState[]>([]);
 
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [isAddTripModalOpen, setIsAddTripModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<SectionState | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
   
@@ -335,7 +322,6 @@ export default function TrekCostingPage() {
       });
       
       addTrekForm.reset();
-      setIsAddTripModalOpen(false);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -346,11 +332,11 @@ export default function TrekCostingPage() {
   };
 
 
-  const calculateSectionTotals = (section: SectionState) => {
+  const calculateSectionTotals = useCallback((section: SectionState) => {
     const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
     const total = subtotal - section.discount;
     return { subtotal, total };
-  };
+  }, []);
 
   const {
     permitsTotals,
@@ -379,7 +365,7 @@ export default function TrekCostingPage() {
       customSectionsTotals,
       totalCost
     };
-  }, [permitsState, servicesState, extraDetailsState, customSections]);
+  }, [permitsState, servicesState, extraDetailsState, customSections, calculateSectionTotals]);
 
 
   const nextStep = () => {
@@ -469,13 +455,14 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+
     const sectionsToExport = allSections.map(section => ({
         ...section,
         rows: section.rows.filter(row => row.total !== 0)
     })).filter(section => {
-        const { total } = calculateSectionTotals(section);
-        return section.rows.length > 0 && total !== 0;
+        return section.rows.length > 0;
     });
+
 
     let yPos = 0;
     const pageTopMargin = 15;
@@ -494,19 +481,20 @@ export default function TrekCostingPage() {
             doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
         }
     };
-
+    
+    const qrCodeSize = 40;
+    const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
+    
     doc.setFontSize(22);
     doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Group ID: ${groupId}`, pageLeftMargin, pageTopMargin + 15);
     
-    const qrCodeSize = 45;
-    const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
-    const qrCodeY = pageTopMargin;
-    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, qrCodeY, qrCodeSize, qrCodeSize);
+    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
 
-    yPos = Math.max(pageTopMargin + 25, qrCodeY + qrCodeSize) + 10;
+    yPos = Math.max(pageTopMargin + 25, pageTopMargin + qrCodeSize) + 10;
+    
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
@@ -566,6 +554,8 @@ export default function TrekCostingPage() {
       yPos = (doc as any).lastAutoTable.finalY + 15;
     });
 
+    const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+
     if (sectionsToExport.length > 0) {
       if (yPos > 250) {
         doc.addPage();
@@ -580,7 +570,7 @@ export default function TrekCostingPage() {
         const { total } = calculateSectionTotals(section);
         return [`${section.name} Total`, formatCurrency(total)];
       });
-      summaryData.push(['Grand Total', formatCurrency(totalCost)]);
+      summaryData.push(['Grand Total', formatCurrency(grandTotal)]);
       
       doc.autoTable({
           startY: yPos,
@@ -595,7 +585,7 @@ export default function TrekCostingPage() {
     toast({ title: "Success", description: "PDF has been exported." });
 
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, totalCost
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals
   ]);
   
   const handleExportExcel = useCallback(() => {
@@ -606,8 +596,7 @@ export default function TrekCostingPage() {
         ...section,
         rows: section.rows.filter(row => row.total !== 0)
      })).filter(section => {
-       const { total } = calculateSectionTotals(section);
-       return section.rows.length > 0 && total !== 0;
+       return section.rows.length > 0;
      });
 
 
@@ -629,12 +618,14 @@ export default function TrekCostingPage() {
        XLSX.utils.book_append_sheet(wb, ws, section.name.substring(0, 31));
      });
      
+    const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+     
     if (sectionsToExport.length > 0) {
       const summaryWsData = sectionsToExport.map(section => {
         const { total } = calculateSectionTotals(section);
         return { Item: `${section.name} Total`, Amount: total };
       });
-      summaryWsData.push({ Item: 'Grand Total', Amount: totalCost });
+      summaryWsData.push({ Item: 'Grand Total', Amount: grandTotal });
 
       const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
       XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
@@ -643,124 +634,12 @@ export default function TrekCostingPage() {
      XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
      toast({ title: "Success", description: "Excel file has been exported." });
   }, [
-    permitsState, servicesState, extraDetailsState, customSections, toast, totalCost
+    permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals
   ]);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
-
 
   if (!isClient) {
     return null;
   }
-  
-  const renderCostTable = (title: string, sectionId: string, isCustom: boolean = false) => {
-    const section = getSectionState(sectionId);
-    if (!section) return null;
-    
-    const isDescriptionEditable = isCustom || sectionId === 'extraDetails';
-    const { subtotal, total } = calculateSectionTotals(section);
-
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{title}</CardTitle>
-            {isCustom && (
-                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditSectionModal(section)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => removeSection(section.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
-            )}
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-2/5">Description</TableHead>
-                <TableHead>Rate</TableHead>
-                <TableHead>No.</TableHead>
-                <TableHead>Times</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {section.rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>
-                    {isDescriptionEditable ? (
-                      <Input
-                        type="text"
-                        value={row.description}
-                        onChange={(e) => handleRowChange(row.id, 'description', e.target.value, sectionId)}
-                        className="w-full"
-                      />
-                    ) : (
-                      row.description
-                    )}
-                  </TableCell>
-                  <TableCell>
-                     <Input type="number" value={row.rate} onChange={e => handleRowChange(row.id, 'rate', Number(e.target.value), sectionId)} className="w-24"/>
-                  </TableCell>
-                  <TableCell>
-                    <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), sectionId)} className="w-20"/>
-                  </TableCell>
-                  <TableCell>
-                    <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), sectionId)} className="w-20"/>
-                  </TableCell>
-                  <TableCell>{formatCurrency(row.total)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => removeRow(row.id, sectionId)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <div className="mt-6 flex flex-col md:flex-row items-start justify-between gap-6">
-            <Button onClick={() => addRow(sectionId)} variant="outline">
-              <Plus className="mr-2 h-4 w-4" /> Add Row
-            </Button>
-            <div className="w-full md:w-auto md:min-w-64 space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <Label htmlFor={`discount-${sectionId}`} className="shrink-0">Discount</Label>
-                  <Input 
-                    type="number" 
-                    id={`discount-${sectionId}`} 
-                    value={section.discount} 
-                    onChange={e => handleDiscountChange(sectionId, Number(e.target.value))} 
-                    className="w-full max-w-32"
-                    placeholder="0.00"
-                  />
-                </div>
-                <Separator />
-                <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span>{formatCurrency(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Discount</span>
-                        <span className="text-destructive">- {formatCurrency(section.discount)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-base">
-                        <span>Total</span>
-                        <span>{formatCurrency(total)}</span>
-                    </div>
-                </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
   
   const renderStepContent = () => {
     const step = steps[currentStep];
@@ -831,17 +710,42 @@ export default function TrekCostingPage() {
     }
     
     if (step.name === "Permits & Food") {
-       return renderCostTable("Permits & Food Details", "permits");
+       return <CostTable 
+                title="Permits & Food Details" 
+                section={permitsState}
+                onRowChange={handleRowChange}
+                onDiscountChange={handleDiscountChange}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+              />;
     }
     
     if (step.name === "Services") {
-        return renderCostTable("Services", "services");
+        return <CostTable 
+                title="Services"
+                section={servicesState}
+                onRowChange={handleRowChange}
+                onDiscountChange={handleDiscountChange}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+               />;
     }
 
     if (step.id.startsWith('custom_step_')) {
         const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
         if (customSection) {
-            return renderCostTable(customSection.name, customSection.id, true);
+            return <CostTable 
+                title={customSection.name}
+                section={customSection}
+                isCustom
+                isDescriptionEditable
+                onRowChange={handleRowChange}
+                onDiscountChange={handleDiscountChange}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+                onEditSection={handleOpenEditSectionModal}
+                onRemoveSection={removeSection}
+            />;
         }
     }
     
@@ -870,16 +774,27 @@ export default function TrekCostingPage() {
                   ))}
                 </div>
               <Separator />
-               {renderCostTable("Extra Details", "extraDetails", true)}
+               <CostTable 
+                title="Extra Details"
+                section={extraDetailsState}
+                isCustom
+                isDescriptionEditable
+                onRowChange={handleRowChange}
+                onDiscountChange={handleDiscountChange}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+                onEditSection={handleOpenEditSectionModal}
+                onRemoveSection={removeSection}
+               />
                <Separator />
                <div className="flex justify-between items-center text-xl font-bold text-primary p-4 bg-primary/5 rounded-lg">
                   <span>Final Cost:</span> 
                   <span>{formatCurrency(totalCost)}</span>
                </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2">
-               <Button onClick={handleExportPDF}><FileDown className="mr-2 h-4 w-4" /> Export PDF</Button>
-               <Button onClick={handleExportExcel}><FileDown className="mr-2 h-4 w-4" /> Export Excel</Button>
+            <CardFooter className="flex-wrap justify-end gap-2">
+               <Button onClick={handleExportPDF}><FileDown /> Export PDF</Button>
+               <Button onClick={handleExportExcel}><FileDown /> Export Excel</Button>
             </CardFooter>
           </Card>
       );
@@ -893,125 +808,7 @@ export default function TrekCostingPage() {
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <Sidebar />
         <div className="flex flex-col">
-          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <div className="w-full flex-1">
-              {/* Can add search or other header elements here */}
-            </div>
-            <Dialog open={isAddTripModalOpen} onOpenChange={setIsAddTripModalOpen}>
-              <DialogTrigger asChild>
-                <Button>Add trips</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-lg">
-                <Form {...addTrekForm}>
-                  <form onSubmit={addTrekForm.handleSubmit(handleAddTrekSubmit)}>
-                    <DialogHeader>
-                      <DialogTitle>Add a New Trek</DialogTitle>
-                      <DialogDescription>
-                        Fill in the details below to add a new trekking route.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <FormField
-                        control={addTrekForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Trek Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Annapurna Base Camp" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={addTrekForm.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="A brief description of the trek." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div>
-                        <Label className="text-sm font-medium">Permits</Label>
-                        <div className="mt-2 space-y-3 rounded-lg border p-3">
-                          {permitFields.map((field, index) => (
-                            <div key={field.id} className="flex items-start gap-3">
-                              <div className="grid grid-cols-2 gap-3 flex-1">
-                                <FormField
-                                    control={addTrekForm.control}
-                                    name={`permits.${index}.name`}
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Permit Name</FormLabel>
-                                        <FormControl>
-                                        <Input placeholder="e.g., ACAP" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={addTrekForm.control}
-                                    name={`permits.${index}.rate`}
-                                    render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-xs">Rate (USD)</FormLabel>
-                                        <FormControl>
-                                        <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))}/>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="mt-6 text-destructive hover:bg-destructive/10"
-                                disabled={permitFields.length <= 1}
-                                onClick={() => removePermit(index)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        
-                          <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="mt-3"
-                              onClick={() => appendPermit({ name: "", rate: 0 })}
-                            >
-                            <Plus className="mr-2 h-4 w-4"/> Add Permit
-                          </Button>
-                        </div>
-                      </div>
-
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" disabled={addTrekForm.formState.isSubmitting}>
-                        {addTrekForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Trek
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </header>
+          <DashboardHeader onAddTrekSubmit={handleAddTrekSubmit} />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
               <div className="flex items-center">
                   <h1 className="text-lg font-semibold md:text-2xl">Trek Cost Calculator</h1>
@@ -1030,7 +827,7 @@ export default function TrekCostingPage() {
                           <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
-                                    <PlusSquare className="mr-2 h-4 w-4"/> Add Section
+                                    <PlusSquare /> Add Section
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
@@ -1060,7 +857,7 @@ export default function TrekCostingPage() {
                           Previous
                         </Button>
                         
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
                           {savedReportUrl && (
                             <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
                                 <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
@@ -1091,5 +888,3 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    

@@ -3,20 +3,21 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation";
-import { Mountain, Home } from "lucide-react"
+import { Mountain, Home, BarChart3, Users } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 
-export function Sidebar() {
+export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
 
     const navItems = [
         { href: "/", label: "Dashboard", icon: Home },
+        { href: "/reports", label: "Reports", icon: BarChart3 },
+        { href: "/travelers", label: "Travelers", icon: Users },
     ]
 
     return (
-        <div className="hidden border-r bg-muted/40 md:block">
+        <div className={cn("hidden border-r bg-muted/40 md:block", className)}>
             <div className="flex h-full max-h-screen flex-col gap-2">
                 <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                     <Link href="/" className="flex items-center gap-2 font-semibold">
@@ -45,5 +46,3 @@ export function Sidebar() {
         </div>
     )
 }
-
-    
