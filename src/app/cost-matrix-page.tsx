@@ -2,13 +2,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit } from "lucide-react";
+import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit, Copy, Check } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -95,6 +96,9 @@ export default function TrekCostingPage() {
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<SectionState | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
+  
+  const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
 
   const selectedTrek = useMemo(
@@ -289,7 +293,13 @@ export default function TrekCostingPage() {
   };
 
   const handleSave = () => {
+    const groupId = uuidv4();
+    const url = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
+    setSavedReportUrl(url);
+
     const allData = {
+      groupId,
+      reportUrl: url,
       trek: selectedTrek,
       groupSize,
       startDate,
@@ -312,6 +322,15 @@ export default function TrekCostingPage() {
       title: "Data Saved",
       description: "Your trek costing details have been saved (mock).",
     });
+  };
+
+   const handleCopyToClipboard = () => {
+    if (savedReportUrl) {
+      navigator.clipboard.writeText(savedReportUrl);
+      setIsCopied(true);
+      toast({ title: "Copied!", description: "Report link copied to clipboard." });
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
   
   const handleExportPDF = useCallback(async () => {
@@ -730,19 +749,32 @@ export default function TrekCostingPage() {
                   {renderStepContent()}
                 </div>
 
-                <div className="mt-8 flex justify-between">
+                <div className="mt-8 flex justify-between items-center">
                   <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
                      Previous
                   </Button>
-                  {currentStep === steps.length - 1 ? (
-                     <Button onClick={handleSave}>
-                        Save
-                     </Button>
-                  ) : (
-                     <Button onClick={nextStep}>
-                        Next
-                     </Button>
-                  )}
+                  
+                  <div className="flex items-center gap-4">
+                    {savedReportUrl && (
+                       <div className="flex items-center gap-2 text-sm p-2 border rounded-md bg-gray-100">
+                          <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate" title={savedReportUrl}>
+                            {savedReportUrl}
+                          </Link>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCopyToClipboard}>
+                            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                       </div>
+                    )}
+                    {currentStep === steps.length - 1 ? (
+                       <Button onClick={handleSave}>
+                          Save
+                       </Button>
+                    ) : (
+                       <Button onClick={nextStep}>
+                          Next
+                       </Button>
+                    )}
+                  </div>
                 </div>
             </div>
         </main>
@@ -751,3 +783,5 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
