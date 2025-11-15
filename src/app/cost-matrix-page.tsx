@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, FileDown, ArrowLeft, ArrowRight, Save, Upload, Download, Moon, PlusSquare, Mountain } from "lucide-react";
+import { Plus, Trash2, FileDown, ArrowLeft, ArrowRight, Save, Upload, Download, Moon, PlusSquare, Mountain, X, Edit } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -34,6 +34,15 @@ import { Stepper } from "@/components/ui/stepper";
 import { DatePicker } from "@/components/ui/date-picker";
 import { treks, services, Trek } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
 
 interface CostRow {
   id: string;
@@ -42,6 +51,13 @@ interface CostRow {
   no: number;
   times: number;
   total: number;
+}
+
+interface SectionState {
+    id: string;
+    name: string;
+    rows: CostRow[];
+    discount: number;
 }
 
 declare module "jspdf" {
@@ -57,7 +73,6 @@ const initialSteps = [
   { id: "04", name: "Final" },
 ];
 
-type Section = "permits" | "services" | "extraDetails" | string;
 
 export default function TrekCostingPage() {
   const [steps, setSteps] = useState(initialSteps);
@@ -69,12 +84,15 @@ export default function TrekCostingPage() {
   const [groupSize, setGroupSize] = useState<number>(1);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
 
-  const [permitRows, setPermitRows] = useState<CostRow[]>([]);
-  const [serviceRows, setServiceRows] = useState<CostRow[]>([]);
-  const [extraDetailsRows, setExtraDetailsRows] = useState<CostRow[]>([]);
-  const [customSections, setCustomSections] = useState<
-    { id: string; name: string; rows: CostRow[] }[]
-  >([]);
+  const [permitsState, setPermitsState] = useState<SectionState>({id: 'permits', name: 'Permits', rows: [], discount: 0});
+  const [servicesState, setServicesState] = useState<SectionState>({id: 'services', name: 'Services', rows: [], discount: 0});
+  const [extraDetailsState, setExtraDetailsState] = useState<SectionState>({id: 'extraDetails', name: 'Extra Details', rows: [], discount: 0});
+  const [customSections, setCustomSections] = useState<SectionState[]>([]);
+
+  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [editingSection, setEditingSection] = useState<SectionState | null>(null);
+  const [newSectionName, setNewSectionName] = useState("");
+
 
   const selectedTrek = useMemo(
     () => treks.find((trek) => trek.id === selectedTrekId),
@@ -95,7 +113,7 @@ export default function TrekCostingPage() {
         times: 1,
         total: permit.rate * groupSize,
       }));
-      setPermitRows(initialPermits);
+      setPermitsState(prev => ({...prev, rows: initialPermits}));
 
       const initialServices = services.map((service) => ({
         id: uuidv4(),
@@ -105,36 +123,39 @@ export default function TrekCostingPage() {
         times: service.times,
         total: 0,
       }));
-      setServiceRows(initialServices);
+      setServicesState(prev => ({...prev, rows: initialServices}));
 
        const initialExtraDetails = [
         { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
         { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 1, total: 0 }
       ];
-      setExtraDetailsRows(initialExtraDetails);
+      setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     }
   }, [selectedTrek, groupSize]);
 
 
-  const getSectionState = (section: Section) => {
-    if (section === "permits") return permitRows;
-    if (section === "services") return serviceRows;
-    if (section === "extraDetails") return extraDetailsRows;
-    return customSections.find(s => s.id === section)?.rows || [];
+  const getSectionState = (sectionId: string): SectionState | undefined => {
+    if (sectionId === "permits") return permitsState;
+    if (sectionId === "services") return servicesState;
+    if (sectionId === "extraDetails") return extraDetailsState;
+    return customSections.find(s => s.id === sectionId);
   };
 
-  const setSectionState = (section: Section, rows: CostRow[]) => {
-    if (section === "permits") setPermitRows(rows);
-    else if (section === "services") setServiceRows(rows);
-    else if (section === "extraDetails") setExtraDetailsRows(rows);
+  const setSectionState = (sectionId: string, newState: Partial<SectionState>) => {
+    const updater = (prev: SectionState) => ({...prev, ...newState});
+    if (sectionId === "permits") setPermitsState(updater);
+    else if (sectionId === "services") setServicesState(updater);
+    else if (sectionId === "extraDetails") setExtraDetailsState(updater);
     else {
-      setCustomSections(prev => prev.map(s => s.id === section ? { ...s, rows } : s));
+      setCustomSections(prev => prev.map(s => s.id === sectionId ? {...s, ...newState} : s));
     }
   };
 
-  const handleRowChange = (id: string, field: keyof CostRow, value: any, section: Section) => {
-    const rows = getSectionState(section);
-    const updatedRows = rows.map((row) => {
+  const handleRowChange = (id: string, field: keyof CostRow, value: any, sectionId: string) => {
+    const section = getSectionState(sectionId);
+    if (!section) return;
+
+    const updatedRows = section.rows.map((row) => {
       if (row.id === id) {
         const newRow = { ...row, [field]: value };
         if (field === 'no' || field === 'rate' || field === 'times') {
@@ -144,61 +165,103 @@ export default function TrekCostingPage() {
       }
       return row;
     });
-    setSectionState(section, updatedRows);
-  };
-
-  const addRow = (section: Section) => {
-    const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
-    const rows = getSectionState(section);
-    setSectionState(section, [...rows, newRow]);
-  };
-
-  const removeRow = (id: string, section: Section) => {
-    const rows = getSectionState(section);
-    setSectionState(section, rows.filter((row) => row.id !== id));
+    setSectionState(sectionId, { rows: updatedRows });
   };
   
-  const addSection = () => {
-    const newSectionName = `New Section ${customSections.length + 1}`;
-    const newSectionId = `custom_${uuidv4()}`;
-    
-    setCustomSections(prev => [...prev, { id: newSectionId, name: newSectionName, rows: [] }]);
+  const handleDiscountChange = (sectionId: string, value: number) => {
+    setSectionState(sectionId, { discount: value });
+  };
 
-    const newStep = { id: (steps.length + 1).toString().padStart(2, '0'), name: newSectionName };
-    const finalStep = steps[steps.length - 1];
-    const newSteps = [...steps.slice(0, -1), newStep, finalStep];
-    setSteps(newSteps);
+  const addRow = (sectionId: string) => {
+    const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
+    const section = getSectionState(sectionId);
+    if (!section) return;
+    setSectionState(sectionId, { rows: [...section.rows, newRow] });
+  };
+
+  const removeRow = (id: string, sectionId: string) => {
+    const section = getSectionState(sectionId);
+    if (!section) return;
+    setSectionState(sectionId, { rows: section.rows.filter((row) => row.id !== id) });
+  };
+  
+  const handleOpenAddSectionModal = () => {
+    setEditingSection(null);
+    setNewSectionName("");
+    setIsSectionModalOpen(true);
+  };
+  
+  const handleOpenEditSectionModal = (section: SectionState) => {
+    setEditingSection(section);
+    setNewSectionName(section.name);
+    setIsSectionModalOpen(true);
+  };
+  
+  const handleSaveSection = () => {
+    if (!newSectionName.trim()) {
+      toast({ variant: "destructive", title: "Error", description: "Section name cannot be empty." });
+      return;
+    }
+
+    if (editingSection) { // Editing existing custom section
+        setCustomSections(prev => prev.map(s => s.id === editingSection.id ? { ...s, name: newSectionName } : s));
+        setSteps(prev => prev.map(s => s.id === `custom_step_${editingSection.id}` ? { ...s, name: newSectionName } : s));
+    } else { // Adding new custom section
+        const newSectionId = uuidv4();
+        const newSection: SectionState = { id: newSectionId, name: newSectionName, rows: [], discount: 0 };
+        setCustomSections(prev => [...prev, newSection]);
+
+        const newStep = { id: `custom_step_${newSectionId}`, name: newSectionName };
+        const finalStepIndex = steps.findIndex(s => s.name === "Final");
+        const newSteps = [...steps.slice(0, finalStepIndex), newStep, steps[finalStepIndex]];
+        setSteps(newSteps);
+    }
+    
+    setIsSectionModalOpen(false);
+    setEditingSection(null);
+    setNewSectionName("");
+  };
+  
+  const removeSection = (sectionId: string) => {
+    setCustomSections(prev => prev.filter(s => s.id !== sectionId));
+    setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
   };
 
 
+  const calculateSectionTotals = (section: SectionState) => {
+    const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
+    const total = subtotal - section.discount;
+    return { subtotal, total };
+  };
+
   const {
-    permitsSubtotal,
-    servicesSubtotal,
-    extraDetailsSubtotal,
+    permitsTotals,
+    servicesTotals,
+    extraDetailsTotals,
     customSectionsTotals,
     totalCost,
   } = useMemo(() => {
-    const permitsSubtotal = permitRows.reduce((acc, row) => acc + row.total, 0);
-    const servicesSubtotal = serviceRows.reduce((acc, row) => acc + row.total, 0);
-    const extraDetailsSubtotal = extraDetailsRows.reduce((acc, row) => acc + row.total, 0);
+    const permitsTotals = calculateSectionTotals(permitsState);
+    const servicesTotals = calculateSectionTotals(servicesState);
+    const extraDetailsTotals = calculateSectionTotals(extraDetailsState);
     
     const customSectionsTotals = customSections.map(section => ({
         ...section,
-        subtotal: section.rows.reduce((acc, row) => acc + row.total, 0)
+        ...calculateSectionTotals(section),
     }));
 
-    const totalCustomsSubtotal = customSectionsTotals.reduce((acc, section) => acc + section.subtotal, 0);
+    const totalCustomsTotal = customSectionsTotals.reduce((acc, section) => acc + section.total, 0);
 
-    const totalCost = permitsSubtotal + servicesSubtotal + extraDetailsSubtotal + totalCustomsSubtotal;
+    const totalCost = permitsTotals.total + servicesTotals.total + extraDetailsTotals.total + totalCustomsTotal;
 
     return {
-      permitsSubtotal,
-      servicesSubtotal,
-      extraDetailsSubtotal,
+      permitsTotals,
+      servicesTotals,
+      extraDetailsTotals,
       customSectionsTotals,
       totalCost
     };
-  }, [permitRows, serviceRows, extraDetailsRows, customSections]);
+  }, [permitsState, servicesState, extraDetailsState, customSections]);
 
 
   const nextStep = () => {
@@ -222,30 +285,43 @@ export default function TrekCostingPage() {
   };
   
   const handleExportPDF = useCallback(async () => {
-    // PDF export logic remains largely the same, but needs to iterate custom sections
+    // PDF export logic will need to be updated to include discounts
   }, [
-    selectedTrek, groupSize, startDate, permitRows, serviceRows, extraDetailsRows, customSections, toast
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast
   ]);
   
   const handleExportExcel = useCallback(() => {
-     // Excel export logic remains largely the same, but needs to iterate custom sections
+     // Excel export logic will need to be updated to include discounts
   }, [
-    selectedTrek, groupSize, startDate, permitRows, serviceRows, extraDetailsRows, customSections, toast
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast
   ]);
 
 
   if (!isClient) {
     return null;
   }
-
-  const renderCostTable = (title: string, section: Section, isCustom: boolean = false) => {
-    const rows = getSectionState(section);
-    const isDescriptionEditable = isCustom || section === 'extraDetails';
+  
+  const renderCostTable = (title: string, sectionId: string, isCustom: boolean = false) => {
+    const section = getSectionState(sectionId);
+    if (!section) return null;
     
+    const isDescriptionEditable = isCustom || sectionId === 'extraDetails';
+    const { subtotal, total } = calculateSectionTotals(section);
+
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{title}</CardTitle>
+            {isCustom && (
+                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditSectionModal(section)}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => removeSection(section.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            )}
         </CardHeader>
         <CardContent>
           <Table>
@@ -260,14 +336,14 @@ export default function TrekCostingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
+              {section.rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
                     {isDescriptionEditable ? (
                       <Input
                         type="text"
                         value={row.description}
-                        onChange={(e) => handleRowChange(row.id, 'description', e.target.value, section)}
+                        onChange={(e) => handleRowChange(row.id, 'description', e.target.value, sectionId)}
                         className="w-full"
                       />
                     ) : (
@@ -275,17 +351,17 @@ export default function TrekCostingPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                     <Input type="number" value={row.rate} onChange={e => handleRowChange(row.id, 'rate', Number(e.target.value), section)} className="w-24"/>
+                     <Input type="number" value={row.rate} onChange={e => handleRowChange(row.id, 'rate', Number(e.target.value), sectionId)} className="w-24"/>
                   </TableCell>
                   <TableCell>
-                    <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), section)} className="w-20"/>
+                    <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), sectionId)} className="w-20"/>
                   </TableCell>
                   <TableCell>
-                    <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), section)} className="w-20"/>
+                    <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), sectionId)} className="w-20"/>
                   </TableCell>
                   <TableCell>{formatCurrency(row.total)}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => removeRow(row.id, section)}>
+                    <Button variant="ghost" size="icon" onClick={() => removeRow(row.id, sectionId)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -293,9 +369,21 @@ export default function TrekCostingPage() {
               ))}
             </TableBody>
           </Table>
-          <Button onClick={() => addRow(section)} className="mt-4">
-            <Plus className="mr-2 h-4 w-4" /> Add Row
-          </Button>
+          <div className="flex justify-between items-center mt-4">
+            <Button onClick={() => addRow(sectionId)}>
+              <Plus className="mr-2 h-4 w-4" /> Add Row
+            </Button>
+            <div className="flex items-center gap-4">
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <Label htmlFor={`discount-${sectionId}`}>Discount</Label>
+                  <Input type="number" id={`discount-${sectionId}`} value={section.discount} onChange={e => handleDiscountChange(sectionId, Number(e.target.value))} className="w-32" />
+                </div>
+                <div className="text-right">
+                    <p className="text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
+                    <p className="font-bold">Total: {formatCurrency(total)}</p>
+                </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -303,7 +391,6 @@ export default function TrekCostingPage() {
   
   const renderStepContent = () => {
     const step = steps[currentStep];
-    const finalStepIndex = steps.length - 1;
     
     if (currentStep === 0) {
       return (
@@ -339,7 +426,6 @@ export default function TrekCostingPage() {
     if (step.name === "Permits & Food") {
        return (
           <div className="space-y-8">
-            {renderCostTable("Permits", "permits")}
             <Card>
                 <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-6">
@@ -359,7 +445,7 @@ export default function TrekCostingPage() {
                       </div>
                 </CardContent>
             </Card>
-            {renderCostTable("Extra Details", "extraDetails")}
+            {renderCostTable("Permits", "permits")}
           </div>
         );
     }
@@ -368,14 +454,14 @@ export default function TrekCostingPage() {
         return renderCostTable("Services", "services");
     }
 
-    if (currentStep > 2 && currentStep < finalStepIndex) {
-        const customSection = customSections[currentStep - 3];
+    if (step.id.startsWith('custom_step_')) {
+        const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
         if (customSection) {
             return renderCostTable(customSection.name, customSection.id, true);
         }
     }
     
-    if (currentStep === finalStepIndex) {
+    if (step.name === "Final") {
       return (
           <Card>
             <CardHeader>
@@ -383,12 +469,13 @@ export default function TrekCostingPage() {
               <CardDescription>Review your trek costs.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-               <div className="flex justify-between"><span>Permits Subtotal:</span> <span>{formatCurrency(permitsSubtotal)}</span></div>
-               <div className="flex justify-between"><span>Services Subtotal:</span> <span>{formatCurrency(servicesSubtotal)}</span></div>
+               <div className="flex justify-between"><span>Permits Total:</span> <span>{formatCurrency(permitsTotals.total)}</span></div>
+               <div className="flex justify-between"><span>Services Total:</span> <span>{formatCurrency(servicesTotals.total)}</span></div>
                {customSectionsTotals.map(sec => (
-                  <div key={sec.id} className="flex justify-between"><span>{sec.name} Subtotal:</span> <span>{formatCurrency(sec.subtotal)}</span></div>
+                  <div key={sec.id} className="flex justify-between"><span>{sec.name} Total:</span> <span>{formatCurrency(sec.total)}</span></div>
                ))}
-               <div className="flex justify-between"><span>Extra Details Subtotal:</span> <span>{formatCurrency(extraDetailsSubtotal)}</span></div>
+               <hr />
+               {renderCostTable("Extra Details", "extraDetails")}
                <hr />
                <div className="flex justify-between text-xl font-bold text-primary"><span>Final Cost:</span> <span>{formatCurrency(totalCost)}</span></div>
             </CardContent>
@@ -423,9 +510,27 @@ export default function TrekCostingPage() {
                     currentStep={currentStep}
                     setCurrentStep={setCurrentStep}
                   />
-                  <Button variant="outline" className="ml-8 border-dashed" onClick={addSection}>
-                    <PlusSquare className="mr-2 h-4 w-4"/> Add Section
-                  </Button>
+                  <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+                    <DialogTrigger asChild>
+                         <Button variant="outline" className="ml-8 border-dashed" onClick={handleOpenAddSectionModal}>
+                            <PlusSquare className="mr-2 h-4 w-4"/> Add Section
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="section-name" className="text-right">Name</Label>
+                                <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleSaveSection}>Save</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 <div className="bg-white p-8 rounded-lg shadow-sm">
