@@ -393,12 +393,24 @@ export default function TrekCostingPage() {
   const handleExportPDF = useCallback(async () => {
     const doc = new jsPDF();
     const groupId = uuidv4();
-    // Use a relative path for the QR code URL
     const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
     let yPos = 22;
+
+    const addFooter = () => {
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            const footerText = `Prepared by Shalom Treks | © ${new Date().getFullYear()}`;
+            doc.text(footerText, 14, pageHeight - 10);
+            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+        }
+    };
 
     // Header
     doc.setFontSize(22);
@@ -486,6 +498,8 @@ export default function TrekCostingPage() {
         body: summaryData,
         theme: 'plain'
     });
+
+    addFooter();
 
     doc.save(`cost-report-${groupId.substring(0,8)}.pdf`);
     toast({ title: "Success", description: "PDF has been exported." });
@@ -947,3 +961,5 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
