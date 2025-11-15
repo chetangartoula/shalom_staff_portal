@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Check } from "lucide-react";
@@ -20,7 +21,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
     <nav aria-label="Progress">
       <ol role="list" className="flex items-center space-x-4">
         {steps.map((step, stepIdx) => (
-          <li key={step.name} className="flex items-center">
+          <li key={step.id} className="flex items-center">
             <button
               onClick={() => setCurrentStep(stepIdx)}
               className="flex flex-col items-center space-y-2"

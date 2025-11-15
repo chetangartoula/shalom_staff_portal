@@ -68,9 +68,10 @@ declare module "jspdf" {
 
 const initialSteps = [
   { id: "01", name: "Select Trek" },
-  { id: "02", name: "Permits & Food" },
-  { id: "03", name: "Services" },
-  { id: "04", name: "Final" },
+  { id: "02", name: "Group Details" },
+  { id: "03", name: "Permits & Food" },
+  { id: "04", name: "Services" },
+  { id: "05", name: "Final" },
 ];
 
 
@@ -205,7 +206,8 @@ export default function TrekCostingPage() {
 
     if (editingSection) { // Editing existing custom section
         setCustomSections(prev => prev.map(s => s.id === editingSection.id ? { ...s, name: newSectionName } : s));
-        setSteps(prev => prev.map(s => s.id === `custom_step_${editingSection.id}` ? { ...s, name: newSectionName } : s));
+        const stepId = `custom_step_${editingSection.id}`;
+        setSteps(prev => prev.map(s => s.id === stepId ? { ...s, name: newSectionName } : s));
     } else { // Adding new custom section
         const newSectionId = uuidv4();
         const newSection: SectionState = { id: newSectionId, name: newSectionName, rows: [], discount: 0 };
@@ -422,9 +424,9 @@ export default function TrekCostingPage() {
         </div>
       );
     }
-    
-    if (step.name === "Permits & Food") {
-       return (
+
+    if (step.name === "Group Details") {
+        return (
           <div className="space-y-8">
             <Card>
                 <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
@@ -445,9 +447,12 @@ export default function TrekCostingPage() {
                       </div>
                 </CardContent>
             </Card>
-            {renderCostTable("Permits & Food Details", "permits")}
           </div>
         );
+    }
+    
+    if (step.name === "Permits & Food") {
+       return renderCostTable("Permits & Food Details", "permits");
     }
     
     if (step.name === "Services") {
