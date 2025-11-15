@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -26,6 +27,15 @@ export default function LoginPage() {
   const { toast } = useToast();
 
   const handleLogin = () => {
+    if (!username.trim() || !password.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Username and password cannot be empty.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     // Simulate network delay
     setTimeout(() => {
@@ -38,9 +48,16 @@ export default function LoginPage() {
           title: "Login Failed",
           description: error.message,
         });
+      } finally {
         setIsLoading(false);
       }
     }, 500);
+  };
+
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleLogin();
+    }
   };
 
   return (
@@ -66,6 +83,7 @@ export default function LoginPage() {
                   placeholder="admin"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   required
                   disabled={isLoading}
                 />
@@ -78,6 +96,7 @@ export default function LoginPage() {
                   placeholder="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   required
                   disabled={isLoading}
                 />
