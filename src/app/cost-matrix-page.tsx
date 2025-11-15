@@ -450,8 +450,6 @@ export default function TrekCostingPage() {
 
 
     allSections.forEach(section => {
-      if(section.rows.length === 0 && section.discount === 0) return;
-
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text(section.name, pageLeftMargin, yPos);
@@ -522,7 +520,6 @@ export default function TrekCostingPage() {
      const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
 
      allSections.forEach(section => {
-       if (section.rows.length === 0 && section.discount === 0) return;
        const {subtotal, total} = calculateSectionTotals(section);
        const wsData = section.rows.map(row => ({
          Description: row.description,
@@ -969,6 +966,8 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
 
     
 
