@@ -317,7 +317,9 @@ export default function TrekCostingPage() {
   const handleExportPDF = useCallback(async () => {
     const doc = new jsPDF();
     const groupId = uuidv4();
-    const qrCodeDataUrl = await QRCode.toDataURL(`https://example.com/report/${groupId}`);
+    // Use a relative path for the QR code URL
+    const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
+    const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
     let yPos = 22;
@@ -749,7 +751,3 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    
-
-    
