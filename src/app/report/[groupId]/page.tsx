@@ -136,7 +136,7 @@ export default function ReportPage() {
     <>
       <div className="flex flex-col min-h-screen bg-gray-50/50">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
-          <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
+          <h1 className="text-xl font-bold text-primary">Shalom Dashboard</h1>
         </header>
         <main className="flex-1 p-4 md:p-8">
           <div className="max-w-4xl mx-auto">
@@ -327,3 +327,5 @@ export default function ReportPage() {
     </>
   );
 }
+
+    

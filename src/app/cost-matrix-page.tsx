@@ -891,7 +891,7 @@ export default function TrekCostingPage() {
     <>
       <div className="flex flex-col min-h-screen bg-gray-50/50">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
-            <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
+            <h1 className="text-xl font-bold text-primary">Shalom Dashboard</h1>
             <div className="flex items-center gap-2">
               <Dialog open={isAddTripModalOpen} onOpenChange={setIsAddTripModalOpen}>
                 <DialogTrigger asChild>
@@ -1081,4 +1081,5 @@ export default function TrekCostingPage() {
   );
 }
 
+    
     

@@ -68,7 +68,7 @@ export default function LoginPage() {
             <div className="mb-4 flex justify-center">
                 <Mountain className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-2xl">SHALOM-ADMIN</CardTitle>
+            <CardTitle className="text-2xl">Shalom Dashboard</CardTitle>
             <CardDescription>
               Enter your credentials to access the dashboard.
             </CardDescription>
@@ -113,3 +113,5 @@ export default function LoginPage() {
     </>
   );
 }
+
+    

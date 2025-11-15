@@ -1,10 +1,11 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
 
 export const metadata: Metadata = {
-  title: 'SHALOM-ADMIN',
-  description: 'Trek Costing Application',
+  title: 'Shalom Dashboard',
+  description: 'Trek Costing & Management Dashboard',
 };
 
 export default function RootLayout({
@@ -27,3 +28,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
