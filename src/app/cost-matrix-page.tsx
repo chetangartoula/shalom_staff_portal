@@ -397,7 +397,9 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-    let yPos = 0; // Start at top
+    const sectionsToExport = allSections.filter(section => calculateSectionTotals(section).total > 0);
+
+    let yPos = 0;
     const pageTopMargin = 15;
     const pageLeftMargin = 14;
     const pageRightMargin = 14;
@@ -415,7 +417,6 @@ export default function TrekCostingPage() {
         }
     };
 
-    // Header
     doc.setFontSize(22);
     doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
     doc.setFontSize(10);
@@ -427,10 +428,8 @@ export default function TrekCostingPage() {
     const qrCodeY = pageTopMargin;
     doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, qrCodeY, qrCodeSize, qrCodeSize);
 
-    // Set yPos to start content below the header section (whichever is taller)
     yPos = Math.max(pageTopMargin + 25, qrCodeY + qrCodeSize) + 10;
 
-    // Group Details
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.text("Group Details", pageLeftMargin, yPos);
@@ -449,7 +448,7 @@ export default function TrekCostingPage() {
     yPos = (doc as any).lastAutoTable.finalY + 15;
 
 
-    allSections.forEach(section => {
+    sectionsToExport.forEach(section => {
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text(section.name, pageLeftMargin, yPos);
@@ -485,25 +484,25 @@ export default function TrekCostingPage() {
       yPos = (doc as any).lastAutoTable.finalY + 15;
     });
 
-    // Final Summary
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary", pageLeftMargin, yPos);
-    yPos += 10;
+    if (sectionsToExport.length > 0) {
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary", pageLeftMargin, yPos);
+      yPos += 10;
 
-    const summaryData = [
-      ['Permits Total', formatCurrency(permitsTotals.total)],
-      ['Services Total', formatCurrency(servicesTotals.total)],
-      ...customSectionsTotals.map(s => [`${s.name} Total`, formatCurrency(s.total)]),
-      ['Extra Details Total', formatCurrency(extraDetailsTotals.total)],
-      ['Grand Total', formatCurrency(totalCost)]
-    ];
-    
-    doc.autoTable({
-        startY: yPos,
-        body: summaryData,
-        theme: 'plain'
-    });
+      const summaryData = sectionsToExport.map(section => {
+        const { total } = calculateSectionTotals(section);
+        return [`${section.name} Total`, formatCurrency(total)];
+      });
+      summaryData.push(['Grand Total', formatCurrency(totalCost)]);
+      
+      doc.autoTable({
+          startY: yPos,
+          body: summaryData,
+          theme: 'plain'
+      });
+    }
+
 
     addFooter();
 
@@ -511,15 +510,17 @@ export default function TrekCostingPage() {
     toast({ title: "Success", description: "PDF has been exported." });
 
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, totalCost
   ]);
   
   const handleExportExcel = useCallback(() => {
      const wb = XLSX.utils.book_new();
      
      const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+     const sectionsToExport = allSections.filter(section => calculateSectionTotals(section).total > 0);
 
-     allSections.forEach(section => {
+
+     sectionsToExport.forEach(section => {
        const {subtotal, total} = calculateSectionTotals(section);
        const wsData = section.rows.map(row => ({
          Description: row.description,
@@ -537,20 +538,22 @@ export default function TrekCostingPage() {
        XLSX.utils.book_append_sheet(wb, ws, section.name.substring(0, 31));
      });
      
-     const summaryWsData = [
-        { Item: 'Permits Total', Amount: permitsTotals.total },
-        { Item: 'Services Total', Amount: servicesTotals.total },
-        ...customSectionsTotals.map(s => ({ Item: `${s.name} Total`, Amount: s.total })),
-        { Item: 'Extra Details Total', Amount: extraDetailsTotals.total },
-        { Item: 'Grand Total', Amount: totalCost },
-     ];
-     const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
-     XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+    if (sectionsToExport.length > 0) {
+      const summaryWsData = sectionsToExport.map(section => {
+        const { total } = calculateSectionTotals(section);
+        return { Item: `${section.name} Total`, Amount: total };
+      });
+      summaryWsData.push({ Item: 'Grand Total', Amount: totalCost });
+
+      const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
+      XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+    }
+
 
      XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
      toast({ title: "Success", description: "Excel file has been exported." });
   }, [
-    permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
+    permitsState, servicesState, extraDetailsState, customSections, toast, totalCost
   ]);
 
 
@@ -966,9 +969,3 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
