@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -52,8 +52,9 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function ReportPage({ params }: { params: { groupId: string } }) {
-  const { groupId } = params;
+export default function ReportPage() {
+  const params = useParams();
+  const groupId = params.groupId as string;
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
