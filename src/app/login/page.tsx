@@ -27,20 +27,20 @@ export default function LoginPage() {
 
   const handleLogin = () => {
     setIsLoading(true);
-    try {
-      // Simulate network delay
-      setTimeout(() => {
+    // Simulate network delay
+    setTimeout(() => {
+      try {
         login(username, password);
         router.push("/");
-      }, 500);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message,
-      });
-      setIsLoading(false);
-    }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message,
+        });
+        setIsLoading(false);
+      }
+    }, 500);
   };
 
   return (
