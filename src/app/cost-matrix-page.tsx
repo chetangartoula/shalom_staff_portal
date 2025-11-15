@@ -42,6 +42,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 
 interface CostRow {
@@ -128,7 +129,7 @@ export default function TrekCostingPage() {
 
        const initialExtraDetails = [
         { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-        { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0 }
+        { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
       ];
       setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     }
@@ -371,18 +372,36 @@ export default function TrekCostingPage() {
               ))}
             </TableBody>
           </Table>
-          <div className="flex justify-between items-center mt-4">
-            <Button onClick={() => addRow(sectionId)}>
+          <div className="mt-6 flex items-start justify-between">
+            <Button onClick={() => addRow(sectionId)} variant="outline">
               <Plus className="mr-2 h-4 w-4" /> Add Row
             </Button>
-            <div className="flex items-center gap-4">
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <Label htmlFor={`discount-${sectionId}`}>Discount</Label>
-                  <Input type="number" id={`discount-${sectionId}`} value={section.discount} onChange={e => handleDiscountChange(sectionId, Number(e.target.value))} className="w-32" />
+            <div className="w-full max-w-xs space-y-4">
+                <div className="grid grid-cols-2 items-center gap-4">
+                  <Label htmlFor={`discount-${sectionId}`} className="text-right">Discount</Label>
+                  <Input 
+                    type="number" 
+                    id={`discount-${sectionId}`} 
+                    value={section.discount} 
+                    onChange={e => handleDiscountChange(sectionId, Number(e.target.value))} 
+                    className="w-full"
+                    placeholder="0.00"
+                  />
                 </div>
-                <div className="text-right">
-                    <p className="text-muted-foreground">Subtotal: {formatCurrency(subtotal)}</p>
-                    <p className="font-bold">Total: {formatCurrency(total)}</p>
+                <Separator />
+                <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>{formatCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Discount</span>
+                        <span className="text-destructive">- {formatCurrency(section.discount)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-base">
+                        <span>Total</span>
+                        <span>{formatCurrency(total)}</span>
+                    </div>
                 </div>
             </div>
           </div>
