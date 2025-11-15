@@ -34,7 +34,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Stepper } from "@/components/ui/stepper";
 import { DatePicker } from "@/components/ui/date-picker";
-import { treks, services, Trek } from "@/lib/mock-data";
+import { treks, services } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   Dialog,
@@ -474,7 +474,7 @@ export default function TrekCostingPage() {
      XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
      toast({ title: "Success", description: "Excel file has been exported." });
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
+    permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
   ]);
 
 
@@ -708,7 +708,7 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-gray-50/50 font-body">
+      <div className="flex flex-col min-h-screen bg-gray-50/50">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
             <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
         </header>

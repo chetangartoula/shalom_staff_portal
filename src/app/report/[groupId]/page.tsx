@@ -7,8 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import React from "react";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -108,7 +106,7 @@ export default function ReportPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-gray-50/50 font-body">
+      <div className="flex flex-col min-h-screen bg-gray-50/50">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
           <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
         </header>
@@ -300,3 +298,5 @@ export default function ReportPage() {
     </>
   );
 }
+
+    
