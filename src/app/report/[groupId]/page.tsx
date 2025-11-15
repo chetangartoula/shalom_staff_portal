@@ -53,6 +53,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export default function ReportPage({ params }: { params: { groupId: string } }) {
+  const { groupId } = params;
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
@@ -102,7 +103,7 @@ export default function ReportPage({ params }: { params: { groupId: string } }) 
                 <CardTitle>Traveler Details</CardTitle>
                 <CardDescription>
                   Please fill out the details for each member of the group.
-                  Group ID: {params.groupId}
+                  Group ID: {groupId}
                 </CardDescription>
               </CardHeader>
               <CardContent>
