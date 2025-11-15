@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Trash2, FileDown, ArrowLeft, ArrowRight, Save, Upload, Download, Moon, PlusSquare, Mountain, X, Edit } from "lucide-react";
+import { Plus, Trash2, FileDown, PlusSquare, Mountain, Edit } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -115,7 +115,7 @@ export default function TrekCostingPage() {
         times: 1,
         total: permit.rate * groupSize,
       }));
-      setPermitsState(prev => ({...prev, rows: initialPermits}));
+      setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
 
       const initialServices = services.map((service) => ({
         id: uuidv4(),
@@ -286,17 +286,152 @@ export default function TrekCostingPage() {
       setCurrentStep(currentStep - 1);
     }
   };
+
+  const handleSave = () => {
+    const allData = {
+      trek: selectedTrek,
+      groupSize,
+      startDate,
+      permits: permitsState,
+      services: servicesState,
+      extraDetails: extraDetailsState,
+      customSections,
+      totals: {
+        permitsTotal: permitsTotals.total,
+        servicesTotal: servicesTotals.total,
+        extraDetailsTotal: extraDetailsTotals.total,
+        customSectionsTotals: customSectionsTotals.map(s => ({name: s.name, total: s.total})),
+        grandTotal: totalCost
+      }
+    };
+    
+    console.log("Saving data (mock API call):", JSON.stringify(allData, null, 2));
+
+    toast({
+      title: "Data Saved",
+      description: "Your trek costing details have been saved (mock).",
+    });
+  };
   
   const handleExportPDF = useCallback(async () => {
-    // PDF export logic will need to be updated to include discounts
+    const doc = new jsPDF();
+    const groupId = uuidv4();
+    const qrCodeDataUrl = await QRCode.toDataURL(`https://example.com/report/${groupId}`);
+    
+    const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+    let yPos = 45;
+
+    // Header
+    doc.setFontSize(22);
+    doc.text("Cost Calculation Report", 14, 22);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Group ID: ${groupId}`, 14, 30);
+    doc.addImage(qrCodeDataUrl, 'PNG', 150, 15, 45, 45);
+
+    allSections.forEach(section => {
+      if(section.rows.length === 0 && section.discount === 0) return;
+
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.name, 14, yPos);
+      yPos += 10;
+      
+      const head = [['#', 'Description', 'Rate', 'No', 'Times', 'Total']];
+      const body = section.rows.map((row, i) => [
+          i + 1,
+          row.description,
+          formatCurrency(row.rate),
+          row.no,
+          row.times,
+          formatCurrency(row.total)
+      ]);
+      const {subtotal, total} = calculateSectionTotals(section);
+
+      body.push(['', 'Subtotal', '', '', '', formatCurrency(subtotal)]);
+      if (section.discount > 0) {
+        body.push(['', 'Discount', '', '', '', `- ${formatCurrency(section.discount)}`]);
+      }
+      body.push(['', 'Total', '', '', '', formatCurrency(total)]);
+
+      doc.autoTable({
+          startY: yPos,
+          head: head,
+          body: body,
+          theme: 'striped',
+          headStyles: { fillColor: [21, 29, 79] }, // #151D4F
+          didDrawPage: (data) => {
+              yPos = data.cursor?.y || yPos;
+          }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 15;
+    });
+
+    // Final Summary
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Summary", 14, yPos);
+    yPos += 10;
+
+    const summaryData = [
+      ['Permits Total', formatCurrency(permitsTotals.total)],
+      ['Services Total', formatCurrency(servicesTotals.total)],
+      ...customSectionsTotals.map(s => [`${s.name} Total`, formatCurrency(s.total)]),
+      ['Extra Details Total', formatCurrency(extraDetailsTotals.total)],
+      ['Grand Total', formatCurrency(totalCost)]
+    ];
+    
+    doc.autoTable({
+        startY: yPos,
+        body: summaryData,
+        theme: 'plain'
+    });
+
+    doc.save(`cost-report-${groupId.substring(0,8)}.pdf`);
+    toast({ title: "Success", description: "PDF has been exported." });
+
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
   ]);
   
   const handleExportExcel = useCallback(() => {
-     // Excel export logic will need to be updated to include discounts
+     const wb = XLSX.utils.book_new();
+     
+     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+
+     allSections.forEach(section => {
+       if (section.rows.length === 0 && section.discount === 0) return;
+       const {subtotal, total} = calculateSectionTotals(section);
+       const wsData = section.rows.map(row => ({
+         Description: row.description,
+         Rate: row.rate,
+         No: row.no,
+         Times: row.times,
+         Total: row.total,
+       }));
+       wsData.push({Description: 'Subtotal', Rate: '', No: '', Times: '', Total: subtotal});
+       if(section.discount > 0) {
+         wsData.push({Description: 'Discount', Rate: '', No: '', Times: '', Total: -section.discount});
+       }
+       wsData.push({Description: 'Total', Rate: '', No: '', Times: '', Total: total});
+       const ws = XLSX.utils.json_to_sheet(wsData);
+       XLSX.utils.book_append_sheet(wb, ws, section.name.substring(0, 31));
+     });
+     
+     const summaryWsData = [
+        { Item: 'Permits Total', Amount: permitsTotals.total },
+        { Item: 'Services Total', Amount: servicesTotals.total },
+        ...customSectionsTotals.map(s => ({ Item: `${s.name} Total`, Amount: s.total })),
+        { Item: 'Extra Details Total', Amount: extraDetailsTotals.total },
+        { Item: 'Grand Total', Amount: totalCost },
+     ];
+     const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
+     XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+
+     XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
+     toast({ title: "Success", description: "Excel file has been exported." });
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, permitsTotals, servicesTotals, customSectionsTotals, extraDetailsTotals, totalCost
   ]);
 
 
@@ -504,8 +639,8 @@ export default function TrekCostingPage() {
                <div className="flex justify-between text-xl font-bold text-primary"><span>Final Cost:</span> <span>{formatCurrency(totalCost)}</span></div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
-               <Button onClick={handleExportPDF}><FileDown className="mr-2" /> Export PDF</Button>
-               <Button onClick={handleExportExcel}><FileDown className="mr-2" /> Export Excel</Button>
+               <Button onClick={handleExportPDF}><FileDown className="mr-2 h-4 w-4" /> Export PDF</Button>
+               <Button onClick={handleExportExcel}><FileDown className="mr-2 h-4 w-4" /> Export Excel</Button>
             </CardFooter>
           </Card>
       );
@@ -519,12 +654,6 @@ export default function TrekCostingPage() {
       <div className="flex flex-col h-screen bg-gray-50 font-body">
         <header className="flex items-center justify-between h-16 px-6 border-b bg-white">
             <h1 className="text-xl font-bold text-primary">CostMaster</h1>
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon"><Save className="h-5 w-5"/></Button>
-                <Button variant="ghost" size="icon"><Download className="h-5 w-5"/></Button>
-                <Button variant="ghost" size="icon"><Upload className="h-5 w-5"/></Button>
-                <Button variant="ghost" size="icon"><Moon className="h-5 w-5"/></Button>
-            </div>
         </header>
         <main className="flex-1 overflow-y-auto p-8">
             <div className="max-w-5xl mx-auto">
@@ -565,9 +694,15 @@ export default function TrekCostingPage() {
                   <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
                      Previous
                   </Button>
-                  <Button onClick={nextStep} disabled={currentStep === steps.length - 1}>
-                    Next
-                  </Button>
+                  {currentStep === steps.length - 1 ? (
+                     <Button onClick={handleSave}>
+                        Save
+                     </Button>
+                  ) : (
+                     <Button onClick={nextStep}>
+                        Next
+                     </Button>
+                  )}
                 </div>
             </div>
         </main>
@@ -576,5 +711,7 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
 
     
