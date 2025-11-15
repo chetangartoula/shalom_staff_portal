@@ -689,7 +689,7 @@ export default function TrekCostingPage() {
     <>
       <div className="flex flex-col min-h-screen bg-gray-50/50 font-body">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
-            <h1 className="text-xl font-bold text-primary">CostMaster</h1>
+            <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
