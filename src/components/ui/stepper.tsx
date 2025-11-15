@@ -21,7 +21,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
     <nav aria-label="Progress" className="w-full">
       <ol role="list" className="flex items-center">
         {steps.map((step, stepIdx) => (
-          <li key={step.id} className={cn("relative flex items-center pr-8 sm:pr-20", {'sm:pr-8': stepIdx === steps.length - 1})}>
+          <li key={step.id} className={cn("relative flex items-center", { "pr-8 sm:pr-12": stepIdx !== steps.length - 1 })}>
              <button
               onClick={() => setCurrentStep(stepIdx)}
               className={cn("group flex flex-col items-center text-center space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 transition-all",
@@ -55,3 +55,5 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
     </nav>
   );
 }
+
+    
