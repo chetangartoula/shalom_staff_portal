@@ -399,8 +399,11 @@ export default function TrekCostingPage() {
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
     const sectionsToExport = allSections.map(section => ({
         ...section,
-        rows: section.rows.filter(row => row.total > 0)
-    })).filter(section => section.rows.length > 0);
+        rows: section.rows.filter(row => row.total !== 0)
+    })).filter(section => {
+        const { total } = calculateSectionTotals(section);
+        return section.rows.length > 0 && total !== 0;
+    });
 
     let yPos = 0;
     const pageTopMargin = 15;
@@ -522,8 +525,11 @@ export default function TrekCostingPage() {
      const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
      const sectionsToExport = allSections.map(section => ({
         ...section,
-        rows: section.rows.filter(row => row.total > 0)
-     })).filter(section => section.rows.length > 0);
+        rows: section.rows.filter(row => row.total !== 0)
+     })).filter(section => {
+       const { total } = calculateSectionTotals(section);
+       return section.rows.length > 0 && total !== 0;
+     });
 
 
      sectionsToExport.forEach(section => {

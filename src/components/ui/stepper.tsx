@@ -39,7 +39,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                         : "bg-gray-100 text-gray-600 border-gray-300 group-hover:bg-gray-200 group-hover:border-gray-400"
                     )}
                 >
-                    {stepIdx < currentStep ? <Check className="h-6 w-6" /> : step.isCustom ? "..." : stepIdx + 1}
+                    {stepIdx < currentStep ? <Check className="h-6 w-6" /> : step.isCustom ? "..." : step.id.padStart(2, '0')}
                 </span>
                 <span className={cn(
                     "text-xs sm:text-sm font-medium transition-colors text-center max-w-20 truncate",
