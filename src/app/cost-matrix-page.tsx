@@ -407,7 +407,7 @@ export default function TrekCostingPage() {
     <>
       <div className="flex flex-col h-screen bg-gray-50 font-body">
         <header className="flex items-center justify-between h-16 px-6 border-b bg-white">
-            <h1 className="text-xl font-bold">CostMaster</h1>
+            <h1 className="text-xl font-bold text-primary">CostMaster</h1>
             <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon"><Save className="h-5 w-5"/></Button>
                 <Button variant="ghost" size="icon"><Download className="h-5 w-5"/></Button>
