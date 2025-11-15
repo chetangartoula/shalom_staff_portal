@@ -117,13 +117,19 @@ export function useCostMatrix() {
     return customSections.find(s => s.id === sectionId);
   };
 
-  const setSectionState = (sectionId: string, newState: Partial<SectionState>) => {
-    const updater = (prev: SectionState) => ({...prev, ...newState});
+  const setSectionState = (sectionId: string, newState: Partial<SectionState> | ((prevState: SectionState) => SectionState)) => {
+    const updater = (prev: SectionState): SectionState => {
+        if (typeof newState === 'function') {
+            return newState(prev);
+        }
+        return { ...prev, ...newState };
+    };
+
     if (sectionId === "permits") setPermitsState(updater);
     else if (sectionId === "services") setServicesState(updater);
     else if (sectionId === "extraDetails") setExtraDetailsState(updater);
     else {
-      setCustomSections(prev => prev.map(s => s.id === sectionId ? {...s, ...newState} : s));
+        setCustomSections(prev => prev.map(s => s.id === sectionId ? updater(s) : s));
     }
   };
 
@@ -150,15 +156,11 @@ export function useCostMatrix() {
 
   const addRow = (sectionId: string) => {
     const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
-    const section = getSectionState(sectionId);
-    if (!section) return;
-    setSectionState(sectionId, { rows: [...section.rows, newRow] });
+    setSectionState(sectionId, (prev) => ({...prev, rows: [...prev.rows, newRow]}));
   };
 
   const removeRow = (id: string, sectionId: string) => {
-    const section = getSectionState(sectionId);
-    if (!section) return;
-    setSectionState(sectionId, { rows: section.rows.filter((row) => row.id !== id) });
+    setSectionState(sectionId, (prev) => ({...prev, rows: prev.rows.filter((row) => row.id !== id)}));
   };
 
   const calculateSectionTotals = useCallback((section: SectionState) => {

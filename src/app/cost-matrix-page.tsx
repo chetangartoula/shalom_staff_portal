@@ -61,6 +61,10 @@ export default function TrekCostingPage() {
     handleCopyToClipboard,
     handleExportPDF,
     handleExportExcel,
+    permitsTotals,
+    servicesTotals,
+    customSectionsTotals,
+    totalCost
   } = useCostMatrix();
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
@@ -256,9 +260,13 @@ export default function TrekCostingPage() {
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onEditSection={handleOpenEditSectionModal}
-            onRemoveSection={onRemoveSection}
+            onRemoveSection={removeSection}
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
+            permitsTotal={permitsTotals.total}
+            servicesTotal={servicesTotals.total}
+            customSectionsTotals={customSectionsTotals}
+            totalCost={totalCost}
           />
       );
     }

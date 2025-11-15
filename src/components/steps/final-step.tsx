@@ -1,6 +1,4 @@
-
 import { FileDown } from "lucide-react";
-import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +23,10 @@ interface FinalStepProps {
     onRemoveSection: (sectionId: string) => void;
     onExportPDF: () => void;
     onExportExcel: () => void;
+    permitsTotal: number;
+    servicesTotal: number;
+    customSectionsTotals: any[];
+    totalCost: number;
 }
 
 export function FinalStep({
@@ -37,14 +39,11 @@ export function FinalStep({
     onRemoveSection,
     onExportPDF,
     onExportExcel,
+    permitsTotal,
+    servicesTotal,
+    customSectionsTotals,
+    totalCost
 }: FinalStepProps) {
-
-    // This is a simplified calculation for display. 
-    // The main total logic remains in the parent useCostMatrix hook.
-    const permitsTotal = 0; // Replace with actual prop if needed
-    const servicesTotal = 0; // Replace with actual prop if needed
-    const customSectionsTotals: any[] = []; // Replace with actual prop if needed
-    const totalCost = 0; // Replace with actual prop if needed
 
     return (
         <Card>
