@@ -7,6 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import React from "react";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const travelerSchema = z.object({
   id: z.string(),
@@ -44,6 +47,11 @@ const travelerSchema = z.object({
   address: z.string().min(1, "Address is required"),
   passportNumber: z.string().min(1, "Passport number is required"),
   emergencyContact: z.string().min(1, "Emergency contact is required"),
+  dateOfBirth: z.date().optional(),
+  nationality: z.string().optional(),
+  passportExpiryDate: z.date().optional(),
+  passportPhoto: z.any().optional(),
+  visaPhoto: z.any().optional(),
 });
 
 const formSchema = z.object({
@@ -67,6 +75,11 @@ export default function ReportPage() {
       address: "",
       passportNumber: "",
       emergencyContact: "",
+      dateOfBirth: undefined,
+      nationality: "",
+      passportExpiryDate: undefined,
+      passportPhoto: undefined,
+      visaPhoto: undefined
     })),
     [groupSize]
   );
@@ -84,6 +97,8 @@ export default function ReportPage() {
   });
 
   const onSubmit = (data: FormData) => {
+    // Note: In a real app, you would handle file uploads here.
+    // For now, we just log the data.
     console.log("Submitting data (mock API call):", JSON.stringify(data, null, 2));
     toast({
       title: "Details Submitted",
@@ -144,20 +159,76 @@ export default function ReportPage() {
                                     </FormItem>
                                 )}
                                 />
-                                <FormField
+                               <FormField
                                 control={form.control}
-                                name={`travelers.${index}.passportNumber`}
+                                name={`travelers.${index}.dateOfBirth`}
                                 render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Passport Number</FormLabel>
+                                  <FormItem>
+                                    <FormLabel>Date of Birth</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="A12345678" {...field} />
+                                      <DatePicker date={field.value} setDate={field.onChange} />
                                     </FormControl>
                                     <FormMessage />
-                                    </FormItem>
+                                  </FormItem>
                                 )}
+                              />
+                            </div>
+                             <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`travelers.${index}.passportNumber`}
+                                  render={({ field }) => (
+                                      <FormItem>
+                                      <FormLabel>Passport Number</FormLabel>
+                                      <FormControl>
+                                          <Input placeholder="A12345678" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                      </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`travelers.${index}.passportExpiryDate`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Passport Expiry Date</FormLabel>
+                                       <FormControl>
+                                         <DatePicker date={field.value} setDate={field.onChange} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
                                 />
                             </div>
+                             <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`travelers.${index}.nationality`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Nationality</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="American" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`travelers.${index}.emergencyContact`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Emergency Contact Number</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="+1 987 654 3210" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                             </div>
                             <FormField
                               control={form.control}
                               name={`travelers.${index}.address`}
@@ -174,19 +245,43 @@ export default function ReportPage() {
                                 </FormItem>
                               )}
                             />
-                            <FormField
-                              control={form.control}
-                              name={`travelers.${index}.emergencyContact`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Emergency Contact Number</FormLabel>
-                                  <FormControl>
-                                    <Input placeholder="+1 987 654 3210" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name={`travelers.${index}.passportPhoto`}
+                                    render={({ field: { onChange, value, ...rest } }) => (
+                                        <FormItem>
+                                        <FormLabel>Passport Photo</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="file" 
+                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                                {...rest} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name={`travelers.${index}.visaPhoto`}
+                                    render={({ field: { onChange, value, ...rest } }) => (
+                                        <FormItem>
+                                        <FormLabel>Visa Photo</FormLabel>
+                                        <FormControl>
+                                             <Input 
+                                                type="file" 
+                                                onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                                                {...rest} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                           </AccordionContent>
                         </AccordionItem>
                       ))}
