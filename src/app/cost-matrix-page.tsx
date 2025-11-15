@@ -54,6 +54,7 @@ import { Separator } from "@/components/ui/separator";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/auth-context";
+import { Sidebar } from "@/components/ui/sidebar";
 
 
 interface CostRow {
@@ -889,96 +890,100 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-gray-50/50">
-        <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
-            <h1 className="text-xl font-bold text-primary">Shalom Dashboard</h1>
-            <div className="flex items-center gap-2">
-              <Dialog open={isAddTripModalOpen} onOpenChange={setIsAddTripModalOpen}>
-                <DialogTrigger asChild>
-                  <Button>Add trips</Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-lg">
-                  <Form {...addTrekForm}>
-                    <form onSubmit={addTrekForm.handleSubmit(handleAddTrekSubmit)}>
-                      <DialogHeader>
-                        <DialogTitle>Add a New Trek</DialogTitle>
-                        <DialogDescription>
-                          Fill in the details below to add a new trekking route.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <FormField
-                          control={addTrekForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Trek Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="e.g., Annapurna Base Camp" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addTrekForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="A brief description of the trek." {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <Sidebar />
+        <div className="flex flex-col">
+          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <div className="w-full flex-1">
+              {/* Can add search or other header elements here */}
+            </div>
+            <Dialog open={isAddTripModalOpen} onOpenChange={setIsAddTripModalOpen}>
+              <DialogTrigger asChild>
+                <Button>Add trips</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <Form {...addTrekForm}>
+                  <form onSubmit={addTrekForm.handleSubmit(handleAddTrekSubmit)}>
+                    <DialogHeader>
+                      <DialogTitle>Add a New Trek</DialogTitle>
+                      <DialogDescription>
+                        Fill in the details below to add a new trekking route.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <FormField
+                        control={addTrekForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Trek Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Annapurna Base Camp" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addTrekForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="A brief description of the trek." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                        <div>
-                          <Label className="text-sm font-medium">Permits</Label>
-                          <div className="mt-2 space-y-3">
-                            {permitFields.map((field, index) => (
-                              <div key={field.id} className="flex items-start gap-3 p-3 border rounded-md bg-gray-50/50">
-                                <div className="grid grid-cols-2 gap-3 flex-1">
-                                  <FormField
-                                      control={addTrekForm.control}
-                                      name={`permits.${index}.name`}
-                                      render={({ field }) => (
-                                      <FormItem>
-                                          <FormLabel className="text-xs">Permit Name</FormLabel>
-                                          <FormControl>
-                                          <Input placeholder="e.g., ACAP" {...field} />
-                                          </FormControl>
-                                          <FormMessage />
-                                      </FormItem>
-                                      )}
-                                  />
-                                  <FormField
-                                      control={addTrekForm.control}
-                                      name={`permits.${index}.rate`}
-                                      render={({ field }) => (
-                                      <FormItem>
-                                          <FormLabel className="text-xs">Rate (USD)</FormLabel>
-                                          <FormControl>
-                                          <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))}/>
-                                          </FormControl>
-                                          <FormMessage />
-                                      </FormItem>
-                                      )}
-                                  />
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="mt-6 text-destructive hover:bg-destructive/10"
-                                  onClick={() => permitFields.length > 1 ? removePermit(index) : null}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                      <div>
+                        <Label className="text-sm font-medium">Permits</Label>
+                        <div className="mt-2 space-y-3 rounded-lg border p-3">
+                          {permitFields.map((field, index) => (
+                            <div key={field.id} className="flex items-start gap-3">
+                              <div className="grid grid-cols-2 gap-3 flex-1">
+                                <FormField
+                                    control={addTrekForm.control}
+                                    name={`permits.${index}.name`}
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Permit Name</FormLabel>
+                                        <FormControl>
+                                        <Input placeholder="e.g., ACAP" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={addTrekForm.control}
+                                    name={`permits.${index}.rate`}
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Rate (USD)</FormLabel>
+                                        <FormControl>
+                                        <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))}/>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
                               </div>
-                            ))}
-                          </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="mt-6 text-destructive hover:bg-destructive/10"
+                                disabled={permitFields.length <= 1}
+                                onClick={() => removePermit(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        
                           <Button
                               type="button"
                               variant="outline"
@@ -987,99 +992,104 @@ export default function TrekCostingPage() {
                               onClick={() => appendPermit({ name: "", rate: 0 })}
                             >
                             <Plus className="mr-2 h-4 w-4"/> Add Permit
-                            </Button>
+                          </Button>
                         </div>
-
                       </div>
-                      <DialogFooter>
-                        <Button type="submit" disabled={addTrekForm.formState.isSubmitting}>
-                          {addTrekForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save Trek
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
-            </div>
-        </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="max-w-6xl mx-auto">
-                <div className="mb-8 md:mb-12">
-                   <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
-                    <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
-                      <Stepper
-                        steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
-                        currentStep={currentStep}
-                        setCurrentStep={setCurrentStep}
-                      />
-                    </div>
-                    <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
-                      <DialogTrigger asChild>
-                          <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
-                              <PlusSquare className="mr-2 h-4 w-4"/> Add Section
-                          </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                          <DialogHeader>
-                              <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
-                          </DialogHeader>
-                          <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                  <Label htmlFor="section-name" className="text-right">Name</Label>
-                                  <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
-                              </div>
-                          </div>
-                          <DialogFooter>
-                              <Button onClick={handleSaveSection}>Save</Button>
-                          </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                
-                <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-sm">
-                  {renderStepContent()}
-                </div>
 
-                <div className="mt-8 flex justify-between items-center">
-                  <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
-                     Previous
-                  </Button>
-                  
-                  <div className="flex items-center gap-4">
-                    {savedReportUrl && (
-                       <div className="flex items-center gap-2 text-sm p-2 border rounded-md bg-gray-100">
-                          <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate" title={savedReportUrl}>
-                            {savedReportUrl}
-                          </Link>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleCopyToClipboard}>
-                            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                          </Button>
-                       </div>
-                    )}
-                    {currentStep === steps.length - 1 ? (
-                       <Button onClick={handleSave}>
-                          Save
-                       </Button>
-                    ) : (
-                       <Button onClick={nextStep}>
-                          Next
-                       </Button>
-                    )}
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={addTrekForm.formState.isSubmitting}>
+                        {addTrekForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Trek
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+              <div className="flex items-center">
+                  <h1 className="text-lg font-semibold md:text-2xl">Trek Cost Calculator</h1>
+              </div>
+              <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 md:p-0">
+                  <div className="w-full">
+                      <div className="mb-8 md:mb-12">
+                        <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
+                          <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
+                            <Stepper
+                              steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
+                              currentStep={currentStep}
+                              setCurrentStep={setCurrentStep}
+                            />
+                          </div>
+                          <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
+                                    <PlusSquare className="mr-2 h-4 w-4"/> Add Section
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="section-name" className="text-right">Name</Label>
+                                        <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button onClick={handleSaveSection}>Save</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </div>
+                      
+                      <div className="p-0 sm:p-6 md:p-8 md:pt-0 rounded-lg">
+                        {renderStepContent()}
+                      </div>
+
+                      <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8">
+                        <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
+                          Previous
+                        </Button>
+                        
+                        <div className="flex items-center gap-4">
+                          {savedReportUrl && (
+                            <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
+                                <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                                  {savedReportUrl}
+                                </Link>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
+                                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                          )}
+                          {currentStep === steps.length - 1 ? (
+                            <Button onClick={handleSave}>
+                                Save
+                            </Button>
+                          ) : (
+                            <Button onClick={nextStep}>
+                                Next
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                   </div>
-                </div>
-            </div>
-        </main>
+              </div>
+          </main>
+        </div>
       </div>
       <Toaster />
     </>
   );
 }
 
-    
     
