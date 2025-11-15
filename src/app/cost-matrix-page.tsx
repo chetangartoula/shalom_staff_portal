@@ -330,7 +330,7 @@ export default function TrekCostingPage() {
     doc.setTextColor(100);
     doc.text(`Group ID: ${groupId}`, 14, yPos);
     doc.addImage(qrCodeDataUrl, 'PNG', 150, 15, 45, 45);
-    yPos += 8;
+    yPos = 65; // give space for qr code
 
     // Group Details
     doc.setFontSize(12);
@@ -529,19 +529,19 @@ export default function TrekCostingPage() {
               ))}
             </TableBody>
           </Table>
-          <div className="mt-6 flex items-start justify-between">
+          <div className="mt-6 flex flex-col md:flex-row items-start justify-between gap-6">
             <Button onClick={() => addRow(sectionId)} variant="outline">
               <Plus className="mr-2 h-4 w-4" /> Add Row
             </Button>
-            <div className="w-full max-w-xs space-y-4">
-                <div className="grid grid-cols-2 items-center gap-4">
-                  <Label htmlFor={`discount-${sectionId}`} className="text-right">Discount</Label>
+            <div className="w-full md:w-auto md:min-w-64 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <Label htmlFor={`discount-${sectionId}`} className="shrink-0">Discount</Label>
                   <Input 
                     type="number" 
                     id={`discount-${sectionId}`} 
                     value={section.discount} 
                     onChange={e => handleDiscountChange(sectionId, Number(e.target.value))} 
-                    className="w-full"
+                    className="w-full max-w-32"
                     placeholder="0.00"
                   />
                 </div>
@@ -575,12 +575,12 @@ export default function TrekCostingPage() {
         <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight">Choose Your Adventure</h2>
             <p className="mt-2 text-muted-foreground">Select a trek to begin calculating your costs.</p>
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {treks.map((trek) => (
                 <Card 
                   key={trek.id} 
                   className={cn(
-                    "cursor-pointer text-left hover:shadow-lg transition-shadow",
+                    "cursor-pointer text-left hover:shadow-lg transition-all duration-300",
                     selectedTrekId === trek.id && "border-primary ring-2 ring-primary"
                   )}
                   onClick={() => setSelectedTrekId(trek.id)}
@@ -650,7 +650,7 @@ export default function TrekCostingPage() {
               <CardDescription>Review your trek costs.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6 rounded-lg border p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-lg border p-4">
                   <div>
                     <h3 className="font-semibold text-muted-foreground">PERMITS TOTAL</h3>
                     <p className="text-2xl font-bold">{formatCurrency(permitsTotals.total)}</p>
@@ -687,13 +687,13 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-gray-50 font-body">
-        <header className="flex items-center justify-between h-16 px-6 border-b bg-white">
+      <div className="flex flex-col min-h-screen bg-gray-50/50 font-body">
+        <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
             <h1 className="text-xl font-bold text-primary">CostMaster</h1>
         </header>
-        <main className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-5xl mx-auto">
-                <div className="flex items-center justify-center mb-12">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-8 md:mb-12">
                   <Stepper
                     steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                     currentStep={currentStep}
@@ -701,7 +701,7 @@ export default function TrekCostingPage() {
                   />
                   <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                     <DialogTrigger asChild>
-                         <Button variant="outline" className="ml-8 border-dashed" onClick={handleOpenAddSectionModal}>
+                         <Button variant="outline" className="border-dashed" onClick={handleOpenAddSectionModal}>
                             <PlusSquare className="mr-2 h-4 w-4"/> Add Section
                         </Button>
                     </DialogTrigger>
@@ -722,7 +722,7 @@ export default function TrekCostingPage() {
                   </Dialog>
                 </div>
                 
-                <div className="bg-white p-8 rounded-lg shadow-sm">
+                <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-sm">
                   {renderStepContent()}
                 </div>
 
@@ -747,9 +747,5 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    
-
-    
 
     
