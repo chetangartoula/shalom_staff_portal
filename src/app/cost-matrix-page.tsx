@@ -319,7 +319,7 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(`https://example.com/report/${groupId}`);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-    let yPos = 45;
+    let yPos = 65; // Increased yPos for more space below header
 
     // Header
     doc.setFontSize(22);
@@ -627,16 +627,32 @@ export default function TrekCostingPage() {
               <CardTitle>Cost Summary</CardTitle>
               <CardDescription>Review your trek costs.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-               <div className="flex justify-between"><span>Permits Total:</span> <span>{formatCurrency(permitsTotals.total)}</span></div>
-               <div className="flex justify-between"><span>Services Total:</span> <span>{formatCurrency(servicesTotals.total)}</span></div>
-               {customSectionsTotals.map(sec => (
-                  <div key={sec.id} className="flex justify-between"><span>{sec.name} Total:</span> <span>{formatCurrency(sec.total)}</span></div>
-               ))}
-               <hr />
+            <CardContent className="space-y-6">
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="text-muted-foreground">Permits Total</TableCell>
+                    <TableCell className="text-right">{formatCurrency(permitsTotals.total)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="text-muted-foreground">Services Total</TableCell>
+                    <TableCell className="text-right">{formatCurrency(servicesTotals.total)}</TableCell>
+                  </TableRow>
+                  {customSectionsTotals.map(sec => (
+                    <TableRow key={sec.id}>
+                      <TableCell className="text-muted-foreground">{sec.name} Total</TableCell>
+                      <TableCell className="text-right">{formatCurrency(sec.total)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Separator />
                {renderCostTable("Extra Details", "extraDetails")}
-               <hr />
-               <div className="flex justify-between text-xl font-bold text-primary"><span>Final Cost:</span> <span>{formatCurrency(totalCost)}</span></div>
+               <Separator />
+               <div className="flex justify-between items-center text-xl font-bold text-primary p-4 bg-primary/5 rounded-lg">
+                  <span>Final Cost:</span> 
+                  <span>{formatCurrency(totalCost)}</span>
+               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
                <Button onClick={handleExportPDF}><FileDown className="mr-2 h-4 w-4" /> Export PDF</Button>
