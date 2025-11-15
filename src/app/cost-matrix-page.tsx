@@ -419,8 +419,13 @@ export default function TrekCostingPage() {
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Group ID: ${groupId}`, 14, yPos);
-    doc.addImage(qrCodeDataUrl, 'PNG', 150, 15, 45, 45);
-    yPos = 70;
+    
+    const qrCodeSize = 45;
+    const pageRightMargin = 14;
+    const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
+    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, 15, qrCodeSize, qrCodeSize);
+
+    yPos = 70; // Set yPos to start content below the header section
 
     // Group Details
     doc.setFontSize(12);
