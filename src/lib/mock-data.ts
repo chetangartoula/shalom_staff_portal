@@ -62,3 +62,5 @@ export const services: Service[] = [
     { name: 'porter insurance', rate: 20, times: 1 },
     { name: 'Hotel in kathmandu', rate: 0, times: 1 },
 ];
+
+    
