@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface Step {
   id: string;
   name: string;
+  isCustom?: boolean;
 }
 
 interface StepperProps {
@@ -34,7 +35,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                     : "bg-gray-200 text-gray-500"
                 )}
               >
-                {stepIdx < currentStep ? <Check className="h-5 w-5" /> : stepIdx + 1}
+                {stepIdx < currentStep ? <Check className="h-5 w-5" /> : step.isCustom ? "..." : stepIdx + 1}
               </span>
               <span className={cn(
                 "text-sm font-medium",
@@ -51,3 +52,5 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
     </nav>
   );
 }
+
+    

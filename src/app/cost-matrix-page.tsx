@@ -127,7 +127,7 @@ export default function TrekCostingPage() {
 
        const initialExtraDetails = [
         { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-        { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 1, total: 0 }
+        { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0 }
       ];
       setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     }
@@ -445,7 +445,7 @@ export default function TrekCostingPage() {
                       </div>
                 </CardContent>
             </Card>
-            {renderCostTable("Permits", "permits")}
+            {renderCostTable("Permits & Food Details", "permits")}
           </div>
         );
     }
@@ -506,7 +506,7 @@ export default function TrekCostingPage() {
             <div className="max-w-5xl mx-auto">
                 <div className="flex items-center justify-center mb-12">
                   <Stepper
-                    steps={steps.map(s => ({id: s.id, name: s.name}))}
+                    steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                     currentStep={currentStep}
                     setCurrentStep={setCurrentStep}
                   />
@@ -552,3 +552,5 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
