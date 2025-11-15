@@ -12,7 +12,11 @@ import {
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onAddTrekClick: () => void;
+}
+
+export function DashboardHeader({ onAddTrekClick }: DashboardHeaderProps) {
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
       <Sheet>
@@ -27,7 +31,7 @@ export function DashboardHeader() {
             <SheetTitle>Shalom Dashboard</SheetTitle>
           </SheetHeader>
           {/* We need to pass the click handlers to the sidebar in the mobile view */}
-          <Sidebar onAddTrekClick={() => {}} />
+          <Sidebar onAddTrekClick={onAddTrekClick} className="flex" />
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1">

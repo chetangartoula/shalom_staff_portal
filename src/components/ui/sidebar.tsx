@@ -38,21 +38,23 @@ export function Sidebar({ className, onAddTrekClick }: SidebarProps) {
                     <span className="">Shalom Dashboard</span>
                 </Link>
             </div>
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4 flex-1 py-4">
-                {navItems.map(item => (
-                    <Link
-                        key={item.label}
-                        href={item.href}
-                        className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                            pathname === item.href && "bg-muted text-primary"
-                        )}
-                    >
-                        <item.icon className="h-4 w-4" />
-                        {item.label}
-                    </Link>
-                ))}
-            </nav>
+            <div className="flex-1">
+                <nav className="grid items-start px-2 text-sm font-medium lg:px-4 py-4">
+                    {navItems.map(item => (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn(
+                                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                                pathname === item.href && "bg-muted text-primary"
+                            )}
+                        >
+                            <item.icon className="h-4 w-4" />
+                            {item.label}
+                        </Link>
+                    ))}
+                </nav>
+            </div>
             <div className="mt-auto p-4 space-y-2">
                 <Button variant="secondary" className="w-full" onClick={onAddTrekClick}>
                     <Plus className="mr-2 h-4 w-4"/>
