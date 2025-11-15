@@ -4,6 +4,7 @@ import TrekCostingPage from "./cost-matrix-page";
 import { useAuth } from "@/context/auth-context";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -18,7 +19,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }

@@ -15,25 +15,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { Mountain } from "lucide-react";
+import { Loader2, Mountain } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = () => {
+    setIsLoading(true);
     try {
-      login(username, password);
-      router.push("/");
+      // Simulate network delay
+      setTimeout(() => {
+        login(username, password);
+        router.push("/");
+      }, 500);
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Login Failed",
         description: error.message,
       });
+      setIsLoading(false);
     }
   };
 
@@ -61,6 +67,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -72,10 +79,12 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
-            <Button onClick={handleLogin} className="mt-6 w-full">
+            <Button onClick={handleLogin} className="mt-6 w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Login
             </Button>
           </CardContent>
