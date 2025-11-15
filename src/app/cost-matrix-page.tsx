@@ -693,8 +693,8 @@ export default function TrekCostingPage() {
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col sm:flex-row items-center sm:justify-center gap-4 sm:gap-8 mb-8 md:mb-12">
-                  <div className="w-full sm:w-auto overflow-x-auto sm:overflow-x-visible pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-4 mb-8 md:mb-12">
+                  <div className="w-full overflow-x-auto pb-4">
                     <Stepper
                       steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                       currentStep={currentStep}
@@ -749,7 +749,5 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    
 
     
