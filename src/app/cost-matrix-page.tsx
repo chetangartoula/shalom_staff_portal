@@ -714,7 +714,7 @@ export default function TrekCostingPage() {
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-8 md:mb-12">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-8 md:mb-12">
                   <div className="w-full md:w-auto overflow-x-auto pb-4 hide-scrollbar">
                     <Stepper
                       steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
