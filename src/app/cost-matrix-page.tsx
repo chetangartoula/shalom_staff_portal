@@ -8,6 +8,7 @@ import "jspdf-autotable";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -319,15 +320,36 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(`https://example.com/report/${groupId}`);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-    let yPos = 65; // Increased yPos for more space below header
+    let yPos = 22;
 
     // Header
     doc.setFontSize(22);
-    doc.text("Cost Calculation Report", 14, 22);
+    doc.text("Cost Calculation Report", 14, yPos);
+    yPos += 8;
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Group ID: ${groupId}`, 14, 30);
+    doc.text(`Group ID: ${groupId}`, 14, yPos);
     doc.addImage(qrCodeDataUrl, 'PNG', 150, 15, 45, 45);
+    yPos += 8;
+
+    // Group Details
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Group Details", 14, yPos);
+    yPos += 7;
+    doc.autoTable({
+        startY: yPos,
+        body: [
+            ['Trek Name', selectedTrek?.name || 'N/A'],
+            ['Group Size', groupSize.toString()],
+            ['Start Date', startDate ? format(startDate, 'PPP') : 'N/A'],
+        ],
+        theme: 'plain',
+        styles: { fontSize: 10 },
+        columnStyles: { 0: { fontStyle: 'bold' } }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
 
     allSections.forEach(section => {
       if(section.rows.length === 0 && section.discount === 0) return;
@@ -628,24 +650,22 @@ export default function TrekCostingPage() {
               <CardDescription>Review your trek costs.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="text-muted-foreground">Permits Total</TableCell>
-                    <TableCell className="text-right">{formatCurrency(permitsTotals.total)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="text-muted-foreground">Services Total</TableCell>
-                    <TableCell className="text-right">{formatCurrency(servicesTotals.total)}</TableCell>
-                  </TableRow>
+                <div className="grid grid-cols-2 gap-6 rounded-lg border p-4">
+                  <div>
+                    <h3 className="font-semibold text-muted-foreground">PERMITS TOTAL</h3>
+                    <p className="text-2xl font-bold">{formatCurrency(permitsTotals.total)}</p>
+                  </div>
+                   <div>
+                    <h3 className="font-semibold text-muted-foreground">SERVICES TOTAL</h3>
+                    <p className="text-2xl font-bold">{formatCurrency(servicesTotals.total)}</p>
+                  </div>
                   {customSectionsTotals.map(sec => (
-                    <TableRow key={sec.id}>
-                      <TableCell className="text-muted-foreground">{sec.name} Total</TableCell>
-                      <TableCell className="text-right">{formatCurrency(sec.total)}</TableCell>
-                    </TableRow>
+                     <div key={sec.id}>
+                        <h3 className="font-semibold text-muted-foreground uppercase">{sec.name} TOTAL</h3>
+                        <p className="text-2xl font-bold">{formatCurrency(sec.total)}</p>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
               <Separator />
                {renderCostTable("Extra Details", "extraDetails")}
                <Separator />
@@ -727,6 +747,8 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
 
     
 
