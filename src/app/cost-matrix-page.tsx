@@ -9,7 +9,7 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import Link from "next/link";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
@@ -38,14 +38,12 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Sidebar } from "@/components/ui/sidebar";
 import { CostTable } from "@/components/cost-table";
 import { DashboardHeader } from "@/components/dashboard-header";
+import { AddTrekForm, addTrekFormSchema, type AddTrekFormData } from "@/components/add-trek-form";
 
 
 export interface CostRow {
@@ -69,20 +67,6 @@ declare module "jspdf" {
     autoTable: (options: any) => jsPDF;
   }
 }
-
-const permitSchema = z.object({
-  name: z.string().min(1, "Permit name is required"),
-  rate: z.number().min(0, "Rate must be a positive number"),
-});
-
-const addTrekFormSchema = z.object({
-  name: z.string().min(1, "Trek name is required"),
-  description: z.string().min(1, "Description is required"),
-  permits: z.array(permitSchema).min(1, "At least one permit is required"),
-});
-
-type AddTrekFormData = z.infer<typeof addTrekFormSchema>;
-
 
 const initialSteps = [
   { id: "01", name: "Select Trek" },
@@ -119,19 +103,7 @@ export default function TrekCostingPage() {
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
-  const addTrekForm = useForm<AddTrekFormData>({
-    resolver: zodResolver(addTrekFormSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      permits: [{ name: "", rate: 0 }],
-    },
-  });
-
-  const { fields: permitFields, append: appendPermit, remove: removePermit } = useFieldArray({
-    control: addTrekForm.control,
-    name: "permits",
-  });
+  const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -320,8 +292,9 @@ export default function TrekCostingPage() {
         title: "Trek Added",
         description: `${data.name} has been added to the list.`,
       });
+
+      setIsAddTrekModalOpen(false);
       
-      addTrekForm.reset();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -806,9 +779,10 @@ export default function TrekCostingPage() {
   return (
     <>
       <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <Sidebar />
+        <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
+        <Sidebar onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
         <div className="flex flex-col">
-          <DashboardHeader onAddTrekSubmit={handleAddTrekSubmit} />
+          <DashboardHeader />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
               <div className="flex items-center">
                   <h1 className="text-lg font-semibold md:text-2xl">Trek Cost Calculator</h1>
