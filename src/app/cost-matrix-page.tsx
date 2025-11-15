@@ -10,6 +10,10 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import Link from "next/link";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +38,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Stepper } from "@/components/ui/stepper";
 import { DatePicker } from "@/components/ui/date-picker";
-import { treks, services } from "@/lib/mock-data";
+import { treks as initialTreks, services } from "@/lib/mock-data";
+import type { Trek } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   Dialog,
@@ -43,8 +48,11 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 
 
 interface CostRow {
@@ -69,6 +77,20 @@ declare module "jspdf" {
   }
 }
 
+const permitSchema = z.object({
+  name: z.string().min(1, "Permit name is required"),
+  rate: z.number().min(0, "Rate must be a positive number"),
+});
+
+const addTrekFormSchema = z.object({
+  name: z.string().min(1, "Trek name is required"),
+  description: z.string().min(1, "Description is required"),
+  permits: z.array(permitSchema).min(1, "At least one permit is required"),
+});
+
+type AddTrekFormData = z.infer<typeof addTrekFormSchema>;
+
+
 const initialSteps = [
   { id: "01", name: "Select Trek" },
   { id: "02", name: "Group Details" },
@@ -84,6 +106,7 @@ export default function TrekCostingPage() {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
+  const [treks, setTreks] = useState<Trek[]>(initialTreks);
   const [selectedTrekId, setSelectedTrekId] = useState<string | null>('manaslu');
   const [groupSize, setGroupSize] = useState<number>(1);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
@@ -94,16 +117,31 @@ export default function TrekCostingPage() {
   const [customSections, setCustomSections] = useState<SectionState[]>([]);
 
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [isAddTripModalOpen, setIsAddTripModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<SectionState | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
   
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
+  const addTrekForm = useForm<AddTrekFormData>({
+    resolver: zodResolver(addTrekFormSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      permits: [{ name: "", rate: 0 }],
+    },
+  });
+
+  const { fields: permitFields, append: appendPermit, remove: removePermit } = useFieldArray({
+    control: addTrekForm.control,
+    name: "permits",
+  });
+
 
   const selectedTrek = useMemo(
     () => treks.find((trek) => trek.id === selectedTrekId),
-    [selectedTrekId]
+    [selectedTrekId, treks]
   );
 
   useEffect(() => {
@@ -233,6 +271,25 @@ export default function TrekCostingPage() {
   const removeSection = (sectionId: string) => {
     setCustomSections(prev => prev.filter(s => s.id !== sectionId));
     setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
+  };
+
+  const handleAddTrekSubmit = (data: AddTrekFormData) => {
+    // Mock API call
+    console.log("New Trek Data:", data);
+    const newTrek: Trek = {
+      id: data.name.toLowerCase().replace(/\s+/g, '-'),
+      ...data,
+    };
+    
+    setTreks(prevTreks => [...prevTreks, newTrek]);
+    
+    toast({
+      title: "Trek Added",
+      description: `${data.name} has been added to the list.`,
+    });
+    
+    addTrekForm.reset();
+    setIsAddTripModalOpen(false);
   };
 
 
@@ -711,7 +768,111 @@ export default function TrekCostingPage() {
       <div className="flex flex-col min-h-screen bg-gray-50/50">
         <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
             <h1 className="text-xl font-bold text-primary">SHALOM-ADMIN</h1>
-            <Button>Add trips</Button>
+            <Dialog open={isAddTripModalOpen} onOpenChange={setIsAddTripModalOpen}>
+              <DialogTrigger asChild>
+                <Button>Add trips</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <Form {...addTrekForm}>
+                  <form onSubmit={addTrekForm.handleSubmit(handleAddTrekSubmit)}>
+                    <DialogHeader>
+                      <DialogTitle>Add a New Trek</DialogTitle>
+                      <DialogDescription>
+                        Fill in the details below to add a new trekking route.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <FormField
+                        control={addTrekForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Trek Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Annapurna Base Camp" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={addTrekForm.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="A brief description of the trek." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div>
+                        <Label className="text-sm font-medium">Permits</Label>
+                        <div className="mt-2 space-y-3">
+                          {permitFields.map((field, index) => (
+                            <div key={field.id} className="flex items-start gap-3 p-3 border rounded-md bg-gray-50/50">
+                              <div className="grid grid-cols-2 gap-3 flex-1">
+                                <FormField
+                                    control={addTrekForm.control}
+                                    name={`permits.${index}.name`}
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Permit Name</FormLabel>
+                                        <FormControl>
+                                        <Input placeholder="e.g., ACAP" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={addTrekForm.control}
+                                    name={`permits.${index}.rate`}
+                                    render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel className="text-xs">Rate (USD)</FormLabel>
+                                        <FormControl>
+                                        <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))}/>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="mt-6 text-destructive hover:bg-destructive/10"
+                                onClick={() => removePermit(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                         <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => appendPermit({ name: "", rate: 0 })}
+                          >
+                           <Plus className="mr-2 h-4 w-4"/> Add Permit
+                          </Button>
+                      </div>
+
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Save Trek</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
@@ -786,5 +947,3 @@ export default function TrekCostingPage() {
     </>
   );
 }
-
-    
