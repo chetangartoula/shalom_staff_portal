@@ -693,15 +693,17 @@ export default function TrekCostingPage() {
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-8 md:mb-12">
-                  <Stepper
-                    steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
-                    currentStep={currentStep}
-                    setCurrentStep={setCurrentStep}
-                  />
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-8 mb-8 md:mb-12">
+                  <div className="w-full sm:w-auto overflow-x-auto pb-4">
+                    <Stepper
+                      steps={steps.map((s, index) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
+                      currentStep={currentStep}
+                      setCurrentStep={setCurrentStep}
+                    />
+                  </div>
                   <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                     <DialogTrigger asChild>
-                         <Button variant="outline" className="border-dashed" onClick={handleOpenAddSectionModal}>
+                         <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
                             <PlusSquare className="mr-2 h-4 w-4"/> Add Section
                         </Button>
                     </DialogTrigger>
