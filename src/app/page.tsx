@@ -1,5 +1,5 @@
-import CostMatrixPage from './cost-matrix-page';
+import TrekCostingPage from "./trek-costing-page";
 
 export default function Home() {
-  return <CostMatrixPage />;
+  return <TrekCostingPage />;
 }

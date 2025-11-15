@@ -86,3 +86,11 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom styles for the stepper */
+.stepper-active {
+  @apply border-primary text-primary;
+}
+.stepper-completed {
+  @apply border-green-500 bg-green-500 text-white;
+}
