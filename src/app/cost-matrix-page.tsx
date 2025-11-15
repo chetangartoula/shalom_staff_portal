@@ -51,15 +51,6 @@ interface CostRow {
   total: number;
 }
 
-interface ExtraDetailsRow {
-  id: string;
-  description: string;
-  rate: number;
-  no: number;
-  times: number;
-  total: number;
-}
-
 declare module "jspdf" {
   interface jsPDF {
     autoTable: (options: any) => jsPDF;
@@ -71,6 +62,8 @@ const steps = [
   { id: "02", name: "Permits & Services", href: "#" },
   { id: "03", name: "Cost Summary", href: "#" },
 ];
+
+type Section = "permits" | "services" | "extraDetails";
 
 export default function TrekCostingPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -85,7 +78,7 @@ export default function TrekCostingPage() {
   // Step 2 State
   const [permitRows, setPermitRows] = useState<CostRow[]>([]);
   const [serviceRows, setServiceRows] = useState<CostRow[]>([]);
-  const [extraDetailsRows, setExtraDetailsRows] = useState<ExtraDetailsRow[]>([]);
+  const [extraDetailsRows, setExtraDetailsRows] = useState<CostRow[]>([]);
 
   const selectedTrek = useMemo(
     () => treks.find((trek) => trek.id === selectedTrekId),
@@ -127,33 +120,68 @@ export default function TrekCostingPage() {
   }, [selectedTrek, groupSize]);
 
 
+  const getSectionState = (section: Section) => {
+    switch (section) {
+      case "permits":
+        return permitRows;
+      case "services":
+        return serviceRows;
+      case "extraDetails":
+        return extraDetailsRows;
+    }
+  };
+
+  const setSectionState = (section: Section, rows: CostRow[]) => {
+    switch (section) {
+      case "permits":
+        setPermitRows(rows);
+        break;
+      case "services":
+        setServiceRows(rows);
+        break;
+      case "extraDetails":
+        setExtraDetailsRows(rows);
+        break;
+    }
+  };
+
   const handleRowChange = (
     id: string,
     field: keyof CostRow,
     value: any,
-    section: "permits" | "services" | "extraDetails"
+    section: Section
   ) => {
-    const updater = (prevRows: CostRow[] | ExtraDetailsRow[]) => {
-      return prevRows.map((row) => {
-        if (row.id === id) {
-          const newRow = { ...row, [field]: value };
-          if(field === 'no' || field === 'rate' || field === 'times') {
-            newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
-          }
-          return newRow;
+    const rows = getSectionState(section);
+    const updatedRows = rows.map((row) => {
+      if (row.id === id) {
+        const newRow = { ...row, [field]: value };
+        if (field === 'no' || field === 'rate' || field === 'times') {
+          newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
         }
-        return row;
-      });
-    };
-    if (section === "permits") {
-      setPermitRows(updater as any);
-    } else if (section === "services") {
-      setServiceRows(updater as any);
-    } else {
-      setExtraDetailsRows(updater as any);
-    }
+        return newRow;
+      }
+      return row;
+    });
+    setSectionState(section, updatedRows);
   };
 
+  const addRow = (section: Section) => {
+    const newRow: CostRow = {
+      id: uuidv4(),
+      description: "",
+      rate: 0,
+      no: 1,
+      times: 1,
+      total: 0,
+    };
+    const rows = getSectionState(section);
+    setSectionState(section, [...rows, newRow]);
+  };
+
+  const removeRow = (id: string, section: Section) => {
+    const rows = getSectionState(section);
+    setSectionState(section, rows.filter((row) => row.id !== id));
+  };
 
   const {
     permitsSubtotal,
@@ -246,7 +274,7 @@ export default function TrekCostingPage() {
             formatCurrency(row.total),
           ]),
           theme: 'grid',
-          headStyles: { fillColor: [60, 179, 113] },
+          headStyles: { fillColor: [212, 163, 46] },
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
         doc.text(`Permits Subtotal: ${formatCurrency(permitsSubtotal)}`, 14, yPos);
@@ -268,7 +296,7 @@ export default function TrekCostingPage() {
             formatCurrency(row.total),
           ]),
           theme: 'grid',
-          headStyles: { fillColor: [60, 179, 113] },
+          headStyles: { fillColor: [212, 163, 46] },
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
         doc.text(`Services Subtotal: ${formatCurrency(servicesSubtotal)}`, 14, yPos);
@@ -290,7 +318,7 @@ export default function TrekCostingPage() {
             formatCurrency(row.total),
           ]),
           theme: 'grid',
-          headStyles: { fillColor: [60, 179, 113] },
+          headStyles: { fillColor: [212, 163, 46] },
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
         doc.text(`Extra Details Subtotal: ${formatCurrency(extraDetailsSubtotal)}`, 14, yPos);
@@ -408,6 +436,69 @@ export default function TrekCostingPage() {
   if (!isClient) {
     return null;
   }
+
+  const renderCostTable = (title: string, section: Section) => {
+    const rows = getSectionState(section);
+    const isDescriptionEditable = section !== 'services' && section !== 'permits';
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-2/5">Description</TableHead>
+                <TableHead>Rate</TableHead>
+                <TableHead>No.</TableHead>
+                <TableHead>Times</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    {isDescriptionEditable ? (
+                      <Input
+                        type="text"
+                        value={row.description}
+                        onChange={(e) => handleRowChange(row.id, 'description', e.target.value, section)}
+                        className="w-full"
+                      />
+                    ) : (
+                      row.description
+                    )}
+                  </TableCell>
+                  <TableCell>
+                     <Input type="number" value={row.rate} onChange={e => handleRowChange(row.id, 'rate', Number(e.target.value), section)} className="w-24"/>
+                  </TableCell>
+                  <TableCell>
+                    <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), section)} className="w-20"/>
+                  </TableCell>
+                  <TableCell>
+                    <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), section)} className="w-20"/>
+                  </TableCell>
+                  <TableCell>{formatCurrency(row.total)}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => removeRow(row.id, section)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Button onClick={() => addRow(section)} className="mt-4">
+            <Plus className="mr-2 h-4 w-4" /> Add Row
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
   
   const renderStepContent = () => {
     switch (currentStep) {
@@ -456,111 +547,9 @@ export default function TrekCostingPage() {
       case 1:
         return (
           <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Permits</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>No.</TableHead>
-                      <TableHead>Times</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {permitRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell>{row.description}</TableCell>
-                        <TableCell>{formatCurrency(row.rate)}</TableCell>
-                        <TableCell>
-                          <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), 'permits')} className="w-20"/>
-                        </TableCell>
-                         <TableCell>
-                          <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), 'permits')} className="w-20"/>
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Services</CardTitle>
-                <CardDescription>Select the services you need.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>No.</TableHead>
-                      <TableHead>Times</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {serviceRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell>{row.description}</TableCell>
-                        <TableCell>{formatCurrency(row.rate)}</TableCell>
-                        <TableCell>
-                          <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), 'services')} className="w-20"/>
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), 'services')} className="w-20"/>
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-             <Card>
-              <CardHeader>
-                <CardTitle>Extra Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>No.</TableHead>
-                      <TableHead>Times</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {extraDetailsRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell>{row.description}</TableCell>
-                        <TableCell>
-                           <Input type="number" value={row.rate} onChange={e => handleRowChange(row.id, 'rate', Number(e.target.value), 'extraDetails')} className="w-24"/>
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" value={row.no} onChange={e => handleRowChange(row.id, 'no', Number(e.target.value), 'extraDetails')} className="w-20"/>
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" value={row.times} onChange={e => handleRowChange(row.id, 'times', Number(e.target.value), 'extraDetails')} className="w-20"/>
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
+            {renderCostTable("Permits", "permits")}
+            {renderCostTable("Services", "services")}
+            {renderCostTable("Extra Details", "extraDetails")}
           </div>
         );
       case 2:
