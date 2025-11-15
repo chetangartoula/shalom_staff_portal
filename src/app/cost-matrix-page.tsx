@@ -397,7 +397,10 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-    let yPos = 22;
+    let yPos = 0; // Start at top
+    const pageTopMargin = 15;
+    const pageLeftMargin = 14;
+    const pageRightMargin = 14;
 
     const addFooter = () => {
         const pageCount = doc.internal.getNumberOfPages();
@@ -407,30 +410,30 @@ export default function TrekCostingPage() {
             doc.setFontSize(8);
             doc.setTextColor(150);
             const footerText = `Prepared by Shalom Treks | © ${new Date().getFullYear()}`;
-            doc.text(footerText, 14, pageHeight - 10);
+            doc.text(footerText, pageLeftMargin, pageHeight - 10);
             doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
         }
     };
 
     // Header
     doc.setFontSize(22);
-    doc.text("Cost Calculation Report", 14, yPos);
-    yPos += 8;
+    doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Group ID: ${groupId}`, 14, yPos);
+    doc.text(`Group ID: ${groupId}`, pageLeftMargin, pageTopMargin + 15);
     
     const qrCodeSize = 45;
-    const pageRightMargin = 14;
     const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
-    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, 15, qrCodeSize, qrCodeSize);
+    const qrCodeY = pageTopMargin;
+    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, qrCodeY, qrCodeSize, qrCodeSize);
 
-    yPos = 70; // Set yPos to start content below the header section
+    // Set yPos to start content below the header section (whichever is taller)
+    yPos = Math.max(pageTopMargin + 25, qrCodeY + qrCodeSize) + 10;
 
     // Group Details
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Group Details", 14, yPos);
+    doc.text("Group Details", pageLeftMargin, yPos);
     yPos += 7;
     doc.autoTable({
         startY: yPos,
@@ -451,7 +454,7 @@ export default function TrekCostingPage() {
 
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text(section.name, 14, yPos);
+      doc.text(section.name, pageLeftMargin, yPos);
       yPos += 10;
       
       const head = [['#', 'Description', 'Rate', 'No', 'Times', 'Total']];
@@ -487,7 +490,7 @@ export default function TrekCostingPage() {
     // Final Summary
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Summary", 14, yPos);
+    doc.text("Summary", pageLeftMargin, yPos);
     yPos += 10;
 
     const summaryData = [
@@ -966,5 +969,7 @@ export default function TrekCostingPage() {
     </>
   );
 }
+
+    
 
     
