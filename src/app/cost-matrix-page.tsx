@@ -397,7 +397,10 @@ export default function TrekCostingPage() {
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-    const sectionsToExport = allSections.filter(section => calculateSectionTotals(section).total > 0);
+    const sectionsToExport = allSections.map(section => ({
+        ...section,
+        rows: section.rows.filter(row => row.total > 0)
+    })).filter(section => section.rows.length > 0);
 
     let yPos = 0;
     const pageTopMargin = 15;
@@ -517,7 +520,10 @@ export default function TrekCostingPage() {
      const wb = XLSX.utils.book_new();
      
      const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-     const sectionsToExport = allSections.filter(section => calculateSectionTotals(section).total > 0);
+     const sectionsToExport = allSections.map(section => ({
+        ...section,
+        rows: section.rows.filter(row => row.total > 0)
+     })).filter(section => section.rows.length > 0);
 
 
      sectionsToExport.forEach(section => {
