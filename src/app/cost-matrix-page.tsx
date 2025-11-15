@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -255,7 +256,7 @@ export default function TrekCostingPage() {
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onEditSection={handleOpenEditSectionModal}
-            onRemoveSection={removeSection}
+            onRemoveSection={onRemoveSection}
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
           />
