@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
@@ -72,7 +74,7 @@ export function DashboardHeader({ onAddTrekSubmit }: DashboardHeaderProps) {
 
   const handleFormSubmit = async (data: AddTrekFormData) => {
     await onAddTrekSubmit(data);
-    if (!addTrekForm.formState.isSubmitSuccessful) {
+    if (addTrekForm.formState.isSubmitSuccessful) {
         addTrekForm.reset();
         setIsAddTripModalOpen(false);
     }
@@ -88,8 +90,11 @@ export function DashboardHeader({ onAddTrekSubmit }: DashboardHeaderProps) {
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col">
-            <Sidebar />
+        <SheetContent side="left" className="flex flex-col p-0">
+          <SheetHeader className="p-6 pb-2">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+          </SheetHeader>
+          <Sidebar />
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1">
