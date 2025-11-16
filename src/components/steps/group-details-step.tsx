@@ -19,9 +19,9 @@ export function GroupDetailsStep({
 }: GroupDetailsStepProps) {
   return (
     <div className="space-y-8">
-      <Card>
-          <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
-          <CardContent className="grid md:grid-cols-2 gap-6">
+      <Card className="shadow-none border-none">
+          <CardHeader className="px-0"><CardTitle>Group Details</CardTitle></CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-6 p-0">
                <div className="grid gap-2">
                   <Label htmlFor="group-size">Group Size</Label>
                   <Input

@@ -1,3 +1,4 @@
+
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,12 +47,12 @@ export function FinalStep({
 }: FinalStepProps) {
 
     return (
-        <Card>
-            <CardHeader>
+        <div className="space-y-6">
+            <CardHeader className="px-0">
                 <CardTitle>Cost Summary</CardTitle>
                 <CardDescription>Review your trek costs.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-lg border p-4">
                     <div>
                         <h3 className="font-semibold text-muted-foreground">PERMITS TOTAL</h3>
@@ -87,10 +88,10 @@ export function FinalStep({
                     <span>{formatCurrency(totalCost)}</span>
                 </div>
             </CardContent>
-            <CardFooter className="flex-wrap justify-end gap-2">
+            <CardFooter className="flex-wrap justify-end gap-2 px-0">
                 <Button onClick={onExportPDF}><FileDown /> Export PDF</Button>
                 <Button onClick={onExportExcel}><FileDown /> Export Excel</Button>
             </CardFooter>
-        </Card>
+        </div>
     );
 }

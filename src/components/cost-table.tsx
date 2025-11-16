@@ -1,3 +1,4 @@
+
 import { Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,8 +56,8 @@ export function CostTable({
     const { subtotal, total } = calculateSectionTotals(section);
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="shadow-none border-none">
+            <CardHeader className="flex flex-row items-center justify-between px-0">
                 <CardTitle>{title}</CardTitle>
                 {isCustom && onEditSection && onRemoveSection && (
                     <div className="flex items-center gap-2">
@@ -69,7 +70,7 @@ export function CostTable({
                     </div>
                 )}
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>

@@ -15,6 +15,7 @@ import {
   DialogTrigger,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/toaster";
@@ -238,75 +239,77 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   return (
     <>
-      <div className="flex flex-1 flex-col">
-          <div className="w-full">
-              <div className="mb-8 md:mb-12">
-                <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
-                  <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
-                    <Stepper
-                      steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
-                      currentStep={currentStep}
-                      setCurrentStep={setCurrentStep}
-                    />
-                  </div>
-                  <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className="border-dashed shrink-0">
-                            <PlusSquare /> Add Section
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
-                            <DialogDescription>
-                              Create a new custom section to add more items to your cost calculation.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="section-name" className="text-right">Name</Label>
-                                <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
-                            </div>
+      <div className="w-full">
+          <div className="mb-8 md:mb-12">
+            <div className="overflow-x-auto pb-4 hide-scrollbar">
+              <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap min-w-max">
+                <div className="flex-grow md:flex-grow-0">
+                  <Stepper
+                    steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
+                    currentStep={currentStep}
+                    setCurrentStep={setCurrentStep}
+                  />
+                </div>
+                <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+                  <DialogTrigger asChild>
+                      <Button variant="outline" className="border-dashed shrink-0">
+                          <PlusSquare /> Add Section
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                        <DialogDescription>
+                          Create a new custom section to add more items to your cost calculation.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="section-name" className="text-right">Name</Label>
+                            <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
                         </div>
-                        <DialogFooter>
-                            <Button onClick={handleSaveSection}>Save Section</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-              
-              <div className="rounded-lg">
-                {renderStepContent()}
-              </div>
-
-              <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
-                <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
-                  Previous
-                </Button>
-                
-                <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
-                  {savedReportUrl && (
-                    <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
-                        <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
-                          {savedReportUrl}
-                        </Link>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
-                          {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                        </Button>
                     </div>
-                  )}
-                  {currentStep === steps.length - 1 ? (
-                    <Button onClick={() => handleSave()}>
-                        Save
-                    </Button>
-                  ) : (
-                    <Button onClick={nextStep}>
-                        Next
-                    </Button>
-                  )}
-                </div>
+                    <DialogFooter>
+                        <Button onClick={handleSaveSection}>Save Section</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
+            </div>
+          </div>
+          
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              {renderStepContent()}
+            </CardContent>
+          </Card>
+
+          <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
+            <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
+              Previous
+            </Button>
+            
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+              {savedReportUrl && (
+                <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
+                    <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                      {savedReportUrl}
+                    </Link>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
+                      {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                </div>
+              )}
+              {currentStep === steps.length - 1 ? (
+                <Button onClick={() => handleSave()}>
+                    Save
+                </Button>
+              ) : (
+                <Button onClick={nextStep}>
+                    Next
+                </Button>
+              )}
+            </div>
           </div>
       </div>
       <Toaster />
