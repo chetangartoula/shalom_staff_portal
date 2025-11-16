@@ -29,22 +29,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-       <Link href="/" className="flex items-center gap-2 font-semibold text-header-foreground md:hidden">
-        <Mountain className="h-6 w-6 text-primary" />
-        <span className="">Shalom</span>
-      </Link>
-      
-      <div className="w-full flex-1 flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-          <span className="sr-only">Toggle sidebar</span>
-        </Button>
-        <div className="flex-1">
-          {/* Title can be re-added if needed, but removing for a cleaner look based on image */}
-        </div>
-      </div>
-
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -52,7 +37,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 w-full sheet-content">
+        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm sheet-content">
             <SheetHeader className="p-4 border-b">
                <SheetTitle>
                  <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
@@ -61,11 +46,19 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
                  </Link>
                 </SheetTitle>
             </SheetHeader>
-           <div className="flex-1 bg-sidebar-background">
+           <div className="flex-1 bg-sidebar-background overflow-hidden">
              <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
            </div>
         </SheetContent>
       </Sheet>
+      
+      <div className="w-full flex-1 flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+          {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          <span className="sr-only">Toggle sidebar</span>
+        </Button>
+        <div className="flex-1" />
+      </div>
     </header>
   );
 }

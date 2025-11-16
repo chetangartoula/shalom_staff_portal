@@ -84,16 +84,22 @@ body {
   .sheet-content {
       background-color: hsl(var(--background)) !important;
       color: hsl(var(--foreground)) !important;
-      --sidebar-background: transparent;
-      --sidebar-foreground: hsl(var(--foreground));
-      --sidebar-muted-foreground: hsl(var(--muted-foreground));
-      --sidebar-active-background: hsl(var(--accent));
-      --border: hsl(var(--border));
   }
 
   .sheet-content .bg-sidebar-background {
-    background-color: var(--sidebar-background) !important;
-    color: var(--sidebar-foreground) !important;
+    background-color: transparent !important;
+  }
+  
+  .sheet-content .text-sidebar-muted-foreground {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .sheet-content .group:hover .text-sidebar-muted-foreground {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .sheet-content .text-sidebar-foreground {
+     color: hsl(var(--foreground)) !important;
   }
 }
 

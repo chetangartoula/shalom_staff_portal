@@ -38,7 +38,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
         const linkContent = (
              <span className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
-                isActive && "text-sidebar-foreground bg-sidebar-background/20",
+                isActive && "text-sidebar-foreground",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -79,7 +79,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4 space-y-2 border-t w-full", isCollapsed && "p-2 space-y-0")}>
+            <div className={cn("mt-auto p-4 border-t border-sidebar-foreground/10", isCollapsed && "p-2")}>
                  {isCollapsed ? (
                     <TooltipProvider>
                         <Tooltip>
