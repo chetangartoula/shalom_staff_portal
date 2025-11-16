@@ -6,13 +6,11 @@ import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
 import TrekCostingPage from "@/app/cost-matrix-page";
 import type { Trek } from "@/lib/types";
 import { ProtectedRoute } from "@/components/protected-route";
 
 export default function EditCostMatrixPage() {
-    const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
     const { toast } = useToast();
     const [treks, setTreks] = useState<Trek[]>([]);
     const [reportData, setReportData] = useState(null);
@@ -55,19 +53,9 @@ export default function EditCostMatrixPage() {
         }
     }, [groupId, toast]);
     
-    const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-        // This is a placeholder for now, you can add full functionality if needed
-        toast({
-          title: "Trek Added",
-          description: `${data.name} has been added to the list.`,
-        });
-        setIsAddTrekModalOpen(false);
-    };
-
     return (
        <ProtectedRoute>
-         <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-         <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
+         <DashboardLayout>
           {isLoading ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
