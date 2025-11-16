@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import React from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mountain } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -120,7 +120,7 @@ export default function ReportPage() {
 
       toast({
         title: "Details Submitted",
-        description: "Traveler details have been saved.",
+        description: "Traveler details have been saved. Thank you!",
       });
 
     } catch (error) {
@@ -134,18 +134,21 @@ export default function ReportPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-gray-50/50">
-        <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b bg-white">
-          <h1 className="text-xl font-bold text-primary">Shalom Dashboard</h1>
+      <div className="flex flex-col min-h-screen bg-slate-50">
+        <header className="flex items-center h-16 px-4 md:px-6 bg-primary text-primary-foreground shadow-md">
+           <div className="flex items-center gap-2">
+            <Mountain className="h-6 w-6" />
+            <h1 className="text-xl font-bold">Shalom Treks</h1>
+          </div>
         </header>
-        <main className="flex-1 p-4 md:p-8">
+        <main className="flex-1 p-4 sm:p-6 md:p-8">
           <div className="max-w-4xl mx-auto">
-            <Card>
+            <Card className="shadow-lg">
               <CardHeader>
-                <CardTitle>Traveler Details</CardTitle>
+                <CardTitle>Traveler Details Form</CardTitle>
                 <CardDescription>
-                  Please fill out the details for each member of the group.
-                  Group ID: {groupId}
+                  Please fill out the details for each member of your group.
+                  Your Group ID is: <span className="font-mono text-primary">{groupId.substring(0,8)}...</span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
