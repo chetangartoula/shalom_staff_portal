@@ -232,7 +232,7 @@ export default function ReportPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Traveler Details Form</CardTitle>
-                <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                 <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span>
                       Please fill out the details for each member of your group.
                       Your Group ID is:
