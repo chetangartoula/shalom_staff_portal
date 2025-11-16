@@ -226,8 +226,8 @@ export default function ReportPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Traveler Details Form</CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  Please fill out the details for each member of your group. Your Group ID is:
+                <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>Please fill out the details for each member of your group. Your Group ID is:</span>
                   <div className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1">
                      <span className="font-mono text-sm text-primary">{groupId.substring(0,8)}...</span>
                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
@@ -235,7 +235,7 @@ export default function ReportPage() {
                        <span className="sr-only">Copy Group ID</span>
                      </Button>
                   </div>
-                </CardDescription>
+                </div>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
@@ -415,5 +415,3 @@ export default function ReportPage() {
     </>
   );
 }
-
-    
