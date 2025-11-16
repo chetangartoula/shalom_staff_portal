@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -237,7 +238,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   return (
     <>
-      <div className="flex flex-1 flex-col rounded-lg shadow-sm bg-card p-4 sm:p-6 md:p-8">
+      <div className="flex flex-1 flex-col">
           <div className="w-full">
               <div className="mb-8 md:mb-12">
                 <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
