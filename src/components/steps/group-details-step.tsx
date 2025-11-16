@@ -28,8 +28,9 @@ export function GroupDetailsStep({
                     id="group-size"
                     type="number"
                     value={groupSize}
-                    onChange={(e) => onGroupSizeChange(Math.max(1, Number(e.target.value)))}
+                    onChange={(e) => onGroupSizeChange(Number(e.target.value))}
                     min="1"
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
