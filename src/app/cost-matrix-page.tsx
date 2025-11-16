@@ -138,7 +138,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -233,7 +233,6 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onEditSection={handleOpenEditSectionModal}
-            onRemoveSection={onRemoveSection}
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
             totalCost={totalCost}
@@ -326,3 +325,5 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     </>
   );
 }
+
+    

@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardFooter
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -23,7 +22,6 @@ interface FinalStepProps {
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     onEditSection: (section: SectionState) => void;
-    onRemoveSection: (sectionId: string) => void;
     onExportPDF: () => void;
     onExportExcel: () => void;
     totalCost: number;
@@ -41,7 +39,6 @@ export function FinalStep({
     onAddRow,
     onRemoveRow,
     onEditSection,
-    onRemoveSection,
     onExportPDF,
     onExportExcel,
     totalCost,
@@ -68,7 +65,6 @@ export function FinalStep({
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
                 onEditSection={onEditSection}
-                onRemoveSection={onRemoveSection}
                 usePax={usePax}
                 onSetUsePax={onSetUsePax}
             />
@@ -127,3 +123,5 @@ export function FinalStep({
         </div>
     );
 }
+
+    
