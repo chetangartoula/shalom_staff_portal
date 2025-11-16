@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, memo } from "react";
@@ -24,7 +23,7 @@ import { Stepper } from "@/components/ui/stepper";
 import type { Trek } from "@/lib/types";
 import { useAuth } from "@/context/auth-context";
 
-import { useCostMatrix } from "@/hooks/use-cost-matrix";
+import { useCostMatrix, handleExportPDF, handleExportExcel } from "@/hooks/use-cost-matrix";
 import { SelectTrekStep } from "@/components/steps/select-trek-step";
 import { GroupDetailsStep } from "@/components/steps/group-details-step";
 import { FinalStep } from "@/components/steps/final-step";
@@ -48,6 +47,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
     currentStep,
     setCurrentStep,
     isLoading,
+    selectedTrek,
     selectedTrekId,
     setSelectedTrekId,
     groupSize,
@@ -69,13 +69,12 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
     savedReportUrl,
     isCopied,
     handleCopyToClipboard,
-    handleExportPDF,
-    handleExportExcel,
     totalCost,
     usePax,
     handleSetUsePax,
     serviceCharge,
     setServiceCharge,
+    calculateSectionTotals,
   } = useCostMatrix(treks, initialData);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
@@ -140,13 +139,45 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep - 1);
     }
   };
 
   const onExportPDF = () => {
-    handleExportPDF(user?.name);
+    handleExportPDF({
+      selectedTrek,
+      initialData,
+      groupSize,
+      startDate,
+      permitsState,
+      servicesState,
+      customSections,
+      extraDetailsState,
+      calculateSectionTotals,
+      userName: user?.name,
+    }).then(() => {
+      toast({ title: "Success", description: "PDF has been exported." });
+    }).catch(err => {
+      console.error(err);
+      toast({ variant: "destructive", title: "Error", description: "Could not export PDF." });
+    });
   }
+
+  const onExportExcel = () => {
+    handleExportExcel({
+      permitsState,
+      servicesState,
+      customSections,
+      extraDetailsState,
+      calculateSectionTotals,
+    }).then(() => {
+      toast({ title: "Success", description: "Excel file has been exported." });
+    }).catch(err => {
+      console.error(err);
+      toast({ variant: "destructive", title: "Error", description: "Could not export Excel file." });
+    });
+  }
+
 
   const handleFinish = async () => {
     if (initialData?.groupId) {
@@ -249,7 +280,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onExportPDF={onExportPDF}
-            onExportExcel={handleExportExcel}
+            onExportExcel={onExportExcel}
             totalCost={totalCost}
             usePax={usePax[extraDetailsState.id] || false}
             onSetUsePax={handleSetUsePax}
@@ -326,8 +357,8 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
             </div>
           )}
           {currentStep === steps.length - 1 ? (
-            <Button onClick={handleFinish}>
-                {initialData ? 'Update' : 'Finish'}
+            <Button onClick={handleFinish} disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
             </Button>
           ) : (
             <Button onClick={nextStep}>

@@ -1,3 +1,4 @@
+"use client";
 
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,6 @@ export function FinalStep({
     return (
         <div className="space-y-8">
             <CostTable 
-                title="Extra Details"
                 section={extraDetailsState}
                 isCustom
                 isDescriptionEditable
@@ -120,5 +120,3 @@ export function FinalStep({
         </div>
     );
 }
-
-    

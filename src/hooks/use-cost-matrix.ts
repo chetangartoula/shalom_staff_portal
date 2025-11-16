@@ -1,13 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import * as XLSX from "xlsx";
-import QRCode from "qrcode";
 import { format } from "date-fns";
 
 import type { Trek, Service, CostRow, SectionState } from "@/lib/types";
@@ -21,6 +16,227 @@ const initialSteps = [
   { id: "04", name: "Services" },
   { id: "05", name: "Final" },
 ];
+
+export async function handleExportPDF({
+  selectedTrek,
+  initialData,
+  groupSize,
+  startDate,
+  permitsState,
+  servicesState,
+  customSections,
+  extraDetailsState,
+  calculateSectionTotals,
+  userName
+}: {
+  selectedTrek: Trek | undefined,
+  initialData: any,
+  groupSize: number,
+  startDate: Date | undefined,
+  permitsState: SectionState,
+  servicesState: SectionState,
+  customSections: SectionState[],
+  extraDetailsState: SectionState,
+  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
+  userName?: string
+}) {
+  if (!selectedTrek) return;
+
+  const { default: jsPDF } = await import("jspdf");
+  await import("jspdf-autotable");
+  const { default: QRCode } = await import("qrcode");
+
+  const doc = new (jsPDF as any)();
+  const groupId = initialData?.groupId || uuidv4();
+  const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
+  const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
+  
+  const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+
+  const sectionsToExport = allSections.map(section => ({
+      ...section,
+      rows: section.rows.filter(row => row.total !== 0)
+  })).filter(section => section.rows.length > 0);
+
+  let yPos = 0;
+  const pageTopMargin = 15;
+  const pageLeftMargin = 14;
+  const pageRightMargin = 14;
+
+  const addFooter = () => {
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          
+          const preparedByText = `Prepared by: ${userName || 'N/A'}`;
+          doc.text(preparedByText, pageLeftMargin, pageHeight - 15);
+          doc.text('Signature: ..........................', pageLeftMargin, pageHeight - 10);
+          
+          doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
+      }
+  };
+  
+  const qrCodeSize = 40;
+  const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
+  
+  doc.setFontSize(22);
+  doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Group ID: ${groupId}`, pageLeftMargin, pageTopMargin + 15);
+  
+  doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
+
+  yPos = Math.max(pageTopMargin + 25, pageTopMargin + qrCodeSize) + 10;
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Group Details", pageLeftMargin, yPos);
+  yPos += 7;
+  doc.autoTable({
+      startY: yPos,
+      body: [
+          ['Trek Name', selectedTrek.name || 'N/A'],
+          ['Group Size', groupSize.toString()],
+          ['Start Date', startDate ? format(startDate, 'PPP') : 'N/A'],
+      ],
+      theme: 'plain',
+      styles: { fontSize: 10 },
+      columnStyles: { 0: { fontStyle: 'bold' } }
+  });
+  yPos = (doc as any).lastAutoTable.finalY + 15;
+
+  sectionsToExport.forEach(section => {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = pageTopMargin;
+    }
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(section.name, pageLeftMargin, yPos);
+    yPos += 10;
+    
+    const head = [['#', 'Description', 'Rate', 'No', 'Times', 'Total']];
+    const body = section.rows.map((row, i) => [
+        i + 1,
+        row.description,
+        formatCurrency(row.rate),
+        row.no,
+        row.times,
+        formatCurrency(row.total)
+    ]);
+    const {subtotal, total} = calculateSectionTotals(section);
+
+    body.push(['', 'Subtotal', '', '', '', formatCurrency(subtotal)]);
+    if (section.discount > 0) {
+      body.push(['', 'Discount', '', '', '', `- ${formatCurrency(section.discount)}`]);
+    }
+    body.push(['', 'Total', '', '', '', formatCurrency(total)]);
+
+    doc.autoTable({
+        startY: yPos,
+        head: head,
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: [21, 29, 79] }, // #151D4F
+        didDrawPage: (data: any) => {
+            yPos = data.cursor?.y || yPos;
+        }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+  });
+
+  const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+
+  if (sectionsToExport.length > 0) {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = pageTopMargin;
+    }
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Summary", pageLeftMargin, yPos);
+    yPos += 10;
+
+    const summaryData = sectionsToExport.map(section => {
+      const { total } = calculateSectionTotals(section);
+      return [`${section.name} Total`, formatCurrency(total)];
+    });
+    summaryData.push(['Grand Total', formatCurrency(grandTotal)]);
+    
+    doc.autoTable({
+        startY: yPos,
+        body: summaryData,
+        theme: 'plain'
+    });
+  }
+
+  addFooter();
+
+  doc.save(`cost-report-${groupId.substring(0,8)}.pdf`);
+}
+
+export async function handleExportExcel({
+  permitsState,
+  servicesState,
+  customSections,
+  extraDetailsState,
+  calculateSectionTotals
+}: {
+  permitsState: SectionState,
+  servicesState: SectionState,
+  customSections: SectionState[],
+  extraDetailsState: SectionState,
+  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
+}) {
+  const XLSX = await import("xlsx");
+
+  const wb = XLSX.utils.book_new();
+   
+   const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+   const sectionsToExport = allSections.map(section => ({
+      ...section,
+      rows: section.rows.filter(row => row.total !== 0)
+   })).filter(section => {
+     return section.rows.length > 0;
+   });
+
+   sectionsToExport.forEach(section => {
+     const {subtotal, total} = calculateSectionTotals(section);
+     const wsData = section.rows.map(row => ({
+       Description: row.description,
+       Rate: row.rate,
+       No: row.no,
+       Times: row.times,
+       Total: row.total,
+     }));
+     wsData.push({Description: 'Subtotal', Rate: '', No: '', Times: '', Total: subtotal});
+     if(section.discount > 0) {
+       wsData.push({Description: 'Discount', Rate: '', No: '', Times: '', Total: -section.discount});
+     }
+     wsData.push({Description: 'Total', Rate: '', No: '', Times: '', Total: total});
+     const ws = XLSX.utils.json_to_sheet(wsData);
+     XLSX.utils.book_append_sheet(wb, ws, section.name.substring(0, 31));
+   });
+   
+  const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+   
+  if (sectionsToExport.length > 0) {
+    const summaryWsData = sectionsToExport.map(section => {
+      const { total } = calculateSectionTotals(section);
+      return { Item: `${section.name} Total`, Amount: total };
+    });
+    summaryWsData.push({ Item: 'Grand Total', Amount: grandTotal });
+
+    const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
+    XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+  }
+
+   XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
+}
 
 export function useCostMatrix(treks: Trek[], initialData?: any) {
   const { toast } = useToast();
@@ -58,7 +274,7 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
         const servicesData = await servicesRes.json();
         setServices(servicesData.services);
 
-        if (initialData) {
+        if (initialData?.trekId) {
           // If there's initial data, we're in "edit" mode.
           setSelectedTrekId(initialData.trekId);
           setGroupSize(initialData.groupSize);
@@ -98,7 +314,7 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
   useEffect(() => {
     // This effect runs when a new trek is selected, to reset the details.
     // It should NOT run when in "edit" mode (i.e., when initialData is present).
-    if (initialData || !selectedTrek || services.length === 0) return;
+    if (initialData?.trekId || !selectedTrek || services.length === 0) return;
 
     const isPaxEnabled = usePax['permits'] ?? false;
     const numberValue = isPaxEnabled ? groupSize : 1;
@@ -347,195 +563,6 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
       setTimeout(() => setIsCopied(false), 2000);
     }
   }, [savedReportUrl, toast]);
-  
-  const handleExportPDF = useCallback(async (userName?: string) => {
-    if (!selectedTrek) return;
-    
-    const doc = new (jsPDF as any)();
-    const groupId = initialData?.groupId || uuidv4();
-    const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
-    const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
-    
-    const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-
-    const sectionsToExport = allSections.map(section => ({
-        ...section,
-        rows: section.rows.filter(row => row.total !== 0)
-    })).filter(section => section.rows.length > 0);
-
-    let yPos = 0;
-    const pageTopMargin = 15;
-    const pageLeftMargin = 14;
-    const pageRightMargin = 14;
-
-    const addFooter = () => {
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-            doc.setFontSize(8);
-            doc.setTextColor(150);
-            
-            const preparedByText = `Prepared by: ${userName || 'N/A'}`;
-            doc.text(preparedByText, pageLeftMargin, pageHeight - 15);
-            doc.text('Signature: ..........................', pageLeftMargin, pageHeight - 10);
-            
-            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
-        }
-    };
-    
-    const qrCodeSize = 40;
-    const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
-    
-    doc.setFontSize(22);
-    doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Group ID: ${groupId}`, pageLeftMargin, pageTopMargin + 15);
-    
-    doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
-
-    yPos = Math.max(pageTopMargin + 25, pageTopMargin + qrCodeSize) + 10;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Group Details", pageLeftMargin, yPos);
-    yPos += 7;
-    doc.autoTable({
-        startY: yPos,
-        body: [
-            ['Trek Name', selectedTrek.name || 'N/A'],
-            ['Group Size', groupSize.toString()],
-            ['Start Date', startDate ? format(startDate, 'PPP') : 'N/A'],
-        ],
-        theme: 'plain',
-        styles: { fontSize: 10 },
-        columnStyles: { 0: { fontStyle: 'bold' } }
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    sectionsToExport.forEach(section => {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = pageTopMargin;
-      }
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text(section.name, pageLeftMargin, yPos);
-      yPos += 10;
-      
-      const head = [['#', 'Description', 'Rate', 'No', 'Times', 'Total']];
-      const body = section.rows.map((row, i) => [
-          i + 1,
-          row.description,
-          formatCurrency(row.rate),
-          row.no,
-          row.times,
-          formatCurrency(row.total)
-      ]);
-      const {subtotal, total} = calculateSectionTotals(section);
-
-      body.push(['', 'Subtotal', '', '', '', formatCurrency(subtotal)]);
-      if (section.discount > 0) {
-        body.push(['', 'Discount', '', '', '', `- ${formatCurrency(section.discount)}`]);
-      }
-      body.push(['', 'Total', '', '', '', formatCurrency(total)]);
-
-      doc.autoTable({
-          startY: yPos,
-          head: head,
-          body: body,
-          theme: 'striped',
-          headStyles: { fillColor: [21, 29, 79] }, // #151D4F
-          didDrawPage: (data: any) => {
-              yPos = data.cursor?.y || yPos;
-          }
-      });
-      yPos = (doc as any).lastAutoTable.finalY + 15;
-    });
-
-    const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
-
-    if (sectionsToExport.length > 0) {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = pageTopMargin;
-      }
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("Summary", pageLeftMargin, yPos);
-      yPos += 10;
-
-      const summaryData = sectionsToExport.map(section => {
-        const { total } = calculateSectionTotals(section);
-        return [`${section.name} Total`, formatCurrency(total)];
-      });
-      summaryData.push(['Grand Total', formatCurrency(grandTotal)]);
-      
-      doc.autoTable({
-          startY: yPos,
-          body: summaryData,
-          theme: 'plain'
-      });
-    }
-
-    addFooter();
-
-    doc.save(`cost-report-${groupId.substring(0,8)}.pdf`);
-    toast({ title: "Success", description: "PDF has been exported." });
-
-  }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals, initialData
-  ]);
-  
-  const handleExportExcel = useCallback(() => {
-     const wb = XLSX.utils.book_new();
-     
-     const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
-     const sectionsToExport = allSections.map(section => ({
-        ...section,
-        rows: section.rows.filter(row => row.total !== 0)
-     })).filter(section => {
-       return section.rows.length > 0;
-     });
-
-
-     sectionsToExport.forEach(section => {
-       const {subtotal, total} = calculateSectionTotals(section);
-       const wsData = section.rows.map(row => ({
-         Description: row.description,
-         Rate: row.rate,
-         No: row.no,
-         Times: row.times,
-         Total: row.total,
-       }));
-       wsData.push({Description: 'Subtotal', Rate: '', No: '', Times: '', Total: subtotal});
-       if(section.discount > 0) {
-         wsData.push({Description: 'Discount', Rate: '', No: '', Times: '', Total: -section.discount});
-       }
-       wsData.push({Description: 'Total', Rate: '', No: '', Times: '', Total: total});
-       const ws = XLSX.utils.json_to_sheet(wsData);
-       XLSX.utils.book_append_sheet(wb, ws, section.name.substring(0, 31));
-     });
-     
-    const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
-     
-    if (sectionsToExport.length > 0) {
-      const summaryWsData = sectionsToExport.map(section => {
-        const { total } = calculateSectionTotals(section);
-        return { Item: `${section.name} Total`, Amount: total };
-      });
-      summaryWsData.push({ Item: 'Grand Total', Amount: grandTotal });
-
-      const summaryWs = XLSX.utils.json_to_sheet(summaryWsData);
-      XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
-    }
-
-     XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
-     toast({ title: "Success", description: "Excel file has been exported." });
-  }, [
-    permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals
-  ]);
 
   return {
     steps,
@@ -571,8 +598,7 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     savedReportUrl,
     isCopied,
     handleCopyToClipboard,
-    handleExportPDF,
-    handleExportExcel,
+    calculateSectionTotals, // Export for use in export handlers
     usePax,
     handleSetUsePax,
     serviceCharge,
