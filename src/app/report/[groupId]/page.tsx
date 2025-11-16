@@ -162,16 +162,23 @@ export default function ReportPage() {
 
   const onSubmit = async (data: FormValues) => {
     let isValid = true;
-    const travelersToSubmit: FormValues['travelers'] = [];
+    const travelersToSubmit: (typeof travelerSchema._output)[] = [];
+    
+    if (openedAccordions.length === 0) {
+        toast({
+            title: "No details to submit",
+            description: "Please open a traveler's section and fill out their details to submit.",
+        });
+        return;
+    }
 
     // Manually validate only the opened sections before submission
     for (let i = 0; i < data.travelers.length; i++) {
         const traveler = data.travelers[i];
-        if (openedAccordions.includes(traveler.id!)) {
+        if (traveler && openedAccordions.includes(traveler.id!)) {
             const result = travelerSchema.safeParse(traveler);
             if (!result.success) {
                 isValid = false;
-                // Manually set errors for the specific fields
                 result.error.issues.forEach(issue => {
                     form.setError(`travelers.${i}.${issue.path[0] as keyof typeof traveler}`, {
                         type: 'manual',
@@ -192,14 +199,8 @@ export default function ReportPage() {
         });
         return;
     }
-
-    if (travelersToSubmit.length === 0) {
-        toast({
-            title: "No Details to Submit",
-            description: "Please open a traveler's section and fill out their details.",
-        });
-        return;
-    }
+    
+    form.clearErrors();
 
     const submissionData = {
       groupId,
@@ -211,6 +212,7 @@ export default function ReportPage() {
     };
     
     try {
+      form.formState.isSubmitting = true;
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -232,6 +234,8 @@ export default function ReportPage() {
         title: "Submission Failed",
         description: "Could not save traveler details. Please try again.",
       });
+    } finally {
+        form.formState.isSubmitting = false;
     }
   };
 
