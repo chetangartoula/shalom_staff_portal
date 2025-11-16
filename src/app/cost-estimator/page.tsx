@@ -1,55 +1,19 @@
-
-"use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { Loader2 } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { useToast } from "@/hooks/use-toast";
-import { ProtectedRoute } from "@/components/protected-route";
-import TrekCostingPage from "../cost-matrix-page";
+import { TrekCostingPage } from "@/components/trek-costing-page";
+import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
+import { getTreks } from '@/app/api/treks/route';
 import type { Trek } from "@/lib/types";
 
+export default async function NewCostReportPage() {
+  // Fetch treks on the server
+  const { treks }: { treks: Trek[] } = await getTreks();
 
-export default function NewCostReportPage() {
-  const { toast } = useToast();
-  const [treks, setTreks] = useState<Trek[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTreks = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const response = await fetch('/api/treks');
-        if (!response.ok) {
-            throw new Error('Failed to fetch treks');
-        }
-        const data = await response.json();
-        setTreks(data.treks);
-    } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not load treks. Please try again.",
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchTreks();
-  }, [fetchTreks]);
+  // The setTreks prop is no longer needed as data is fetched on the server
+  // and is not expected to be mutable from the child component in this context.
+  const setTreksStub = () => {};
 
   return (
-    <ProtectedRoute>
-       <DashboardLayout>
-        {isLoading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <TrekCostingPage treks={treks} setTreks={setTreks} />
-        )}
-       </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayoutShell>
+      <TrekCostingPage treks={treks} setTreks={setTreksStub} />
+    </DashboardLayoutShell>
   );
 }

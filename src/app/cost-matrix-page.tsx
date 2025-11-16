@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, memo } from "react";
@@ -159,7 +158,11 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
   };
 
   if (!isClient) {
-    return null;
+    return (
+        <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
   }
   
   const renderStepContent = () => {
@@ -338,6 +341,4 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
   );
 }
 
-const TrekCostingPage = memo(TrekCostingPageComponent);
-
-export default TrekCostingPage;
+export const TrekCostingPage = memo(TrekCostingPageComponent);
