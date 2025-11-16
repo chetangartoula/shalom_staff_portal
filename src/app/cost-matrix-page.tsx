@@ -134,7 +134,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -242,44 +242,44 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
       <Card className="w-full shadow-sm">
         <CardContent className="p-4 sm:p-6">
           <div className="mb-8 md:mb-12">
-            <div className="overflow-x-auto pb-4 hide-scrollbar">
-              <div className="flex items-center justify-center gap-x-8 gap-y-2 flex-wrap min-w-max">
-                <div className="flex-grow md:flex-grow-0">
-                  <Stepper
-                    steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
-                    currentStep={currentStep}
-                    setCurrentStep={setCurrentStep}
-                  />
-                </div>
-                <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
-                  <DialogTrigger asChild>
-                      <Button variant="outline" className="border-dashed shrink-0">
-                          <PlusSquare /> Add Section
-                      </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
-                        <DialogDescription>
-                          Create a new custom section to add more items to your cost calculation.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="section-name" className="text-right">Name</Label>
-                            <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleSaveSection}>Save Section</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+            <div className="flex items-center justify-center gap-x-8 gap-y-2 flex-wrap">
+              <div className="flex-grow">
+                <Stepper
+                  steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
+                  currentStep={currentStep}
+                  setCurrentStep={setCurrentStep}
+                />
               </div>
+              <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="border-dashed shrink-0">
+                        <PlusSquare /> Add Section
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                      <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                      <DialogDescription>
+                        Create a new custom section to add more items to your cost calculation.
+                      </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="section-name" className="text-right">Name</Label>
+                          <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
+                      </div>
+                  </div>
+                  <DialogFooter>
+                      <Button onClick={handleSaveSection}>Save Section</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           
-          {renderStepContent()}
+          <div className="mt-8">
+            {renderStepContent()}
+          </div>
         </CardContent>
       </Card>
 

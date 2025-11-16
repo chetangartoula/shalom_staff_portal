@@ -16,47 +16,68 @@ interface StepperProps {
 }
 
 export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
+  const progress = (currentStep / (steps.length - 1)) * 100;
+
   return (
-    <nav aria-label="Progress" className="w-full">
-      <ol role="list" className="flex items-center">
+    <div className="w-full space-y-4">
+      <ol role="list" className="flex items-center justify-between">
         {steps.map((step, stepIdx) => (
-          <li key={step.id} className="relative flex flex-1 items-center justify-center">
-            {stepIdx < steps.length - 1 ? (
-              <div
-                className={cn(
-                  "absolute left-0 top-5 -z-10 h-0.5 w-full",
-                  stepIdx < currentStep ? "bg-primary/30" : "bg-gray-200"
-                )}
-                aria-hidden="true"
-              />
-            ) : null}
+          <li key={step.id} className="flex-1 last:flex-none">
             <button
               onClick={() => setCurrentStep(stepIdx)}
-              className={cn("group flex flex-col items-center text-center space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 transition-colors",
-                  stepIdx > currentStep && "cursor-not-allowed opacity-50"
+              className={cn(
+                "group flex w-full items-center gap-x-2 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md",
+                stepIdx > currentStep && "cursor-not-allowed"
               )}
               disabled={stepIdx > currentStep}
             >
-              <span
+              <span className="flex items-center text-sm font-medium">
+                <span
                   className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors border-2 bg-background",
-                  stepIdx === currentStep
-                      ? "bg-primary text-primary-foreground border-primary ring-2 ring-offset-2 ring-primary"
+                    "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full",
+                    stepIdx === currentStep
+                      ? "bg-primary text-primary-foreground"
                       : stepIdx < currentStep
-                      ? "bg-primary/20 text-primary border-primary/30"
-                      : "bg-gray-100 text-gray-600 border-gray-300 group-hover:bg-gray-200 group-hover:border-gray-400"
+                      ? "bg-primary/30 text-primary"
+                      : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
                   )}
-              >
-                  {stepIdx < currentStep ? <Check className="h-6 w-6" /> : step.isCustom ? "..." : String(stepIdx + 1).padStart(2, '0')}
+                >
+                  {stepIdx < currentStep ? (
+                    <Check className="h-5 w-5" />
+                  ) : (
+                    <span
+                      className={cn(
+                        stepIdx === currentStep ? "text-primary-foreground" : "text-muted-foreground"
+                      )}
+                    >
+                      {String(stepIdx + 1).padStart(2, '0')}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "ml-2 hidden text-sm font-medium md:block",
+                    stepIdx === currentStep
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground"
+                  )}
+                >
+                  {step.name}
+                </span>
               </span>
-              <span className={cn(
-                  "text-xs sm:text-sm font-medium transition-colors text-center max-w-20 truncate",
-                  stepIdx === currentStep ? "text-primary" : "text-gray-500 group-hover:text-gray-700"
-              )}>{step.name}</span>
             </button>
           </li>
         ))}
       </ol>
-    </nav>
+
+      <div className="relative pt-2">
+        <div className="h-1.5 w-full rounded-full bg-gray-200">
+          <div
+            className="h-1.5 rounded-full bg-primary transition-all duration-300 ease-in-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
