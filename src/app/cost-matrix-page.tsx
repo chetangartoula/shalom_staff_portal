@@ -152,10 +152,10 @@ export default function TrekCostingPage({ treks, setTreks, initialData }: TrekCo
   const handleFinish = async () => {
     if (initialData?.groupId) {
       await handleUpdate();
-      router.push('/reports');
     } else {
       await handleSave();
     }
+    router.push('/reports');
   };
 
   if (!isClient) {
