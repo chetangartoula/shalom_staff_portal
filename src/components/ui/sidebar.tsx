@@ -95,7 +95,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
 
     return (
         <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
-            <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6">
+            <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6 shadow-md">
                 <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
                     <Mountain className="h-6 w-6" />
                     {!isCollapsed && <span className="">Shalom</span>}
@@ -108,7 +108,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
                     ))}
                 </nav>
             </div>
-            <div className="mt-auto border-t border-sidebar-foreground/10 p-2">
+            <div className="mt-auto border-t border-sidebar-foreground/10 p-2 shadow-md">
                 {user && (
                   <DropdownMenu>
                       <DropdownMenuTrigger asChild>
