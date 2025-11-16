@@ -1,9 +1,8 @@
-
 "use client";
 import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList } from "lucide-react"
+import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList, Users } from "lucide-react"
 import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
@@ -39,6 +38,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
     const navItems = [
         { href: "/", label: "Dashboard", icon: Home },
         { href: "/reports", label: "Reports", icon: ClipboardList },
+        { href: "/travelers", label: "Travelers", icon: Users },
         { href: "#", label: "Add Trek", icon: Plus, action: onAddTrekClick },
         { href: "/services", label: "Services", icon: Settings },
     ];

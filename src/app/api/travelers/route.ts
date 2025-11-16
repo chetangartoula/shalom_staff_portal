@@ -1,6 +1,11 @@
 
 import { NextResponse } from 'next/server';
-import { addTravelers } from '../data';
+import { addTravelers, travelers } from '../data';
+
+export async function GET() {
+  // This endpoint can be used to fetch all traveler groups if needed.
+  return NextResponse.json({ travelers });
+}
 
 export async function POST(request: Request) {
   try {
