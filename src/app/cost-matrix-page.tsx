@@ -32,11 +32,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TrekCostingPageProps {
   treks: Trek[];
-  setTreks: React.Dispatch<React.SetStateAction<Trek[]>>;
   initialData?: any;
 }
 
-function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();

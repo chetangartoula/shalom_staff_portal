@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import TrekCostingPage from "@/app/cost-matrix-page";
+import { TrekCostingPage } from "@/app/cost-matrix-page";
 import type { Trek } from "@/lib/types";
 import { ProtectedRoute } from "@/components/protected-route";
 
@@ -61,7 +61,7 @@ export default function EditCostMatrixPage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <TrekCostingPage treks={treks} setTreks={setTreks} initialData={reportData} />
+            <TrekCostingPage treks={treks} initialData={reportData} />
           )}
          </DashboardLayout>
        </ProtectedRoute>
