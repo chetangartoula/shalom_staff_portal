@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Loader2, Mountain, Copy, Check } from "lucide-react";
+import { Loader2, Mountain, Copy, Check, Save } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,10 +51,12 @@ const travelerSchema = z.object({
   visaPhoto: z.any().optional(),
 });
 
-const partialTravelerSchema = travelerSchema.partial().extend({ id: z.string() });
-const formSchema = z.object({ travelers: z.array(partialTravelerSchema) });
+const formSchema = z.object({
+  travelers: z.array(travelerSchema.partial()),
+});
 
 type FormValues = z.infer<typeof formSchema>;
+type Traveler = z.infer<typeof travelerSchema>;
 
 export default function ReportPage() {
   const params = useParams();
@@ -63,32 +66,30 @@ export default function ReportPage() {
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState<{[key: string]: boolean}>({});
   const [openedAccordions, setOpenedAccordions] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
 
-  const defaultTravelers = useMemo(() =>
-    Array.from({ length: groupSize }, (_, i) => ({
-      id: uuidv4(),
-      name: "",
-      phone: "",
-      address: "",
-      passportNumber: "",
-      emergencyContact: "",
-      nationality: "",
-      dateOfBirth: undefined,
-      passportExpiryDate: undefined,
-      passportPhoto: undefined,
-      visaPhoto: undefined,
-    })),
+  const defaultTravelers = useMemo(
+    () =>
+      Array.from({ length: groupSize }, (_, i) => ({
+        id: uuidv4(),
+        name: "",
+        phone: "",
+        address: "",
+        passportNumber: "",
+        emergencyContact: "",
+        nationality: "",
+      })),
     [groupSize]
   );
-  
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       travelers: defaultTravelers,
     },
-    mode: 'onChange',
+    mode: "onChange",
   });
 
   useEffect(() => {
@@ -96,31 +97,56 @@ export default function ReportPage() {
       if (!groupId) {
         setIsLoading(false);
         return;
-      };
+      }
       try {
         const response = await fetch(`/api/travelers/${groupId}`);
         if (response.ok) {
           const data = await response.json();
           if (data && data.travelers && data.travelers.length) {
-            const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
+            const existingTravelersMap = new Map(
+              data.travelers.map((t: any) => [t.id, t])
+            );
             const newDefaultTravelers = [...defaultTravelers];
 
-            const mergedTravelers = newDefaultTravelers.map(defaultTraveler => {
-                const existingData = existingTravelersMap.get(defaultTraveler.id);
+            const mergedTravelers = newDefaultTravelers.map(
+              (defaultTraveler) => {
+                const existingData = existingTravelersMap.get(
+                  defaultTraveler.id
+                );
                 if (existingData) {
-                    return {
-                        ...defaultTraveler,
-                        ...existingData,
-                        dateOfBirth: existingData.dateOfBirth ? new Date(existingData.dateOfBirth) : undefined,
-                        passportExpiryDate: existingData.passportExpiryDate ? new Date(existingData.passportExpiryDate) : undefined,
-                    };
+                  return {
+                    ...defaultTraveler,
+                    ...existingData,
+                    dateOfBirth: existingData.dateOfBirth
+                      ? new Date(existingData.dateOfBirth)
+                      : undefined,
+                    passportExpiryDate: existingData.passportExpiryDate
+                      ? new Date(existingData.passportExpiryDate)
+                      : undefined,
+                  };
                 }
-                return defaultTraveler;
-            });
-            
-            form.reset({ travelers: mergedTravelers });
+                // Important: Ensure all travelers have a unique ID from the start
+                const found = data.travelers.find((t: any, i: number) => i === newDefaultTravelers.indexOf(defaultTraveler));
+                return found ? { ...defaultTraveler, id: found.id } : defaultTraveler;
+              }
+            );
+
+            // Ensure the length matches groupSize, adding new blank travelers if needed
+            while(mergedTravelers.length < groupSize) {
+                mergedTravelers.push({ id: uuidv4(), name: "", phone: "", address: "", passportNumber: "", emergencyContact: "", nationality: "" });
+            }
+            const finalTravelers = mergedTravelers.slice(0, groupSize);
+
+            form.reset({ travelers: finalTravelers });
+
+            // Open accordions for travelers who have data
+            const prefilledAccordionIds = finalTravelers
+                .filter(t => t.name) // or some other field that indicates data exists
+                .map(t => t.id!);
+            setOpenedAccordions(prefilledAccordionIds);
+
           } else {
-             form.reset({ travelers: defaultTravelers });
+            form.reset({ travelers: defaultTravelers });
           }
         }
       } catch (error) {
@@ -130,77 +156,66 @@ export default function ReportPage() {
       }
     };
     fetchTravelerData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, groupSize, form.reset]);
-  
-  const onSubmit = async (data: FormValues) => {
-    const activeTravelerIndexes: number[] = [];
-    const travelerFieldsToValidate: `travelers.${number}.${keyof z.infer<typeof travelerSchema>}`[] = [];
-  
-    data.travelers.forEach((traveler, index) => {
-      if (openedAccordions.includes(traveler.id!)) {
-        activeTravelerIndexes.push(index);
-        (Object.keys(travelerSchema.shape) as (keyof z.infer<typeof travelerSchema>)[]).forEach(field => {
-          travelerFieldsToValidate.push(`travelers.${index}.${field}`);
+
+  const handleSaveTraveler = async (travelerIndex: number) => {
+    const travelerId = form.getValues(`travelers.${travelerIndex}.id`);
+    if (!travelerId) return;
+
+    setIsSubmitting(prev => ({ ...prev, [travelerId]: true }));
+    
+    const travelerData = form.getValues(`travelers.${travelerIndex}`);
+    const validationResult = travelerSchema.safeParse(travelerData);
+
+    if (!validationResult.success) {
+      validationResult.error.errors.forEach((error) => {
+        form.setError(`travelers.${travelerIndex}.${error.path[0] as keyof Traveler}`, {
+          type: 'manual',
+          message: error.message,
         });
-      }
-    });
-  
-    if (activeTravelerIndexes.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Details to Submit",
-        description: "Please open at least one traveler section to fill in and submit.",
       });
-      return;
-    }
-  
-    const isValid = await form.trigger(travelerFieldsToValidate);
-  
-    if (!isValid) {
       toast({
         variant: "destructive",
         title: "Validation Failed",
-        description: "Please fill out all required fields in the opened sections.",
+        description: `Please fill all required fields for Traveler ${travelerIndex + 1}.`,
       });
+      setIsSubmitting(prev => ({ ...prev, [travelerId]: false }));
       return;
     }
-    
-    const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
-    
+
     const submissionData = {
-      groupId,
-      travelers: travelersToSubmit.map(t => ({
-        ...t,
-        passportPhoto: t.passportPhoto?.[0]?.name,
-        visaPhoto: t.visaPhoto?.[0]?.name,
-      }))
+      ...validationResult.data,
+      passportPhoto: validationResult.data.passportPhoto?.[0]?.name,
+      visaPhoto: validationResult.data.visaPhoto?.[0]?.name,
     };
-    
+
     try {
       const response = await fetch(`/api/travelers/${groupId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submissionData),
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ traveler: submissionData }), // Send a single traveler object
       });
 
       if (!response.ok) {
-        throw new Error('Failed to submit traveler details');
+        throw new Error("Failed to submit traveler details");
       }
 
       toast({
-        title: "Details Submitted",
-        description: "Traveler details for the opened sections have been saved. Thank you!",
+        title: "Details Saved!",
+        description: `Information for Traveler ${travelerIndex + 1} has been saved.`,
       });
-
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Submission Failed",
         description: "Could not save traveler details. Please try again.",
       });
+    } finally {
+      setIsSubmitting(prev => ({ ...prev, [travelerId]: false }));
     }
   };
+
 
   const handleCopy = () => {
     if (!groupId) return;
@@ -212,13 +227,13 @@ export default function ReportPage() {
     });
     setTimeout(() => setIsCopied(false), 2000);
   };
-  
+
   if (isLoading) {
     return (
-       <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    )
+    );
   }
 
   return (
@@ -235,22 +250,24 @@ export default function ReportPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Traveler Details Form</CardTitle>
-                <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span>Please fill out the details for each member of your group. Your Group ID is:</span>
-                  <div className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1">
-                     <span className="font-mono text-sm text-primary">{groupId.substring(0,8)}...</span>
-                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
-                       {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                       <span className="sr-only">Copy Group ID</span>
-                     </Button>
+                <CardDescription>
+                  <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                     <span>Please fill out the details for each member of your group. Your Group ID is:</span>
+                     <div className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1">
+                       <span className="font-mono text-sm text-primary">{groupId.substring(0,8)}...</span>
+                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
+                         {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                         <span className="sr-only">Copy Group ID</span>
+                       </Button>
+                    </div>
                   </div>
-                </div>
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
                     <Accordion type="multiple" onValueChange={setOpenedAccordions} value={openedAccordions} className="w-full">
-                      {form.watch('travelers').map((field, index) => (
+                      {form.watch("travelers").map((field, index) => (
                         <AccordionItem value={field.id!} key={field.id}>
                           <AccordionTrigger>
                             <span className="font-semibold">Traveler {index + 1}</span>
@@ -333,7 +350,7 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Nationality</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="American" {...field} value={field.value ?? ''}/>
+                                      <Input placeholder="American" {...field} value={field.value ?? ""} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -373,7 +390,7 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.passportPhoto`}
-                                render={({ field: { onChange, ...fieldProps} }) => (
+                                render={({ field: { onChange, ...fieldProps } }) => (
                                   <FormItem>
                                     <FormLabel>Passport Photo</FormLabel>
                                     <FormControl>
@@ -390,11 +407,11 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.visaPhoto`}
-                                render={({ field: { onChange, ...fieldProps} }) => (
+                                render={({ field: { onChange, ...fieldProps } }) => (
                                   <FormItem>
                                     <FormLabel>Visa Photo</FormLabel>
                                     <FormControl>
-                                     <Input
+                                      <Input
                                         type="file"
                                         {...fieldProps}
                                         onChange={(e) => onChange(e.target.files)}
@@ -405,16 +422,16 @@ export default function ReportPage() {
                                 )}
                               />
                             </div>
+                            <CardFooter className="px-0 pt-6">
+                               <Button type="button" onClick={() => handleSaveTraveler(index)} disabled={isSubmitting[field.id!]}>
+                                {isSubmitting[field.id!] && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Save className="mr-2 h-4 w-4" /> Save Details
+                              </Button>
+                            </CardFooter>
                           </AccordionContent>
                         </AccordionItem>
                       ))}
                     </Accordion>
-                    <CardFooter className="px-0 pt-6">
-                      <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit Details
-                      </Button>
-                    </CardFooter>
                   </form>
                 </Form>
               </CardContent>
