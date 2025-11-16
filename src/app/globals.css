@@ -74,7 +74,7 @@
     --header-border: 240 3.7% 15.9%;
   }
 
-  /* Specific styles for light mobile sheet */
+  /* Specific styles for mobile sheet to ensure consistent branding */
   .sheet-content {
       background-color: hsl(var(--sidebar-background)) !important;
       color: hsl(var(--sidebar-foreground)) !important;
