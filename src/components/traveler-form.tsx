@@ -189,7 +189,7 @@ export default function TravelerForm() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
+        <Icon name="loader-2" className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -399,9 +399,9 @@ export default function TravelerForm() {
                     disabled={isSubmitting[field.id!]}
                   >
                     {isSubmitting[field.id!] && (
-                      <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />
+                      <Icon name="loader-2" className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    <Icon name="Save" className="mr-2 h-4 w-4" /> Save Details
+                    <Icon name="save" className="mr-2 h-4 w-4" /> Save Details
                   </Button>
                 </CardFooter>
               </AccordionContent>
