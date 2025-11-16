@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react";
@@ -23,7 +22,7 @@ export function DashboardLayout({ children, onAddTrekClick }: DashboardLayoutPro
             </div>
             <div className="flex flex-col">
               <DashboardHeader onAddTrekClick={onAddTrekClick} isSidebarCollapsed={isSidebarCollapsed} setIsSidebarCollapsed={setIsSidebarCollapsed} />
-              <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">
+              <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto bg-background">
                 {children}
               </main>
             </div>

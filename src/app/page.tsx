@@ -35,9 +35,15 @@ export default function Home() {
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
   const { toast } = useToast();
   const [treks, setTreks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/treks').then(res => res.json()).then(data => setTreks(data.treks));
+    fetch('/api/treks')
+      .then(res => res.json())
+      .then(data => {
+        setTreks(data.treks)
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
@@ -80,7 +86,13 @@ export default function Home() {
     <ProtectedRoute>
        <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
        <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-        <TrekCostingPage treks={treks} setTreks={setTreks} />
+        {isLoading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <TrekCostingPage treks={treks} setTreks={setTreks} />
+        )}
        </DashboardLayout>
     </ProtectedRoute>
   );
