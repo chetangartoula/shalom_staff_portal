@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,12 +185,12 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     
     if (step.name === "Services") {
         return <CostTable 
-                title="Services"
-                section={servicesState}
-                onRowChange={handleRowChange}
-                onDiscountChange={handleDiscountChange}
-                onAddRow={addRow}
-                onRemoveRow={removeRow}
+                 title="Services"
+                 section={servicesState}
+                 onRowChange={handleRowChange}
+                 onDiscountChange={handleDiscountChange}
+                 onAddRow={addRow}
+                 onRemoveRow={removeRow}
                />;
     }
 
@@ -236,7 +237,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   return (
     <>
-      <div className="flex flex-1 flex-col rounded-lg shadow-sm bg-card p-4 md:p-8">
+      <div className="flex flex-1 flex-col rounded-lg shadow-sm bg-card p-4 sm:p-6 md:p-8">
           <div className="w-full">
               <div className="mb-8 md:mb-12">
                 <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
@@ -256,6 +257,9 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                            <DialogDescription>
+                              Create a new custom section to add more items to your cost calculation.
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -264,7 +268,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleSaveSection}>Save</Button>
+                            <Button onClick={handleSaveSection}>Save Section</Button>
                         </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -275,7 +279,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
                 {renderStepContent()}
               </div>
 
-              <div className="mt-8 flex justify-between items-center">
+              <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
                 <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
                   Previous
                 </Button>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Check } from "lucide-react";
@@ -25,9 +24,10 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
              <div className="flex items-center justify-center">
                 <button
                 onClick={() => setCurrentStep(stepIdx)}
-                className={cn("group flex flex-col items-center text-center space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 transition-all",
-                    stepIdx === currentStep ? " " : " "
+                className={cn("group flex flex-col items-center text-center space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 transition-colors",
+                    stepIdx > currentStep && "cursor-not-allowed opacity-50"
                 )}
+                disabled={stepIdx > currentStep}
                 >
                 <span
                     className={cn(
@@ -39,7 +39,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                         : "bg-gray-100 text-gray-600 border-gray-300 group-hover:bg-gray-200 group-hover:border-gray-400"
                     )}
                 >
-                    {stepIdx < currentStep ? <Check className="h-6 w-6" /> : step.isCustom ? "..." : step.id.padStart(2, '0')}
+                    {stepIdx < currentStep ? <Check className="h-6 w-6" /> : step.isCustom ? "..." : String(stepIdx + 1).padStart(2, '0')}
                 </span>
                 <span className={cn(
                     "text-xs sm:text-sm font-medium transition-colors text-center max-w-20 truncate",
@@ -50,7 +50,10 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
 
 
             {stepIdx < steps.length - 1 && (
-              <div className="absolute top-5 left-1/2 w-full h-0.5 bg-gray-200 -z-10" />
+              <div className={cn(
+                "absolute top-5 left-1/2 w-full h-0.5 -z-10",
+                stepIdx < currentStep ? "bg-primary/30" : "bg-gray-200"
+              )} />
             )}
           </li>
         ))}

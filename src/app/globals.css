@@ -36,13 +36,15 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* New variables for dark sidebar/header */
+    /* Sidebar/Header variables */
     --sidebar-background: hsl(var(--primary));
     --sidebar-foreground: hsl(var(--primary-foreground));
     --sidebar-muted-foreground: 240 5% 65%;
-    --header-background: 0 0% 100%;
-    --header-foreground: 240 5.9% 10%;
-    --header-border: 240 5.9% 90%;
+    --sidebar-active-background: hsl(231 60% 25%);
+
+    --header-background: hsl(var(--card));
+    --header-foreground: hsl(var(--foreground));
+    --header-border: hsl(var(--border));
   }
 
   .dark {
@@ -65,16 +67,13 @@ body {
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 231 60% 30%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-
-    /* New variables for dark sidebar/header in dark mode */
+    
+    /* Sidebar/Header variables in dark mode */
     --sidebar-background: hsl(var(--primary));
     --sidebar-foreground: hsl(var(--primary-foreground));
     --sidebar-muted-foreground: 240 5% 65%;
+    --sidebar-active-background: hsl(231 60% 35%);
+
     --header-background: 240 3.7% 15.9%;
     --header-foreground: 0 0% 98%;
     --header-border: 240 3.7% 15.9%;
@@ -84,10 +83,6 @@ body {
   .sheet-content {
       background-color: hsl(var(--background)) !important;
       color: hsl(var(--foreground)) !important;
-  }
-
-  .sheet-content .bg-sidebar-background {
-    background-color: transparent !important;
   }
   
   .sheet-content .text-sidebar-muted-foreground {

@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link"
@@ -38,7 +37,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
         const linkContent = (
              <span className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
-                isActive && "text-sidebar-foreground",
+                isActive && "text-sidebar-foreground bg-sidebar-active-background",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -71,8 +70,14 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
-            <div className="flex-1 overflow-auto py-2 w-full">
+        <div className={cn("flex h-full flex-col", className)}>
+            <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6">
+                <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
+                    <Mountain className="h-6 w-6" />
+                    <span className="">Shalom</span>
+                </Link>
+            </div>
+            <div className="flex-1 overflow-auto py-2">
                 <nav className={cn("grid items-start text-sm font-medium", isCollapsed ? "px-2" : "px-4")}>
                     {navItems.map(item => (
                         <NavLink key={item.label} item={item} />

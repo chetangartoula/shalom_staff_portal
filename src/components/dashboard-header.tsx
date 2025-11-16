@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Menu, Mountain, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -29,7 +28,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="shrink-0 md:hidden">
@@ -38,17 +37,19 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm sheet-content">
+          <div className="flex h-full flex-col">
             <SheetHeader className="p-4 border-b">
-               <SheetTitle>
-                 <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
+              <SheetTitle>
+                <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
                     <Mountain className="h-6 w-6 text-primary" />
-                    <span className="">Shalom</span>
-                 </Link>
-                </SheetTitle>
+                    <span>Shalom</span>
+                </Link>
+              </SheetTitle>
             </SheetHeader>
-           <div className="flex-1 bg-sidebar-background overflow-hidden">
-             <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
-           </div>
+            <div className="flex-1 overflow-auto">
+              <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
       
