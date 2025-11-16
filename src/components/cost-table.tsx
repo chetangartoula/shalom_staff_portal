@@ -68,6 +68,7 @@ export function CostTable({
                     {isCustom && onEditSection && (
                          <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>
                             <Edit className="h-4 w-4" />
+                             <span className="sr-only">Edit section name</span>
                         </Button>
                     )}
                     <div className="flex items-center space-x-2">
@@ -77,6 +78,7 @@ export function CostTable({
                     {isCustom && onRemoveSection && (
                         <Button variant="ghost" size="icon" onClick={() => onRemoveSection(section.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
+                            <span className="sr-only">Remove section</span>
                         </Button>
                     )}
                 </div>
@@ -105,7 +107,7 @@ export function CostTable({
                                     type="text"
                                     value={row.description}
                                     onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)}
-                                    className="w-full bg-transparent border-0"
+                                    className="w-full bg-transparent border-0 focus-visible:ring-0"
                                     placeholder="Enter item description"
                                 />
                                 ) : (
@@ -113,18 +115,19 @@ export function CostTable({
                                 )}
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24 bg-transparent border-0"/>
+                                <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24 bg-transparent border-0 focus-visible:ring-0"/>
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0" disabled={usePax} />
+                                <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0" disabled={usePax} />
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0"/>
+                                <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0"/>
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
                             <TableCell className="text-center">
                                 <Button variant="ghost" size="icon" onClick={() => onRemoveRow(row.id, section.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                    <span className="sr-only">Remove row</span>
                                 </Button>
                             </TableCell>
                             </TableRow>

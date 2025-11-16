@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link"
@@ -35,8 +36,9 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
         const isActive = (pathname === "/" && item.href === "/") || (item.href !== "/" && pathname.startsWith(item.href));
         
-        const handleClick = () => {
+        const handleClick = (e: React.MouseEvent) => {
           if (item.action) {
+            e.preventDefault();
             item.action();
           }
           if (onLinkClick) {
@@ -52,30 +54,23 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
             )}>
                 <item.icon className="h-5 w-5" />
                 {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                 <span className="sr-only">{item.label}</span>
             </span>
         );
-
+        
         const linkElement = item.href === "#" ? (
-            <a onClick={handleClick} className="group">{linkContent}</a>
+            <a href="#" onClick={handleClick} className="group">{linkContent}</a>
         ) : (
             <Link href={item.href} className="group" onClick={handleClick}>{linkContent}</Link>
         );
 
         return (
-            <div className="cursor-pointer">
-                {isCollapsed ? (
-                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>{linkElement}</TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p>{item.label}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ) : (
-                    linkElement
-                )}
-            </div>
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>{linkElement}</TooltipTrigger>
+                    {isCollapsed && <TooltipContent side="right"><p>{item.label}</p></TooltipContent>}
+                </Tooltip>
+            </TooltipProvider>
         );
     };
 
@@ -103,6 +98,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
                                 <TooltipTrigger asChild>
                                     <Button variant="ghost" size="icon" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
                                         <LogOut className="h-5 w-5" />
+                                        <span className="sr-only">Logout</span>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="right"><p>Logout</p></TooltipContent>
