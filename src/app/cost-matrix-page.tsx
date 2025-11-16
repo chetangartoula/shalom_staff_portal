@@ -134,7 +134,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -239,10 +239,11 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   return (
     <>
-      <div className="w-full">
+      <Card className="w-full shadow-sm">
+        <CardContent className="p-4 sm:p-6">
           <div className="mb-8 md:mb-12">
             <div className="overflow-x-auto pb-4 hide-scrollbar">
-              <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap min-w-max">
+              <div className="flex items-center justify-center gap-x-8 gap-y-2 flex-wrap min-w-max">
                 <div className="flex-grow md:flex-grow-0">
                   <Stepper
                     steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
@@ -278,39 +279,36 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             </div>
           </div>
           
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              {renderStepContent()}
-            </CardContent>
-          </Card>
+          {renderStepContent()}
+        </CardContent>
+      </Card>
 
-          <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
-            <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
-              Previous
-            </Button>
-            
-            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
-              {savedReportUrl && (
-                <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
-                    <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
-                      {savedReportUrl}
-                    </Link>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
-                      {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                </div>
-              )}
-              {currentStep === steps.length - 1 ? (
-                <Button onClick={() => handleSave()}>
-                    Save
+      <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
+        <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
+          Previous
+        </Button>
+        
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+          {savedReportUrl && (
+            <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
+                <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                  {savedReportUrl}
+                </Link>
+                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
+                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
-              ) : (
-                <Button onClick={nextStep}>
-                    Next
-                </Button>
-              )}
             </div>
-          </div>
+          )}
+          {currentStep === steps.length - 1 ? (
+            <Button onClick={() => handleSave()}>
+                Save
+            </Button>
+          ) : (
+            <Button onClick={nextStep}>
+                Next
+            </Button>
+          )}
+        </div>
       </div>
       <Toaster />
     </>

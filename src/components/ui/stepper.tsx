@@ -51,7 +51,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
 
             {stepIdx < steps.length - 1 && (
               <div className={cn(
-                "absolute top-5 left-1/2 w-full h-0.5 -z-10",
+                "absolute top-[1.125rem] left-1/2 w-full h-0.5 -z-10",
                 stepIdx < currentStep ? "bg-primary/30" : "bg-gray-200"
               )} />
             )}
