@@ -1,8 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Loader2, Plus, MoreHorizontal, Trash2, Edit, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,7 @@ import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import type { ServiceFormData } from '@/components/add-service-form';
 
-const AddServiceForm = dynamic(() => import('@/components/add-service-form').then(mod => mod.AddServiceForm), {
-    ssr: false,
-    loading: () => <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-});
+const AddServiceForm = lazy(() => import('@/components/add-service-form').then(mod => ({ default: mod.AddServiceForm })));
 
 export function ServicesContent() {
   const { toast } = useToast();
@@ -159,13 +155,15 @@ export function ServicesContent() {
   return (
     <>
       {isServiceModalOpen && (
-        <AddServiceForm 
-          open={isServiceModalOpen}
-          onOpenChange={setIsServiceModalOpen}
-          onSubmit={handleServiceFormSubmit}
-          isSubmitting={isSubmitting}
-          defaultValues={editingService}
-        />
+        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+            <AddServiceForm 
+              open={isServiceModalOpen}
+              onOpenChange={setIsServiceModalOpen}
+              onSubmit={handleServiceFormSubmit}
+              isSubmitting={isSubmitting}
+              defaultValues={editingService}
+            />
+        </Suspense>
       )}
       <Card className="shadow-sm">
         <CardHeader>

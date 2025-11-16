@@ -13,18 +13,12 @@ import { useState } from "react";
 import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface DashboardHeaderProps {
-  onAddTrekClick: () => void;
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (isCollapsed: boolean) => void;
 }
 
-export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSidebarCollapsed }: DashboardHeaderProps) {
+export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed }: DashboardHeaderProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const handleAddTrekClick = () => {
-    onAddTrekClick();
-    setIsSheetOpen(false);
-  }
 
   const handleLinkClick = () => {
     setIsSheetOpen(false);
@@ -41,7 +35,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0 border-0 sheet-content">
           <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
-          <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} onLinkClick={handleLinkClick} />
+          <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} />
         </SheetContent>
       </Sheet>
       
@@ -55,5 +49,3 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
     </header>
   );
 }
-
-    
