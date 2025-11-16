@@ -47,7 +47,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
         const linkContent = (
              <span className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
-                isActive && "text-sidebar-foreground bg-sidebar-active-background",
+                isActive && "text-sidebar-foreground bg-sidebar-active-background font-bold",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -88,7 +88,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
                 </Link>
             </div>
             <div className="flex-1 overflow-auto py-2">
-                <nav className={cn("grid items-start text-sm font-medium", isCollapsed ? "px-2" : "px-4")}>
+                <nav className={cn("grid items-start text-sm font-semibold tracking-wide", isCollapsed ? "px-2" : "px-4")}>
                     {navItems.map(item => (
                         <NavLink key={item.label} item={item} />
                     ))}
