@@ -19,7 +19,7 @@ interface SidebarProps {
 
 export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }: SidebarProps) {
     const pathname = usePathname();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const router = useRouter();
 
     const handleLogout = () => {
@@ -90,7 +90,12 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
                 </nav>
             </div>
             <div className={cn("mt-auto p-4", isCollapsed && "px-2 pt-2")}>
-                 <div className={cn("border-t border-transparent", isCollapsed ? "mx-auto" : "-mx-4")} />
+                {user && !isCollapsed && (
+                    <div className="mb-4 rounded-lg bg-sidebar-active-background/50 p-3 text-center">
+                        <p className="text-sm font-semibold text-sidebar-foreground">{user.name}</p>
+                        <p className="text-xs text-sidebar-muted-foreground">{user.email}</p>
+                    </div>
+                )}
                  <div className={cn(isCollapsed ? "pt-2" : "pt-4")}>
                     {isCollapsed ? (
                         <TooltipProvider>
