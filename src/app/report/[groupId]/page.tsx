@@ -148,8 +148,17 @@ export default function ReportPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, groupSize, form.reset]);
   
-  const handleAccordionChange = (value: string[]) => {
+  const handleAccordionChange = async (value: string[]) => {
     setOpenedAccordions(value);
+    // Trigger validation for newly opened accordions
+    for (const travelerId of value) {
+      if (!openedAccordions.includes(travelerId)) {
+        const travelerIndex = form.getValues('travelers').findIndex(t => t.id === travelerId);
+        if (travelerIndex !== -1) {
+          await form.trigger(`travelers.${travelerIndex}`);
+        }
+      }
+    }
   };
   
   const onSubmit = async (data: FormValues) => {
@@ -436,7 +445,7 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Visa Photo</FormLabel>
                                     <FormControl>
-.                                     <Input
+                                     <Input
                                         type="file"
                                         onChange={(e) => field.onChange(e.target.files)}
                                       />
