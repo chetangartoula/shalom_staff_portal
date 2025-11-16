@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Edit, ClipboardList } from 'lucide-react';
+import { Loader2, Edit, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,14 @@ import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
+import { Input } from '@/components/ui/input';
 
 export default function ReportsPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [reports, setReports] = useState<any[]>([]);
+  const [filteredReports, setFilteredReports] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
@@ -30,6 +33,7 @@ export default function ReportsPage() {
         if (!res.ok) throw new Error('Failed to fetch reports');
         const data = await res.json();
         setReports(data.reports);
+        setFilteredReports(data.reports);
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -42,6 +46,14 @@ export default function ReportsPage() {
     };
     fetchReports();
   }, [toast]);
+
+  useEffect(() => {
+    const results = reports.filter(report =>
+      report.trekName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.groupId.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredReports(results);
+  }, [searchTerm, reports]);
   
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
     // This is a placeholder
@@ -62,8 +74,22 @@ export default function ReportsPage() {
       <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Saved Reports</CardTitle>
-            <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                    <CardTitle>Saved Reports</CardTitle>
+                    <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
+                </div>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by trek or group ID..."
+                        className="w-full sm:w-[300px] pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -83,7 +109,7 @@ export default function ReportsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {reports.length > 0 ? reports.map((report) => (
+                        {filteredReports.length > 0 ? filteredReports.map((report) => (
                         <TableRow key={report.groupId}>
                             <TableCell className="font-medium">{report.trekName}</TableCell>
                             <TableCell>
