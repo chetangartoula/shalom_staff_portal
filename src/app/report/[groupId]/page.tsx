@@ -65,6 +65,7 @@ export default function ReportPage() {
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [openedAccordions, setOpenedAccordions] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -148,59 +149,65 @@ export default function ReportPage() {
   }, [groupId, groupSize, form.reset]);
   
   const handleAccordionChange = (value: string[]) => {
-      const newlyOpened = value.filter(id => !openedAccordions.includes(id));
-      setOpenedAccordions(value);
+    setOpenedAccordions(value);
+  };
   
-      // When an accordion is opened, trigger validation for its fields.
-      if (newlyOpened.length > 0) {
-        const travelerIndex = fields.findIndex(field => field.id === newlyOpened[0]);
-        if (travelerIndex !== -1) {
-            form.trigger(`travelers.${travelerIndex}`);
+  const onSubmit = async (data: FormValues) => {
+    setIsSubmitting(true);
+    let isValid = true;
+    const travelersToSubmit = [];
+
+    // Clear all previous errors
+    form.clearErrors();
+
+    if (openedAccordions.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Details to Submit",
+        description: "Please open at least one traveler section to fill in and submit.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
+    // Manually validate only the opened sections
+    for (const traveler of data.travelers) {
+      if (traveler.id && openedAccordions.includes(traveler.id)) {
+        const result = travelerSchema.safeParse(traveler);
+        if (!result.success) {
+          isValid = false;
+          const travelerIndex = data.travelers.findIndex(t => t.id === traveler.id);
+          // Set errors for the specific fields that failed
+          result.error.issues.forEach(issue => {
+            form.setError(`travelers.${travelerIndex}.${issue.path[0] as keyof typeof traveler}`, {
+              type: 'manual',
+              message: issue.message,
+            });
+          });
+        } else {
+          travelersToSubmit.push(result.data);
         }
       }
-  };
-
-  const onSubmit = async (data: FormValues) => {
-    let isValid = true;
-    const travelersToSubmit: (typeof travelerSchema._output)[] = [];
-    
-    if (openedAccordions.length === 0) {
-        toast({
-            title: "No details to submit",
-            description: "Please open a traveler's section and fill out their details to submit.",
-        });
-        return;
-    }
-
-    // Manually validate only the opened sections before submission
-    for (let i = 0; i < data.travelers.length; i++) {
-        const traveler = data.travelers[i];
-        if (traveler && openedAccordions.includes(traveler.id!)) {
-            const result = travelerSchema.safeParse(traveler);
-            if (!result.success) {
-                isValid = false;
-                result.error.issues.forEach(issue => {
-                    form.setError(`travelers.${i}.${issue.path[0] as keyof typeof traveler}`, {
-                        type: 'manual',
-                        message: issue.message,
-                    });
-                });
-            } else {
-                travelersToSubmit.push(result.data);
-            }
-        }
     }
 
     if (!isValid) {
-        toast({
-            variant: "destructive",
-            title: "Validation Failed",
-            description: "Please fill out all required fields in the opened sections.",
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Validation Failed",
+        description: "Please fill out all required fields in the opened sections.",
+      });
+      setIsSubmitting(false);
+      return;
     }
     
-    form.clearErrors();
+    if (travelersToSubmit.length === 0) {
+        toast({
+            title: "No new details to submit",
+            description: "The opened traveler sections are empty. Please fill them out to save.",
+        });
+        setIsSubmitting(false);
+        return;
+    }
 
     const submissionData = {
       groupId,
@@ -212,7 +219,6 @@ export default function ReportPage() {
     };
     
     try {
-      form.formState.isSubmitting = true;
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -235,7 +241,7 @@ export default function ReportPage() {
         description: "Could not save traveler details. Please try again.",
       });
     } finally {
-        form.formState.isSubmitting = false;
+        setIsSubmitting(false);
     }
   };
 
@@ -430,7 +436,7 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Visa Photo</FormLabel>
                                     <FormControl>
-                                      <Input
+.                                     <Input
                                         type="file"
                                         onChange={(e) => field.onChange(e.target.files)}
                                       />
@@ -445,8 +451,8 @@ export default function ReportPage() {
                       ))}
                     </Accordion>
                     <CardFooter className="px-0 pt-6">
-                      <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Submit Details
                       </Button>
                     </CardFooter>
