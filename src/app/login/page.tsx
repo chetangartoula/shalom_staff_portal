@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,15 +12,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mountain } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("password");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -39,20 +35,22 @@ export default function LoginPage() {
 
     setIsLoading(true);
     
-    // Simulate network delay
+    // Simulate network delay and logic
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    try {
-      login(username, password);
-      router.push("/");
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "An unexpected error occurred.",
-      });
-    } finally {
-      setIsLoading(false);
+    // In a real app, you would make an API call to authenticate.
+    // For this demo, we'll assume login is always successful for the mock user.
+    if (username === "admin" && password === "password") {
+        // Upon successful login, the server would set a cookie.
+        // We then redirect to the dashboard.
+        router.push("/");
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Invalid username or password.",
+        });
+        setIsLoading(false);
     }
   };
 
@@ -62,7 +60,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <Mountain className="h-8 w-8 text-primary" />
+                <Icon name="Mountain" className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Shalom Dashboard</CardTitle>
             <CardDescription>
@@ -98,14 +96,13 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button type="submit" className="mt-6 w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>
           </CardContent>
         </Card>
       </div>
-      <Toaster />
     </>
   );
 }

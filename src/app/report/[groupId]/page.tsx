@@ -1,8 +1,6 @@
-
 "use client";
 
 import React from "react";
-import { Mountain, Copy, Check, Loader2 } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 
@@ -15,13 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { Icon } from "@/components/ui/icon";
 
 // Dynamically import the form component with SSR turned off
 const TravelerForm = dynamic(() => import('@/components/traveler-form'), {
   ssr: false,
   loading: () => (
     <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
     </div>
   ),
 });
@@ -51,7 +50,7 @@ export default function ReportPage() {
       <div className="flex flex-col min-h-screen bg-slate-50">
         <header className="flex items-center h-16 px-4 md:px-6 bg-primary text-primary-foreground shadow-md">
           <div className="flex items-center gap-2">
-            <Mountain className="h-6 w-6" />
+            <Icon name="Mountain" className="h-6 w-6" />
             <h1 className="text-xl font-bold">Shalom Treks</h1>
           </div>
         </header>
@@ -76,9 +75,9 @@ export default function ReportPage() {
                         onClick={handleCopy}
                       >
                         {isCopied ? (
-                          <Check className="h-3 w-3 text-green-500" />
+                          <Icon name="Check" className="h-3 w-3 text-green-500" />
                         ) : (
-                          <Copy className="h-3 w-3" />
+                          <Icon name="Copy" className="h-3 w-3" />
                         )}
                         <span className="sr-only">Copy Group ID</span>
                       </Button>

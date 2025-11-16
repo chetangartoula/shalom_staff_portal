@@ -1,10 +1,9 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Icon } from './ui/icon';
 
 interface RecentReportsProps {
     reports: any[];
@@ -37,7 +36,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
                                 <TableCell className="text-right">
                                     <Button variant="outline" size="sm" asChild>
                                         <Link href={`/cost-matrix/${report.groupId}`}>
-                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                            <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
                                         </Link>
                                     </Button>
                                 </TableCell>
@@ -63,7 +62,7 @@ RecentReports.Skeleton = function RecentReportsSkeleton() {
                 <CardTitle>Recent Reports</CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
             </CardContent>
         </Card>
     );

@@ -1,7 +1,6 @@
-
 "use client";
 
-import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -9,15 +8,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
-import { useState } from "react";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import type { User } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 interface DashboardHeaderProps {
   isSidebarCollapsed: boolean;
   setIsSidebarCollapsed: (isCollapsed: boolean) => void;
+  user: User | null;
 }
 
-export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed }: DashboardHeaderProps) {
+export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, user }: DashboardHeaderProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const handleLinkClick = () => {
@@ -29,19 +30,19 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed }: D
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="shrink-0 md:hidden">
-            <Menu className="h-5 w-5" />
+            <Icon name="Menu" className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0 border-0 sheet-content">
           <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
-          <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} />
+          <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} user={user}/>
         </SheetContent>
       </Sheet>
       
       <div className="w-full flex-1 flex items-center gap-4">
         <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          {isSidebarCollapsed ? <Icon name="PanelLeftOpen" /> : <Icon name="PanelLeftClose" />}
           <span className="sr-only">Toggle sidebar</span>
         </Button>
         <div className="flex-1" />

@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { Mountain } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Trek } from "@/lib/types";
+import { Icon } from '../ui/icon';
 
 interface SelectTrekStepProps {
   treks: Trek[];
@@ -29,7 +28,7 @@ export const SelectTrekStep = React.memo(function SelectTrekStep({ treks, select
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
                     <div className="bg-primary/10 p-3 rounded-full">
-                        <Mountain className="h-6 w-6 text-primary" />
+                        <Icon name="Mountain" className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-lg font-bold">{trek.name}</h3>
                 </div>

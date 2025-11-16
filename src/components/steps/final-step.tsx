@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from 'react';
-import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,6 +15,7 @@ import type { SectionState, CostRow } from "@/lib/types";
 import { CostTable } from "@/components/cost-table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Icon } from '../ui/icon';
 
 interface FinalStepProps {
     extraDetailsState: SectionState;
@@ -114,8 +114,8 @@ function FinalStepComponent({
                     </div>
                 </CardContent>
                 <CardFooter className="flex-wrap justify-end gap-2 px-0 pt-6">
-                    <Button onClick={onExportPDF} variant="outline"><FileDown /> Export PDF</Button>
-                    <Button onClick={onExportExcel} variant="outline"><FileDown /> Export Excel</Button>
+                    <Button onClick={onExportPDF} variant="outline"><Icon name="FileDown" /> Export PDF</Button>
+                    <Button onClick={onExportExcel} variant="outline"><Icon name="FileDown" /> Export Excel</Button>
                 </CardFooter>
             </Card>
         </div>

@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Edit, Search, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -12,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Icon } from './ui/icon';
 
 interface Report {
     groupId: string;
@@ -21,45 +20,24 @@ interface Report {
     reportUrl: string;
 }
 
-export function ReportsContent() {
+interface ReportsContentProps {
+    initialData: {
+        reports: Report[];
+        hasMore: boolean;
+    }
+}
+
+export function ReportsContent({ initialData }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<Report[]>(initialData.reports);
+  const [filteredReports, setFilteredReports] = useState<Report[]>(initialData.reports);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const fetchReports = useCallback(async (pageNum: number, initialLoad = false) => {
-    if(initialLoad) setIsLoading(true);
-    else setIsMoreLoading(true);
-
-    try {
-      const res = await fetch(`/api/reports?page=${pageNum}&limit=10`);
-      if (!res.ok) throw new Error('Failed to fetch reports');
-      const data = await res.json();
-      
-      setReports(prev => pageNum === 1 ? data.reports : [...prev, ...data.reports]);
-      setHasMore(data.hasMore);
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load reports.',
-      });
-    } finally {
-      if(initialLoad) setIsLoading(false);
-      else setIsMoreLoading(false);
-    }
-  }, [toast]);
-  
-  useEffect(() => {
-    fetchReports(1, true);
-  }, [fetchReports]);
 
   useEffect(() => {
     const results = reports.filter(report =>
@@ -69,10 +47,28 @@ export function ReportsContent() {
     setFilteredReports(results);
   }, [searchTerm, reports]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     const nextPage = page + 1;
-    setPage(nextPage);
-    fetchReports(nextPage);
+    setIsMoreLoading(true);
+
+    try {
+      const res = await fetch(`/api/reports?page=${nextPage}&limit=10`);
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      const data = await res.json();
+      
+      setReports(prev => [...prev, ...data.reports]);
+      setHasMore(data.hasMore);
+      setPage(nextPage);
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load more reports.',
+      });
+    } finally {
+      setIsMoreLoading(false);
+    }
   };
 
   const handleCopy = (id: string) => {
@@ -99,7 +95,7 @@ export function ReportsContent() {
                   <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
               </div>
               <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Icon name="Search" className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
                       placeholder="Search by trek or group ID..."
@@ -113,7 +109,7 @@ export function ReportsContent() {
         <CardContent>
           {isLoading ? (
              <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
             <div className="border rounded-lg">
@@ -137,7 +133,7 @@ export function ReportsContent() {
                                     {report.groupId.substring(0, 8)}...
                                   </Link>
                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
-                                      {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                      {copiedId === report.groupId ? <Icon name="Check" className="h-4 w-4 text-green-500" /> : <Icon name="Copy" className="h-4 w-4" />}
                                       <span className="sr-only">Copy Group ID</span>
                                     </Button>
                                 </div>
@@ -146,7 +142,7 @@ export function ReportsContent() {
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                    <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -165,7 +161,7 @@ export function ReportsContent() {
          {hasMore && !searchTerm && (
           <CardFooter className="justify-center pt-6">
             <Button onClick={handleLoadMore} disabled={isMoreLoading}>
-              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isMoreLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>

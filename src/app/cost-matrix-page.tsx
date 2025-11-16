@@ -1,8 +1,6 @@
-
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo } from "react";
-import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from 'next/dynamic';
@@ -10,22 +8,23 @@ import dynamic from 'next/dynamic';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
   DialogDescription,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Toaster } from "@/components/ui/toaster";
 import { Stepper } from "@/components/ui/stepper";
 import type { Trek, CostRow, SectionState } from "@/lib/types";
-import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
+import { getUser } from "@/lib/auth";
+import type { User } from "@/lib/auth";
+import { Icon } from "@/components/ui/icon";
 
 type ReportState = {
   groupId: string;
@@ -49,8 +48,8 @@ const initialSteps = [
   { id: "05", name: "Final" },
 ];
 
-const createInitialReportState = (): ReportState => ({
-  groupId: crypto.randomUUID(),
+const createInitialReportState = (groupId?: string): ReportState => ({
+  groupId: groupId || crypto.randomUUID(),
   trekId: null,
   trekName: '',
   groupSize: 1,
@@ -65,7 +64,7 @@ const createInitialReportState = (): ReportState => ({
 
 const LoadingStep = () => (
   <div className="flex justify-center items-center h-96">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
 
@@ -82,28 +81,31 @@ interface TrekCostingPageProps {
 
 function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPageProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const router = useRouter();
 
-  const [report, setReport] = useState<ReportState>(createInitialReportState());
+  const [report, setReport] = useState<ReportState>(() => createInitialReportState(initialData?.groupId));
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [usePax, setUsePax] = useState<{ [key: string]: boolean }>({});
-  const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
+  const [savedReportUrl, setSavedReportUrl] = useState<string | null>(initialData?.reportUrl || null);
   const [isCopied, setIsCopied] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
   
   useEffect(() => {
+    getUser().then(setUser);
+  }, []);
+
+  useEffect(() => {
     if (initialData) {
         setIsLoading(true);
         const fullReport = {
-            ...createInitialReportState(),
+            ...createInitialReportState(initialData.groupId),
             ...initialData,
-            groupId: initialData.groupId || crypto.randomUUID(),
             startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
         };
         setReport(fullReport);
@@ -535,7 +537,7 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
               <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
-                        <PlusSquare /> Add Section
+                        <Icon name="PlusSquare" /> Add Section
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -577,13 +579,13 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
                   {savedReportUrl}
                 </Link>
                 <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
-                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  {isCopied ? <Icon name="Check" className="h-4 w-4 text-green-500" /> : <Icon name="Copy" className="h-4 w-4" />}
                 </Button>
             </div>
           )}
           {currentStep === steps.length - 1 ? (
             <Button onClick={handleFinish} disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
+                {isLoading ? <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
             </Button>
           ) : (
             <Button onClick={nextStep}>
@@ -592,7 +594,6 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
           )}
         </div>
       </div>
-      <Toaster />
     </>
   );
 }

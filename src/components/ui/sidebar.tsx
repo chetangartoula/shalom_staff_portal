@@ -1,10 +1,7 @@
-
 "use client";
 import React, { useState, lazy, Suspense } from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList, Users, Calculator, Loader2 } from "lucide-react"
-import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
@@ -20,18 +17,20 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
 import type { AddTrekFormData } from '@/components/add-trek-form';
+import type { User } from '@/lib/auth';
+import { Icon } from './icon';
 
 const AddTrekForm = lazy(() => import('@/components/add-trek-form').then(mod => ({ default: mod.AddTrekForm })));
 
 interface SidebarProps {
   className?: string;
   isCollapsed: boolean;
+  user: User | null;
   onLinkClick?: () => void;
 }
 
-export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onLinkClick }: SidebarProps) {
+export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, user, onLinkClick }: SidebarProps) {
     const pathname = usePathname();
-    const { logout, user } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
 
@@ -56,6 +55,10 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
               description: `${data.name} has been added.`,
             });
             setIsAddTrekModalOpen(false);
+            // Quick refresh to show new trek if on cost-estimator page
+            if (pathname === '/cost-estimator') {
+                router.refresh();
+            }
         } catch (error) {
              toast({
               variant: "destructive",
@@ -69,17 +72,17 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
 
 
     const handleLogout = () => {
-        logout();
+        // In a real app, you'd call an API endpoint to clear the session/cookie
         router.push('/login');
     };
 
     const navItems = [
-        { href: "/dashboard", label: "Dashboard", icon: Home },
-        { href: "/cost-estimator", label: "Cost Estimator", icon: Calculator },
-        { href: "/reports", label: "Reports", icon: ClipboardList },
-        { href: "/travelers", label: "Travelers", icon: Users },
-        { href: "#", label: "Add Trek", icon: Plus, action: () => setIsAddTrekModalOpen(true) },
-        { href: "/services", label: "Services", icon: Settings },
+        { href: "/dashboard", label: "Dashboard", icon: "Home" },
+        { href: "/cost-estimator", label: "Cost Estimator", icon: "Calculator" },
+        { href: "/reports", label: "Reports", icon: "ClipboardList" },
+        { href: "/travelers", label: "Travelers", icon: "Users" },
+        { href: "#", label: "Add Trek", icon: "Plus", action: () => setIsAddTrekModalOpen(true) },
+        { href: "/services", label: "Services", icon: "Settings" },
     ];
 
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
@@ -101,7 +104,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
                 isActive && "text-sidebar-foreground bg-sidebar-active-background font-bold",
                 isCollapsed && "justify-center"
             )}>
-                <item.icon className="h-5 w-5" />
+                <Icon name={item.icon as any} className="h-5 w-5" />
                 {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
                  <span className="sr-only">{item.label}</span>
             </span>
@@ -135,14 +138,14 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
     return (
         <>
             {isAddTrekModalOpen && (
-                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" /></div>}>
                     <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} isSubmitting={isSubmitting} />
                 </Suspense>
             )}
             <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
                 <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6 shadow-md">
                     <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
-                        <Mountain className="h-6 w-6" />
+                        <Icon name="Mountain" className="h-6 w-6" />
                         {!isCollapsed && <span className="">Shalom</span>}
                     </Link>
                 </div>
@@ -167,7 +170,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
                                     <p className="text-xs text-sidebar-muted-foreground">{user.email}</p>
                                     </div>
                                 )}
-                                {!isCollapsed && <MoreVertical className="h-4 w-4 ml-auto text-sidebar-muted-foreground" />}
+                                {!isCollapsed && <Icon name="MoreVertical" className="h-4 w-4 ml-auto text-sidebar-muted-foreground" />}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="top" align="start" className="w-56 bg-background">
@@ -177,7 +180,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onL
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
-                                <LogOut className="mr-2 h-4 w-4" />
+                                <Icon name="LogOut" className="mr-2 h-4 w-4" />
                                 <span>Log out</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>

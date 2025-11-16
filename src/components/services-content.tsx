@@ -1,8 +1,6 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { Loader2, Plus, MoreHorizontal, Trash2, Edit, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,49 +16,29 @@ import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import type { ServiceFormData } from '@/components/add-service-form';
+import { Icon } from './ui/icon';
 
 const AddServiceForm = lazy(() => import('@/components/add-service-form').then(mod => ({ default: mod.AddServiceForm })));
 
-export function ServicesContent() {
+interface ServicesContentProps {
+    initialData: {
+        services: Service[];
+        hasMore: boolean;
+    }
+}
+
+export function ServicesContent({ initialData }: ServicesContentProps) {
   const { toast } = useToast();
-  const [services, setServices] = useState<Service[]>([]);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>(initialData.services);
+  const [filteredServices, setFilteredServices] = useState<Service[]>(initialData.services);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-
-  const fetchServices = useCallback(async (pageNum: number, initialLoad = false) => {
-    if (initialLoad) setIsLoading(true);
-    else setIsMoreLoading(true);
-
-    try {
-      const res = await fetch(`/api/services?page=${pageNum}&limit=10`);
-      if (!res.ok) throw new Error('Failed to fetch services');
-      const data = await res.json();
-      
-      setServices(prev => pageNum === 1 ? data.services : [...prev, ...data.services]);
-      setHasMore(data.hasMore);
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load more services.',
-      });
-    } finally {
-      if (initialLoad) setIsLoading(false);
-      else setIsMoreLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchServices(1, true);
-  }, [fetchServices]);
 
   useEffect(() => {
     const results = services.filter(service =>
@@ -70,10 +48,28 @@ export function ServicesContent() {
   }, [searchTerm, services]);
 
 
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     const nextPage = page + 1;
-    setPage(nextPage);
-    fetchServices(nextPage);
+    setIsMoreLoading(true);
+
+    try {
+      const res = await fetch(`/api/services?page=${nextPage}&limit=10`);
+      if (!res.ok) throw new Error('Failed to fetch services');
+      const data = await res.json();
+      
+      setServices(prev => [...prev, ...data.services]);
+      setHasMore(data.hasMore);
+      setPage(nextPage);
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load more services.',
+      });
+    } finally {
+      setIsMoreLoading(false);
+    }
   };
   
   const handleOpenServiceModal = (service: Service | null = null) => {
@@ -155,7 +151,7 @@ export function ServicesContent() {
   return (
     <>
       {isServiceModalOpen && (
-        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" /></div>}>
             <AddServiceForm 
               open={isServiceModalOpen}
               onOpenChange={setIsServiceModalOpen}
@@ -174,7 +170,7 @@ export function ServicesContent() {
               </div>
                <div className="flex items-center gap-2">
                   <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Icon name="Search" className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                           type="search"
                           placeholder="Search by service name..."
@@ -184,7 +180,7 @@ export function ServicesContent() {
                       />
                   </div>
                   <Button onClick={() => handleOpenServiceModal()} className="shrink-0">
-                      <Plus className="mr-2 h-4 w-4" /> Add Service
+                      <Icon name="Plus" className="mr-2 h-4 w-4" /> Add Service
                   </Button>
               </div>
           </div>
@@ -192,7 +188,7 @@ export function ServicesContent() {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <div className="border rounded-lg">
@@ -216,15 +212,15 @@ export function ServicesContent() {
                                 <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
                                     <span className="sr-only">Open menu</span>
-                                    <MoreHorizontal className="h-4 w-4" />
+                                    <Icon name="MoreHorizontal" className="h-4 w-4" />
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                    <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                    <Icon name="Trash2" className="mr-2 h-4 w-4" /> Delete
                                 </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -244,7 +240,7 @@ export function ServicesContent() {
         {hasMore && !searchTerm && (
           <CardFooter className="justify-center">
             <Button onClick={handleLoadMore} disabled={isMoreLoading}>
-              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isMoreLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>

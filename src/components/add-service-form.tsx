@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +17,7 @@ import {
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import type { Service } from "@/lib/types";
+import { Icon } from "@/components/ui/icon";
 
 export const serviceFormSchema = z.object({
   name: z.string().min(1, "Service name is required"),
@@ -116,7 +115,7 @@ export function AddServiceForm({ open, onOpenChange, onSubmit, isSubmitting, def
             <DialogFooter>
                 <Button variant="outline" onClick={() => onOpenChange(false)} type="button">Cancel</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
                 {defaultValues ? "Save Changes" : "Create Service"}
               </Button>
             </DialogFooter>

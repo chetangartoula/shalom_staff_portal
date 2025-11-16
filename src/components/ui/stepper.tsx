@@ -1,7 +1,7 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Icon } from "./icon";
 
 interface Step {
   id: string;
@@ -43,7 +43,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                   )}
                 >
                   {stepIdx < currentStep ? (
-                    <Check className="h-5 w-5" />
+                    <Icon name="Check" className="h-5 w-5" />
                   ) : (
                     <span
                       className={cn(

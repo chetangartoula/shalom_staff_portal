@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +18,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Icon } from "@/components/ui/icon";
 
 
 const permitSchema = z.object({
@@ -151,7 +150,7 @@ export function AddTrekForm({ open, onOpenChange, onSubmit, isSubmitting }: AddT
                         disabled={permitFields.length <= 1}
                         onClick={() => removePermit(index)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Icon name="Trash2" className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -163,7 +162,7 @@ export function AddTrekForm({ open, onOpenChange, onSubmit, isSubmitting }: AddT
                       className="mt-3"
                       onClick={() => appendPermit({ name: "", rate: 0 })}
                     >
-                    <Plus /> Add Permit
+                    <Icon name="Plus" /> Add Permit
                   </Button>
                 </div>
               </div>
@@ -171,7 +170,7 @@ export function AddTrekForm({ open, onOpenChange, onSubmit, isSubmitting }: AddT
             </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
                 Save Trek
               </Button>
             </DialogFooter>

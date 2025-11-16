@@ -1,18 +1,16 @@
-"use client";
 
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { ProtectedRoute } from '@/components/protected-route';
+import { getUser } from '@/lib/auth';
 
 interface DashboardLayoutShellProps {
     children: React.ReactNode;
 }
 
-export function DashboardLayoutShell({ children }: DashboardLayoutShellProps) {
+export async function DashboardLayoutShell({ children }: DashboardLayoutShellProps) {
+    const user = await getUser();
     return (
-        <ProtectedRoute>
-            <DashboardLayout>
-                {children}
-            </DashboardLayout>
-        </ProtectedRoute>
+        <DashboardLayout user={user}>
+            {children}
+        </DashboardLayout>
     );
 }
