@@ -13,7 +13,7 @@ export let reports: any[] = [];
 export let travelers: any[] = [];
 
 // Functions to manipulate the data
-export const addTrek = (newTrek: Trek) => {
+export const addTrek = async (newTrek: Trek) => {
   treks.push(newTrek);
   return newTrek;
 };

@@ -8,10 +8,15 @@ interface Params {
   };
 }
 
+export async function getReportByGroupId(groupId: string) {
+  const report = reports.find(r => r.groupId === groupId);
+  return report || null;
+}
+
 export async function GET(request: Request, { params }: Params) {
   try {
     const { groupId } = params;
-    const report = reports.find(r => r.groupId === groupId);
+    const report = await getReportByGroupId(groupId);
     if (report) {
       return NextResponse.json(report);
     }
