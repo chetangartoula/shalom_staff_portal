@@ -51,7 +51,10 @@ const travelerSchema = z.object({
 });
 
 const partialTravelerSchema = travelerSchema.partial();
-type FormValues = { travelers: z.infer<typeof partialTravelerSchema>[] };
+const formSchema = z.object({
+  travelers: z.array(partialTravelerSchema),
+});
+type FormValues = z.infer<typeof formSchema>;
 
 
 export default function ReportPage() {
@@ -82,33 +85,11 @@ export default function ReportPage() {
     [groupSize]
   );
   
-  // Define the schema dynamically based on opened accordions
-  const formSchema = z.object({
-    travelers: z.array(partialTravelerSchema),
-  }).refine((data, ctx) => {
-    data.travelers.forEach((traveler, index) => {
-      // Only validate travelers whose accordion is open
-      if (openedAccordions.includes(traveler.id!)) {
-        const result = travelerSchema.safeParse(traveler);
-        if (!result.success) {
-          result.error.issues.forEach((issue) => {
-            ctx.addIssue({
-              ...issue,
-              path: ["travelers", index, ...issue.path],
-            });
-          });
-        }
-      }
-    });
-    return true;
-  });
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       travelers: defaultTravelers,
     },
-    // Re-validate on change to provide immediate feedback
     mode: 'onChange',
   });
 
@@ -132,13 +113,13 @@ export default function ReportPage() {
             const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
 
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-                // Try to find an existing traveler by ID first, then by index as a fallback
-                let existingTraveler = existingTravelersMap.get(defaultTraveler.id) || data.travelers[index];
+                let existingTraveler = data.travelers.find((t: any, i: number) => i === index);
                 
                 if (existingTraveler) {
                     return {
                         ...defaultTraveler,
                         ...existingTraveler,
+                        id: existingTraveler.id || defaultTraveler.id, // Ensure ID is preserved
                         dateOfBirth: existingTraveler.dateOfBirth ? new Date(existingTraveler.dateOfBirth) : undefined,
                         passportExpiryDate: existingTraveler.passportExpiryDate ? new Date(existingTraveler.passportExpiryDate) : undefined,
                     };
@@ -146,7 +127,6 @@ export default function ReportPage() {
                 return defaultTraveler;
             });
             
-            // Ensure the array has the correct length based on groupSize
             while(mergedTravelers.length < groupSize) {
                  mergedTravelers.push(defaultTravelers[mergedTravelers.length]);
             }
@@ -166,22 +146,57 @@ export default function ReportPage() {
     fetchTravelerData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, groupSize, form.reset]);
-
-  const handleAccordionChange = (value: string[]) => {
-    setOpenedAccordions(value);
-    // When an accordion is opened/closed, trigger validation for the whole form
-    // The schema will then correctly apply rules based on the new `openedAccordions` state.
-    form.trigger();
-  };
   
+  const handleAccordionChange = (value: string[]) => {
+      const newlyOpened = value.filter(id => !openedAccordions.includes(id));
+      setOpenedAccordions(value);
+  
+      // When an accordion is opened, trigger validation for its fields.
+      if (newlyOpened.length > 0) {
+        const travelerIndex = fields.findIndex(field => field.id === newlyOpened[0]);
+        if (travelerIndex !== -1) {
+            form.trigger(`travelers.${travelerIndex}`);
+        }
+      }
+  };
+
   const onSubmit = async (data: FormValues) => {
-    // Filter out travelers that haven't been touched (are not in openedAccordions)
-    const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
+    let isValid = true;
+    const travelersToSubmit: FormValues['travelers'] = [];
+
+    // Manually validate only the opened sections before submission
+    for (let i = 0; i < data.travelers.length; i++) {
+        const traveler = data.travelers[i];
+        if (openedAccordions.includes(traveler.id!)) {
+            const result = travelerSchema.safeParse(traveler);
+            if (!result.success) {
+                isValid = false;
+                // Manually set errors for the specific fields
+                result.error.issues.forEach(issue => {
+                    form.setError(`travelers.${i}.${issue.path[0] as keyof typeof traveler}`, {
+                        type: 'manual',
+                        message: issue.message,
+                    });
+                });
+            } else {
+                travelersToSubmit.push(result.data);
+            }
+        }
+    }
+
+    if (!isValid) {
+        toast({
+            variant: "destructive",
+            title: "Validation Failed",
+            description: "Please fill out all required fields in the opened sections.",
+        });
+        return;
+    }
 
     if (travelersToSubmit.length === 0) {
         toast({
             title: "No Details to Submit",
-            description: "Please fill out the details for at least one traveler by opening their section.",
+            description: "Please open a traveler's section and fill out their details.",
         });
         return;
     }
@@ -190,7 +205,6 @@ export default function ReportPage() {
       groupId,
       travelers: travelersToSubmit.map(t => ({
         ...t,
-        // Handle file objects if they exist
         passportPhoto: t.passportPhoto?.[0]?.name,
         visaPhoto: t.visaPhoto?.[0]?.name,
       }))
@@ -198,7 +212,7 @@ export default function ReportPage() {
     
     try {
       const response = await fetch(`/api/travelers/${groupId}`, {
-        method: 'PUT', // Use PUT to update existing or create new
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submissionData),
       });
