@@ -4,6 +4,7 @@ import { useState, useEffect, memo } from "react";
 import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import dynamic from 'next/dynamic';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,14 +25,23 @@ import type { Trek } from "@/lib/types";
 import { useAuth } from "@/context/auth-context";
 
 import { useCostMatrix, handleExportPDF, handleExportExcel } from "@/hooks/use-cost-matrix";
-import { SelectTrekStep } from "@/components/steps/select-trek-step";
-import { GroupDetailsStep } from "@/components/steps/group-details-step";
-import { FinalStep } from "@/components/steps/final-step";
-import { CostTable } from "@/components/cost-table";
 import { useToast } from "@/hooks/use-toast";
 
+// Lazy-load all step components to reduce initial bundle size
+const LoadingStep = () => (
+  <div className="flex justify-center items-center h-96">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
+
+const SelectTrekStep = dynamic(() => import('@/components/steps/select-trek-step').then(mod => mod.SelectTrekStep), { loading: LoadingStep });
+const GroupDetailsStep = dynamic(() => import('@/components/steps/group-details-step').then(mod => mod.GroupDetailsStep), { loading: LoadingStep });
+const FinalStep = dynamic(() => import('@/components/steps/final-step').then(mod => mod.FinalStep), { loading: LoadingStep });
+const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mod.CostTable), { loading: LoadingStep });
+
+
 interface TrekCostingPageProps {
-  treks: Trek[];
+  treks?: Trek[]; // Make treks optional
   initialData?: any;
 }
 
@@ -200,24 +210,21 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
     const step = steps[currentStep];
 
     if (isLoading) {
-      return (
-        <div className="flex justify-center items-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      );
+      return <LoadingStep />;
     }
     
-    if (currentStep === 0) {
-      return (
-        <SelectTrekStep 
-          treks={treks}
-          selectedTrekId={selectedTrekId}
-          onSelectTrek={setSelectedTrekId}
-        />
-      );
-    }
+    // Render only the current step
+    switch (step.id) {
+      case '01':
+        return treks ? (
+          <SelectTrekStep
+            treks={treks}
+            selectedTrekId={selectedTrekId}
+            onSelectTrek={setSelectedTrekId}
+          />
+        ) : <LoadingStep />;
 
-    if (step.name === "Group Details") {
+      case '02':
         return (
           <GroupDetailsStep
             groupSize={groupSize}
@@ -226,54 +233,36 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
             onStartDateChange={setStartDate}
           />
         );
-    }
-    
-    if (step.name === "Permits & Food") {
-       return <CostTable 
-                section={permitsState}
-                usePax={usePax[permitsState.id] || false}
-                onSetUsePax={handleSetUsePax}
-                onRowChange={handleRowChange}
-                onDiscountChange={handleDiscountChange}
-                onAddRow={addRow}
-                onRemoveRow={removeRow}
-              />;
-    }
-    
-    if (step.name === "Services") {
-        return <CostTable 
-                 section={servicesState}
-                 usePax={usePax[servicesState.id] || false}
-                 onSetUsePax={handleSetUsePax}
-                 onRowChange={handleRowChange}
-                 onDiscountChange={handleDiscountChange}
-                 onAddRow={addRow}
-                 onRemoveRow={removeRow}
-               />;
-    }
 
-    if (step.id.startsWith('custom_step_')) {
-        const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
-        if (customSection) {
-            return <CostTable 
-                section={customSection}
-                usePax={usePax[customSection.id] || false}
-                onSetUsePax={handleSetUsePax}
-                isCustom
-                isDescriptionEditable
-                onRowChange={handleRowChange}
-                onDiscountChange={handleDiscountChange}
-                onAddRow={addRow}
-                onRemoveRow={removeRow}
-                onEditSection={handleOpenEditSectionModal}
-                onRemoveSection={removeSection}
-            />;
-        }
-    }
-    
-    if (step.name === "Final") {
-      return (
-          <FinalStep 
+      case '03':
+        return (
+          <CostTable
+            section={permitsState}
+            usePax={usePax[permitsState.id] || false}
+            onSetUsePax={handleSetUsePax}
+            onRowChange={handleRowChange}
+            onDiscountChange={handleDiscountChange}
+            onAddRow={addRow}
+            onRemoveRow={removeRow}
+          />
+        );
+
+      case '04':
+        return (
+          <CostTable
+            section={servicesState}
+            usePax={usePax[servicesState.id] || false}
+            onSetUsePax={handleSetUsePax}
+            onRowChange={handleRowChange}
+            onDiscountChange={handleDiscountChange}
+            onAddRow={addRow}
+            onRemoveRow={removeRow}
+          />
+        );
+
+      case '05':
+        return (
+          <FinalStep
             extraDetailsState={extraDetailsState}
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
@@ -288,10 +277,31 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
             serviceCharge={serviceCharge}
             setServiceCharge={setServiceCharge}
           />
-      );
-    }
+        );
 
-    return null;
+      default:
+        if (step.id.startsWith('custom_step_')) {
+          const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
+          if (customSection) {
+            return (
+              <CostTable
+                section={customSection}
+                usePax={usePax[customSection.id] || false}
+                onSetUsePax={handleSetUsePax}
+                isCustom
+                isDescriptionEditable
+                onRowChange={handleRowChange}
+                onDiscountChange={handleDiscountChange}
+                onAddRow={addRow}
+                onRemoveRow={removeRow}
+                onEditSection={handleOpenEditSectionModal}
+                onRemoveSection={removeSection}
+              />
+            );
+          }
+        }
+        return null;
+    }
   };
 
   return (

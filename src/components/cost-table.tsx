@@ -36,7 +36,7 @@ interface CostTableProps {
     onRemoveSection?: (sectionId: string) => void;
 }
 
-export const CostTable = React.memo(function CostTable({
+const CostTableComponent = ({
     section,
     usePax,
     onSetUsePax,
@@ -48,7 +48,7 @@ export const CostTable = React.memo(function CostTable({
     isDescriptionEditable = false,
     onEditSection,
     onRemoveSection,
-}: CostTableProps) {
+}: CostTableProps) => {
 
     const calculateSectionTotals = (section: SectionState) => {
         const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
@@ -161,4 +161,6 @@ export const CostTable = React.memo(function CostTable({
             </CardContent>
         </Card>
     );
-});
+};
+
+export const CostTable = React.memo(CostTableComponent);

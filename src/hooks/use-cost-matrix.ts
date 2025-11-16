@@ -43,10 +43,10 @@ export async function handleExportPDF({
   if (!selectedTrek) return;
 
   const { default: jsPDF } = await import("jspdf");
-  await import("jspdf-autotable");
+  const { default: autoTable } = await import("jspdf-autotable");
   const { default: QRCode } = await import("qrcode");
 
-  const doc = new (jsPDF as any)();
+  const doc = new jsPDF();
   const groupId = initialData?.groupId || uuidv4();
   const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
@@ -64,7 +64,7 @@ export async function handleExportPDF({
   const pageRightMargin = 14;
 
   const addFooter = () => {
-      const pageCount = doc.internal.getNumberOfPages();
+      const pageCount = (doc.internal as any).getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
           const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
@@ -96,7 +96,7 @@ export async function handleExportPDF({
   doc.setFont("helvetica", "bold");
   doc.text("Group Details", pageLeftMargin, yPos);
   yPos += 7;
-  doc.autoTable({
+  autoTable(doc, {
       startY: yPos,
       body: [
           ['Trek Name', selectedTrek.name || 'N/A'],
@@ -136,7 +136,7 @@ export async function handleExportPDF({
     }
     body.push(['', 'Total', '', '', '', formatCurrency(total)]);
 
-    doc.autoTable({
+    autoTable(doc, {
         startY: yPos,
         head: head,
         body: body,
@@ -167,7 +167,7 @@ export async function handleExportPDF({
     });
     summaryData.push(['Grand Total', formatCurrency(grandTotal)]);
     
-    doc.autoTable({
+    autoTable(doc, {
         startY: yPos,
         body: summaryData,
         theme: 'plain'
@@ -238,7 +238,7 @@ export async function handleExportExcel({
    XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
 }
 
-export function useCostMatrix(treks: Trek[], initialData?: any) {
+export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   const { toast } = useToast();
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
@@ -262,48 +262,34 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
   const [serviceCharge, setServiceCharge] = useState(10);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const servicesRes = await fetch('/api/services');
-
-        if (!servicesRes.ok) {
-            throw new Error('Failed to fetch data');
-        }
-
-        const servicesData = await servicesRes.json();
-        setServices(servicesData.services);
-
-        if (initialData?.trekId) {
-          // If there's initial data, we're in "edit" mode.
-          setSelectedTrekId(initialData.trekId);
-          setGroupSize(initialData.groupSize);
-          setStartDate(initialData.startDate ? new Date(initialData.startDate) : undefined);
-          setPermitsState(initialData.permits);
-          setServicesState(initialData.services);
-          setExtraDetailsState(initialData.extraDetails);
-          setCustomSections(initialData.customSections || []);
-          setServiceCharge(initialData.serviceCharge || 10);
-        } else if (treks.length > 0 && !selectedTrekId) {
-          // If new report, select first trek by default.
-          setSelectedTrekId(treks[0].id)
-        }
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Error fetching data",
-          description: "Could not load treks and services.",
+    // This effect now only handles initialization from initialData
+    if (initialData?.trekId) {
+      // If there's initial data, we're in "edit" mode.
+      setSelectedTrekId(initialData.trekId);
+      setGroupSize(initialData.groupSize);
+      setStartDate(initialData.startDate ? new Date(initialData.startDate) : undefined);
+      setPermitsState(initialData.permits);
+      setServicesState(initialData.services);
+      setExtraDetailsState(initialData.extraDetails);
+      setCustomSections(initialData.customSections || []);
+      setServiceCharge(initialData.serviceCharge || 10);
+      
+      const newSteps = [...initialSteps];
+      const finalStepIndex = newSteps.findIndex(s => s.name === "Final");
+      if(initialData.customSections) {
+        initialData.customSections.forEach((section: SectionState) => {
+          const newStep = { id: `custom_step_${section.id}`, name: section.name };
+          newSteps.splice(finalStepIndex, 0, newStep);
         });
-      } finally {
-        setIsLoading(false);
+        setSteps(newSteps);
       }
-    };
-    fetchData();
-  }, [toast, treks, initialData, selectedTrekId]);
+    }
+    setIsLoading(false);
+  }, [initialData]);
 
 
   const selectedTrek = useMemo(
-    () => treks.find((trek) => trek.id === selectedTrekId),
+    () => treks?.find((trek) => trek.id === selectedTrekId),
     [selectedTrekId, treks]
   );
   
@@ -312,9 +298,8 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
   }, []);
 
   useEffect(() => {
-    // This effect runs when a new trek is selected, to reset the details.
-    // It should NOT run when in "edit" mode (i.e., when initialData is present).
-    if (initialData?.trekId || !selectedTrek || services.length === 0) return;
+    // This effect now ONLY runs when a new trek is selected in "new" mode.
+    if (initialData?.trekId || !selectedTrek || !treks) return;
 
     const isPaxEnabled = usePax['permits'] ?? false;
     const numberValue = isPaxEnabled ? groupSize : 1;
@@ -329,23 +314,13 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     }));
     setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
 
-    const initialServices = services.map((service) => ({
-      id: uuidv4(),
-      description: service.name,
-      rate: service.rate,
-      no: 0, 
-      times: service.times,
-      total: 0,
-    }));
-    setServicesState(prev => ({...prev, rows: initialServices}));
-
       const initialExtraDetails = [
       { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
       { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
     ];
     setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     
-  }, [selectedTrek, groupSize, services, usePax, initialData]);
+  }, [selectedTrek, treks, groupSize, usePax, initialData]);
   
   useEffect(() => {
       // This effect updates the 'no' value when groupSize or usePax changes.
