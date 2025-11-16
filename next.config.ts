@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  env: {
+    NEXT_PUBLIC_APP_URL: process.env.NODE_ENV === 'production' 
+      ? 'https://your-production-url.com' // TODO: Replace with your production URL
+      : 'http://localhost:3000',
+  },
 };
 
 export default nextConfig;

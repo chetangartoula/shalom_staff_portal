@@ -1,14 +1,12 @@
-
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { Search } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster } from '@/components/ui/toaster';
-import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
 interface Traveler {
@@ -25,33 +23,15 @@ interface Traveler {
     trekName: string;
 }
 
-export function TravelersContent() {
-  const { toast } = useToast();
-  const [travelers, setTravelers] = useState<Traveler[]>([]);
+interface TravelersContentProps {
+  initialData: {
+    travelers: Traveler[];
+  };
+}
+
+export function TravelersContent({ initialData }: TravelersContentProps) {
+  const [travelers] = useState<Traveler[]>(initialData.travelers);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTravelers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/travelers/all');
-      if (!res.ok) throw new Error('Failed to fetch travelers');
-      const data = await res.json();
-      setTravelers(data.travelers);
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load traveler data.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchTravelers();
-  }, [fetchTravelers]);
 
   const filteredTravelers = useMemo(() => {
     if (!searchTerm) return travelers;
@@ -84,48 +64,42 @@ export function TravelersContent() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="border rounded-lg">
-              <Table>
-                  <TableHeader>
+          <div className="border rounded-lg">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Nationality</TableHead>
+                        <TableHead>Passport No.</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Trek</TableHead>
+                        <TableHead>Group ID</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
+                    <TableRow key={traveler.id}>
+                        <TableCell className="font-medium">{traveler.name}</TableCell>
+                        <TableCell>{traveler.nationality || 'N/A'}</TableCell>
+                        <TableCell>{traveler.passportNumber}</TableCell>
+                        <TableCell>{traveler.phone}</TableCell>
+                        <TableCell>{traveler.trekName}</TableCell>
+                        <TableCell>
+                            <Link href={`/cost-matrix/${traveler.groupId}`} className="text-blue-600 hover:underline font-mono text-sm" title={traveler.groupId}>
+                                {traveler.groupId.substring(0, 8)}...
+                            </Link>
+                        </TableCell>
+                    </TableRow>
+                    )) : (
                       <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Nationality</TableHead>
-                          <TableHead>Passport No.</TableHead>
-                          <TableHead>Phone</TableHead>
-                          <TableHead>Trek</TableHead>
-                          <TableHead>Group ID</TableHead>
+                        <TableCell colSpan={6} className="h-24 text-center">
+                          {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
+                        </TableCell>
                       </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
-                      <TableRow key={traveler.id}>
-                          <TableCell className="font-medium">{traveler.name}</TableCell>
-                          <TableCell>{traveler.nationality || 'N/A'}</TableCell>
-                          <TableCell>{traveler.passportNumber}</TableCell>
-                          <TableCell>{traveler.phone}</TableCell>
-                          <TableCell>{traveler.trekName}</TableCell>
-                          <TableCell>
-                              <Link href={`/cost-matrix/${traveler.groupId}`} className="text-blue-600 hover:underline font-mono text-sm" title={traveler.groupId}>
-                                  {traveler.groupId.substring(0, 8)}...
-                              </Link>
-                          </TableCell>
-                      </TableRow>
-                      )) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center">
-                            {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                  </TableBody>
-              </Table>
-            </div>
-          )}
+                    )}
+                </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
       <Toaster />

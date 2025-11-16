@@ -1,31 +1,24 @@
-"use client";
-
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { DashboardLayout } from '@/components/dashboard-layout';
-import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
-import { ProtectedRoute } from '@/components/protected-route';
 import { ServicesContent } from '@/components/services-content';
+import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
 
-export default function ServicesPage() {
-  const { toast } = useToast();
-  const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
+async function getServices() {
+  // Use Next.js fetch with caching and revalidation
+  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/services`, { next: { revalidate: 3600 } }); // Cache for 1 hour
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error('Failed to fetch services');
+  }
+  return res.json();
+}
 
-  const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-    // This is a placeholder
-    toast({
-      title: "Trek Added",
-      description: `${data.name} has been added.`,
-    });
-    setIsAddTrekModalOpen(false);
-  };
+export default async function ServicesPage() {
+  // Data is fetched on the server
+  const initialServicesData = await getServices();
 
   return (
-    <ProtectedRoute>
-      <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-      <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-        <ServicesContent />
-      </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayoutShell>
+      {/* Pass server-fetched data to the client component */}
+      <ServicesContent initialData={initialServicesData} />
+    </DashboardLayoutShell>
   );
 }

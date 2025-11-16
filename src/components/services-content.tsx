@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -20,42 +19,48 @@ import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 
-export function ServicesContent() {
+interface ServicesContentProps {
+  initialData: {
+    services: Service[];
+    total: number;
+    hasMore: boolean;
+  };
+}
+
+export function ServicesContent({ initialData }: ServicesContentProps) {
   const { toast } = useToast();
-  const [services, setServices] = useState<Service[]>([]);
-  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>(initialData.services);
+  const [filteredServices, setFilteredServices] = useState<Service[]>(initialData.services);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
   const fetchServices = useCallback(async (pageNum: number) => {
+    // This function is now only for "Load More"
+    if (pageNum === 1) return; 
     setIsLoading(true);
     try {
       const res = await fetch(`/api/services?page=${pageNum}&limit=10`);
       if (!res.ok) throw new Error('Failed to fetch services');
       const data = await res.json();
       
-      setServices(prev => pageNum === 1 ? data.services : [...prev, ...data.services]);
+      setServices(prev => [...prev, ...data.services]);
       setHasMore(data.hasMore);
 
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not load services.',
+        description: 'Could not load more services.',
       });
     } finally {
       setIsLoading(false);
     }
   }, [toast]);
-  
-  useEffect(() => {
-    fetchServices(1);
-  }, [fetchServices]);
 
   useEffect(() => {
     const results = services.filter(service =>
@@ -177,56 +182,50 @@ export function ServicesContent() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading && page === 1 ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="border rounded-lg">
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                      <TableHead>Service Name</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>Default Times</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {filteredServices.map((service) => (
-                      <TableRow key={service.id}>
-                          <TableCell className="font-medium">{service.name}</TableCell>
-                          <TableCell>{formatCurrency(service.rate)}</TableCell>
-                          <TableCell>{service.times}</TableCell>
-                          <TableCell className="text-right">
-                          <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
-                              </DropdownMenuContent>
-                          </DropdownMenu>
-                          </TableCell>
-                      </TableRow>
-                      ))}
-                  </TableBody>
-              </Table>
-               {filteredServices.length === 0 && !isLoading && (
-                <div className="text-center p-8 text-muted-foreground">
-                  No services found.
-                </div>
-              )}
-            </div>
-          )}
+          <div className="border rounded-lg">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Service Name</TableHead>
+                    <TableHead>Rate</TableHead>
+                    <TableHead>Default Times</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {filteredServices.map((service) => (
+                    <TableRow key={service.id}>
+                        <TableCell className="font-medium">{service.name}</TableCell>
+                        <TableCell>{formatCurrency(service.rate)}</TableCell>
+                        <TableCell>{service.times}</TableCell>
+                        <TableCell className="text-right">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+             {filteredServices.length === 0 && (
+              <div className="text-center p-8 text-muted-foreground">
+                No services found.
+              </div>
+            )}
+          </div>
         </CardContent>
         {hasMore && !searchTerm && (
           <CardFooter className="justify-center">

@@ -1,37 +1,24 @@
-"use client";
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
-import { DashboardLayout } from '@/components/dashboard-layout';
-import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
-import { ProtectedRoute } from '@/components/protected-route';
 import { ReportsContent } from '@/components/reports-content';
+import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
 
-export default function ReportsPage() {
-  const { toast } = useToast();
-  const router = useRouter();
-  const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
+async function getReports() {
+  // Using 'no-store' to ensure the latest reports are always fetched.
+  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/reports?page=1&limit=10`, { cache: 'no-store' });
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error('Failed to fetch reports');
+  }
+  return res.json();
+}
 
-  const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-    // This is a placeholder
-    toast({
-      title: "Trek Added",
-      description: `${data.name} has been added.`,
-    });
-    setIsAddTrekModalOpen(false);
-  };
-
-  const handleEditClick = (groupId: string) => {
-    router.push(`/cost-matrix/${groupId}`);
-  };
+export default async function ReportsPage() {
+  // Data is fetched on the server
+  const initialReportsData = await getReports();
 
   return (
-    <ProtectedRoute>
-      <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-      <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-        <ReportsContent onEditClick={handleEditClick} />
-      </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayoutShell>
+      {/* Pass server-fetched data to the client component */}
+      <ReportsContent initialData={initialReportsData} />
+    </DashboardLayoutShell>
   );
 }
