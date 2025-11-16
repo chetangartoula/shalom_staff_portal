@@ -276,18 +276,18 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] bg-muted/40">
         <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
         <Sidebar onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
         <div className="flex flex-col">
           <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
               <div className="flex items-center">
-                  <h1 className="text-lg font-semibold md:text-2xl">Trek Cost Calculator</h1>
+                  <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
               </div>
-              <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 md:p-0">
+              <div className="flex flex-1 rounded-lg shadow-sm bg-background p-4 md:p-0">
                   <div className="w-full">
-                      <div className="mb-8 md:mb-12">
+                      <div className="mb-8 md:mb-12 pt-4">
                         <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
                           <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
                             <Stepper
@@ -324,7 +324,7 @@ export default function TrekCostingPage() {
                         {renderStepContent()}
                       </div>
 
-                      <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8">
+                      <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8 pb-6">
                         <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
                           Previous
                         </Button>

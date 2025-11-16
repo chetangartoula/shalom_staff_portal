@@ -11,6 +11,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { Mountain } from "lucide-react";
 
 interface DashboardHeaderProps {
   onAddTrekClick: () => void;
@@ -18,20 +20,22 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onAddTrekClick }: DashboardHeaderProps) {
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+    <header className="flex h-14 items-center gap-4 border-b bg-header-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-transparent border-0 hover:bg-accent">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0">
-          <SheetHeader className="p-6 pb-2">
-            <SheetTitle>Shalom Dashboard</SheetTitle>
+          <SheetHeader className="p-4 border-b">
+             <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
+                <Mountain className="h-6 w-6 text-primary" />
+                <span className="">Shalom Dashboard</span>
+            </Link>
           </SheetHeader>
-          {/* We need to pass the click handlers to the sidebar in the mobile view */}
-          <Sidebar onAddTrekClick={onAddTrekClick} className="flex" />
+          <Sidebar onAddTrekClick={onAddTrekClick} className="flex border-r-0" />
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1">
