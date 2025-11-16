@@ -33,6 +33,8 @@ export function useCostMatrix(treks: Trek[]) {
   const [selectedTrekId, setSelectedTrekId] = useState<string | null>(null);
   const [groupSize, setGroupSize] = useState<number>(1);
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+  
+  const [usePax, setUsePax] = useState<{[key: string]: boolean}>({});
 
   const [permitsState, setPermitsState] = useState<SectionState>({id: 'permits', name: 'Permits & Food', rows: [], discount: 0});
   const [servicesState, setServicesState] = useState<SectionState>({id: 'services', name: 'Services', rows: [], discount: 0});
@@ -76,16 +78,35 @@ export function useCostMatrix(treks: Trek[]) {
     () => treks.find((trek) => trek.id === selectedTrekId),
     [selectedTrekId, treks]
   );
+  
+  const handleSetUsePax = (sectionId: string, value: boolean) => {
+    setUsePax(prev => ({...prev, [sectionId]: value}));
+    
+    const isPax = value;
+    const section = getSectionState(sectionId);
+    if (!section) return;
+
+    const updatedRows = section.rows.map((row) => {
+        const newNo = isPax ? groupSize : row.no;
+        const newRow = { ...row, no: newNo };
+        newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+        return newRow;
+    });
+    setSectionState(sectionId, { rows: updatedRows });
+  }
 
   useEffect(() => {
     if (selectedTrek && services.length > 0) {
+      const isPaxEnabled = usePax['permits'] ?? false;
+      const numberValue = isPaxEnabled ? groupSize : 1;
+
       const initialPermits = selectedTrek.permits.map((permit) => ({
         id: uuidv4(),
         description: permit.name,
         rate: permit.rate,
-        no: groupSize,
+        no: numberValue,
         times: 1,
-        total: permit.rate * groupSize,
+        total: permit.rate * numberValue,
       }));
       setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
 
@@ -105,7 +126,7 @@ export function useCostMatrix(treks: Trek[]) {
       ];
       setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     }
-  }, [selectedTrek, groupSize, services]);
+  }, [selectedTrek, groupSize, services, usePax]);
 
   const getSectionState = (sectionId: string): SectionState | undefined => {
     if (sectionId === "permits") return permitsState;
@@ -482,6 +503,8 @@ export function useCostMatrix(treks: Trek[]) {
     isCopied,
     handleCopyToClipboard,
     handleExportPDF,
-    handleExportExcel
+    handleExportExcel,
+    usePax,
+    handleSetUsePax,
   };
 }

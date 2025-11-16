@@ -2,7 +2,6 @@
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
   CardContent,
   CardHeader,
   CardTitle,
@@ -28,6 +27,8 @@ interface FinalStepProps {
     servicesTotal: number;
     customSectionsTotals: any[];
     totalCost: number;
+    usePax: boolean;
+    onSetUsePax: (sectionId: string, value: boolean) => void;
 }
 
 export function FinalStep({
@@ -43,7 +44,9 @@ export function FinalStep({
     permitsTotal,
     servicesTotal,
     customSectionsTotals,
-    totalCost
+    totalCost,
+    usePax,
+    onSetUsePax
 }: FinalStepProps) {
 
     return (
@@ -81,6 +84,8 @@ export function FinalStep({
                     onRemoveRow={onRemoveRow}
                     onEditSection={onEditSection}
                     onRemoveSection={onRemoveSection}
+                    usePax={usePax}
+                    onSetUsePax={onSetUsePax}
                 />
                 <Separator />
                 <div className="flex justify-between items-center text-xl font-bold text-primary p-4 bg-primary/5 rounded-lg">

@@ -18,12 +18,15 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
-import type { CostRow, SectionState } from "@/app/cost-matrix-page";
+import type { CostRow, SectionState } from "@/lib/types";
 
 interface CostTableProps {
     title: string;
     section: SectionState;
+    usePax: boolean;
+    onSetUsePax: (sectionId: string, value: boolean) => void;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
     onDiscountChange: (sectionId: string, value: number) => void;
     onAddRow: (sectionId: string) => void;
@@ -37,6 +40,8 @@ interface CostTableProps {
 export function CostTable({
     title,
     section,
+    usePax,
+    onSetUsePax,
     onRowChange,
     onDiscountChange,
     onAddRow,
@@ -53,64 +58,73 @@ export function CostTable({
         return { subtotal, total };
     };
 
-    const { subtotal, total } = calculateSectionTotals(section);
+    const { total } = calculateSectionTotals(section);
 
     return (
         <Card className="shadow-none border-none">
-            <CardHeader className="flex flex-row items-center justify-between px-0">
+            <CardHeader className="flex flex-row items-center justify-between px-0 mb-4">
                 <CardTitle>{title}</CardTitle>
-                {isCustom && onEditSection && onRemoveSection && (
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>
+                <div className="flex items-center gap-4">
+                    {isCustom && onEditSection && (
+                         <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>
                             <Edit className="h-4 w-4" />
                         </Button>
+                    )}
+                    <div className="flex items-center space-x-2">
+                        <Label htmlFor={`pax-switch-${section.id}`} className="text-sm font-medium">Use Pax?</Label>
+                        <Switch id={`pax-switch-${section.id}`} checked={usePax} onCheckedChange={(checked) => onSetUsePax(section.id, checked)} />
+                    </div>
+                    {isCustom && onRemoveSection && (
                         <Button variant="ghost" size="icon" onClick={() => onRemoveSection(section.id)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </CardHeader>
             <CardContent className="p-0">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border">
                     <Table>
-                        <TableHeader>
+                        <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead className="w-2/5 min-w-[200px]">Description</TableHead>
+                            <TableHead className="w-12">#</TableHead>
+                            <TableHead className="min-w-[250px]">Description</TableHead>
                             <TableHead>Rate</TableHead>
                             <TableHead>No.</TableHead>
                             <TableHead>Times</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="w-20 text-center">Action</TableHead>
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {section.rows.map((row) => (
+                        {section.rows.map((row, index) => (
                             <TableRow key={row.id}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
                             <TableCell>
                                 {isDescriptionEditable ? (
                                 <Input
                                     type="text"
                                     value={row.description}
                                     onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)}
-                                    className="w-full"
+                                    className="w-full bg-transparent border-0"
+                                    placeholder="Enter item description"
                                 />
                                 ) : (
                                 row.description
                                 )}
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24"/>
+                                <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24 bg-transparent border-0"/>
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20"/>
+                                <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0" disabled={usePax} />
                             </TableCell>
                             <TableCell>
-                                <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20"/>
+                                <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0"/>
                             </TableCell>
-                            <TableCell>{formatCurrency(row.total)}</TableCell>
-                            <TableCell>
+                            <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
+                            <TableCell className="text-center">
                                 <Button variant="ghost" size="icon" onClick={() => onRemoveRow(row.id, section.id)}>
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </TableCell>
                             </TableRow>
@@ -118,36 +132,28 @@ export function CostTable({
                         </TableBody>
                     </Table>
                 </div>
-                <div className="mt-6 flex flex-col md:flex-row items-start justify-between gap-6">
-                    <Button onClick={() => onAddRow(section.id)} variant="outline">
-                    <Plus /> Add Row
+                 <div className="mt-6">
+                    <Button onClick={() => onAddRow(section.id)} variant="outline" className="w-full border-dashed border-primary text-primary hover:text-primary hover:bg-primary/5">
+                        <Plus className="h-4 w-4 mr-2" /> Add New Row
                     </Button>
-                    <div className="w-full md:w-auto md:min-w-64 space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                        <Label htmlFor={`discount-${section.id}`} className="shrink-0">Discount</Label>
-                        <Input 
-                            type="number" 
-                            id={`discount-${section.id}`} 
-                            value={section.discount} 
-                            onChange={e => onDiscountChange(section.id, Number(e.target.value))} 
-                            className="w-full max-w-32"
-                            placeholder="0.00"
-                        />
+                </div>
+                <div className="mt-6 flex flex-col md:flex-row items-end justify-between gap-6">
+                     <div className="w-full md:w-auto md:min-w-64 space-y-4 ml-auto">
+                         <div className="flex items-center justify-between gap-4">
+                            <Label htmlFor={`discount-${section.id}`} className="shrink-0">Discount</Label>
+                            <Input 
+                                type="number" 
+                                id={`discount-${section.id}`} 
+                                value={section.discount} 
+                                onChange={e => onDiscountChange(section.id, Number(e.target.value))} 
+                                className="w-full max-w-32"
+                                placeholder="0.00"
+                            />
                         </div>
                         <Separator />
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Subtotal</span>
-                                <span>{formatCurrency(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Discount</span>
-                                <span className="text-destructive">- {formatCurrency(section.discount)}</span>
-                            </div>
-                            <div className="flex justify-between font-bold text-base">
-                                <span>Total</span>
-                                <span>{formatCurrency(total)}</span>
-                            </div>
+                        <div className="flex justify-between font-bold text-lg">
+                            <span>In total</span>
+                            <span>{formatCurrency(total)}</span>
                         </div>
                     </div>
                 </div>

@@ -69,7 +69,9 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     permitsTotals,
     servicesTotals,
     customSectionsTotals,
-    totalCost
+    totalCost,
+    usePax,
+    handleSetUsePax,
   } = useCostMatrix(treks);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
@@ -178,6 +180,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
        return <CostTable 
                 title="Permits & Food Details" 
                 section={permitsState}
+                usePax={usePax[permitsState.id] || false}
+                onSetUsePax={handleSetUsePax}
                 onRowChange={handleRowChange}
                 onDiscountChange={handleDiscountChange}
                 onAddRow={addRow}
@@ -189,6 +193,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
         return <CostTable 
                  title="Services"
                  section={servicesState}
+                 usePax={usePax[servicesState.id] || false}
+                 onSetUsePax={handleSetUsePax}
                  onRowChange={handleRowChange}
                  onDiscountChange={handleDiscountChange}
                  onAddRow={addRow}
@@ -202,6 +208,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             return <CostTable 
                 title={customSection.name}
                 section={customSection}
+                usePax={usePax[customSection.id] || false}
+                onSetUsePax={handleSetUsePax}
                 isCustom
                 isDescriptionEditable
                 onRowChange={handleRowChange}
@@ -230,6 +238,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             servicesTotal={servicesTotals.total}
             customSectionsTotals={customSectionsTotals}
             totalCost={totalCost}
+            usePax={usePax[extraDetailsState.id] || false}
+            onSetUsePax={handleSetUsePax}
           />
       );
     }
@@ -239,11 +249,11 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   return (
     <>
-      <Card className="w-full shadow-sm">
-        <CardContent className="p-4 sm:p-6">
+      <Card className="w-full shadow-lg rounded-xl">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="mb-8 md:mb-12">
-            <div className="flex items-center justify-center gap-x-8 gap-y-2 flex-wrap">
-              <div className="flex-grow">
+            <div className="flex items-center justify-between gap-x-8 gap-y-4 flex-wrap">
+              <div className="flex-grow min-w-[300px]">
                 <Stepper
                   steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                   currentStep={currentStep}
