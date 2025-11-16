@@ -101,11 +101,11 @@ export function FinalStep({
                                 <span className="text-muted-foreground">Group Total with service ({serviceCharge}%)</span>
                                 <span className="font-bold">{formatCurrency(totalWithService)}</span>
                             </div>
-                             <div className="flex items-center justify-between rounded-lg bg-orange-100 p-3 text-orange-900">
+                             <div className="flex items-center justify-between rounded-lg bg-primary/10 p-3 text-primary">
                                 <span className="font-medium">Total cost for each w/o service</span>
                                 <span className="font-bold">{formatCurrency(costPerPersonWithoutService)}</span>
                             </div>
-                            <div className="flex items-center justify-between rounded-lg bg-orange-100 p-3 text-orange-900">
+                            <div className="flex items-center justify-between rounded-lg bg-primary/10 p-3 text-primary">
                                 <span className="font-medium">Total cost for each with service</span>
                                 <span className="font-bold">{formatCurrency(costPerPersonWithService)}</span>
                             </div>
