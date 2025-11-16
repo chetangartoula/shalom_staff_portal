@@ -4,20 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
-
-async function getRecentReports() {
-    // Using 'no-store' to ensure the latest reports are always fetched for the dashboard.
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/reports?page=1&limit=5`, { cache: 'no-store' });
-    if (!res.ok) {
-        // This will activate the closest `error.js` Error Boundary
-        throw new Error('Failed to fetch recent reports');
-    }
-    return res.json();
-}
+import { getPaginatedReports } from '@/app/api/reports/route';
 
 
 export async function RecentReports() {
-    const data = await getRecentReports();
+    const data = await getPaginatedReports(1, 5);
     const recentReports = data.reports;
 
     return (

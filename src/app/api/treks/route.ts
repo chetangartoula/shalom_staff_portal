@@ -2,9 +2,15 @@
 import { NextResponse } from 'next/server';
 import { treks, addTrek } from '../data';
 
-export async function GET() {
+
+export async function getTreks() {
   // In a real app, you'd fetch this from a database
-  return NextResponse.json({ treks });
+  return { treks };
+}
+
+export async function GET() {
+  const data = await getTreks();
+  return NextResponse.json(data);
 }
 
 export async function POST(request: Request) {

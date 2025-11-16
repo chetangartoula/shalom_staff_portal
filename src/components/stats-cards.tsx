@@ -1,23 +1,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardList, Users, Mountain, Settings, Loader2 } from 'lucide-react';
+import { ClipboardList, Users, Mountain, Settings } from 'lucide-react';
+import { getPaginatedReports } from '@/app/api/reports/route';
+import { getAllTravelers } from '@/app/api/travelers/all/route';
+import { getTreks } from '@/app/api/treks/route';
+import { getPaginatedServices } from '@/app/api/services/route';
+
 
 async function getStats() {
-    // Fetch all stats in parallel and use Next.js caching
-    const [reportsRes, travelersRes, treksRes, servicesRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/reports`, { next: { revalidate: 60 } }), // Cache for 1 minute
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/travelers/all`, { next: { revalidate: 60 } }),
-        fetch(`${processenv.NEXT_PUBLIC_APP_URL}/api/treks`, { next: { revalidate: 3600 } }), // Cache for 1 hour
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/services`, { next: { revalidate: 3600 } })
+    // Fetch all stats in parallel
+    const [reportsData, travelersData, treksData, servicesData] = await Promise.all([
+        getPaginatedReports(1, 1),
+        getAllTravelers(),
+        getTreks(),
+        getPaginatedServices(1, 1)
     ]);
-
-    if (!reportsRes.ok || !travelersRes.ok || !treksRes.ok || !servicesRes.ok) {
-        throw new Error('Failed to fetch dashboard stats');
-    }
-
-    const reportsData = await reportsRes.json();
-    const travelersData = await travelersRes.json();
-    const treksData = await treksRes.json();
-    const servicesData = await servicesRes.json();
 
     return {
         reports: reportsData.total,
