@@ -1,11 +1,19 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
+import dynamic from 'next/dynamic';
 import { Sidebar } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from "lucide-react";
+import type { AddTrekFormData } from '@/components/add-trek-form';
+
+const AddTrekForm = dynamic(() => import('@/components/add-trek-form').then(mod => mod.AddTrekForm), {
+    ssr: false,
+    loading: () => <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+});
+
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -27,7 +35,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
     return (
         <>
-            <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
+            {isAddTrekModalOpen && (
+                <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
+            )}
             <div className="flex min-h-screen w-full flex-col bg-background">
                 <aside className={`fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r bg-sidebar-background transition-transform duration-300 ease-in-out md:flex ${isSidebarCollapsed ? '-translate-x-full' : 'translate-x-0'}`}>
                 <Sidebar 

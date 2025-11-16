@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Loader2, Plus, MoreHorizontal, Trash2, Edit, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -14,10 +16,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import { AddServiceForm, type ServiceFormData } from '@/components/add-service-form';
 import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
+import type { ServiceFormData } from '@/components/add-service-form';
+
+const AddServiceForm = dynamic(() => import('@/components/add-service-form').then(mod => mod.AddServiceForm), {
+    ssr: false,
+    loading: () => <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+});
+
 
 interface ServicesContentProps {
   initialData: {
@@ -150,13 +158,15 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
 
   return (
     <>
-      <AddServiceForm 
-        open={isServiceModalOpen}
-        onOpenChange={setIsServiceModalOpen}
-        onSubmit={handleServiceFormSubmit}
-        isSubmitting={isSubmitting}
-        defaultValues={editingService}
-      />
+      {isServiceModalOpen && (
+        <AddServiceForm 
+          open={isServiceModalOpen}
+          onOpenChange={setIsServiceModalOpen}
+          onSubmit={handleServiceFormSubmit}
+          isSubmitting={isSubmitting}
+          defaultValues={editingService}
+        />
+      )}
       <Card className="shadow-sm">
         <CardHeader>
            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
