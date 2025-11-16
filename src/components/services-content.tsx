@@ -18,7 +18,7 @@ import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import type { ServiceFormData } from '@/components/add-service-form';
 
-const AddServiceForm = lazy(() => import('@/components/add-service-form').then(mod => ({ default: mod.AddServiceForm })));
+const AddServiceModal = lazy(() => import('@/components/add-service-modal').then(mod => ({ default: mod.AddServiceModal })));
 
 interface ServicesContentProps {
     initialData: {
@@ -150,17 +150,16 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
 
   return (
     <>
-      {isServiceModalOpen && (
-        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-            <AddServiceForm 
-              open={isServiceModalOpen}
-              onOpenChange={setIsServiceModalOpen}
-              onSubmit={handleServiceFormSubmit}
-              isSubmitting={isSubmitting}
-              defaultValues={editingService}
-            />
-        </Suspense>
-      )}
+      <Suspense fallback={null}>
+        <AddServiceModal
+          open={isServiceModalOpen}
+          onOpenChange={setIsServiceModalOpen}
+          onSubmit={handleServiceFormSubmit}
+          isSubmitting={isSubmitting}
+          service={editingService}
+        />
+      </Suspense>
+
       <Card className="shadow-sm">
         <CardHeader>
            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
