@@ -3,11 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: 'Inter', sans-serif;
-  @apply antialiased;
-}
-
 @layer base {
   :root {
     --background: 240 3% 97%; /* #f6f6f7 */
