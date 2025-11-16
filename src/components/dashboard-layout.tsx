@@ -30,3 +30,5 @@ export function DashboardLayout({ children, onAddTrekClick }: DashboardLayoutPro
         </div>
     );
 }
+
+    

@@ -5,6 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,12 @@ export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) 
     control: addTrekForm.control,
     name: "permits",
   });
+
+  useEffect(() => {
+    if (!open) {
+      addTrekForm.reset();
+    }
+  }, [open, addTrekForm]);
   
   const handleFormSubmit = async (data: AddTrekFormData) => {
     await onSubmit(data);
@@ -62,17 +69,9 @@ export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) 
         addTrekForm.reset();
     }
   };
-  
-  // Reset form when dialog is closed
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen) {
-        addTrekForm.reset();
-    }
-    onOpenChange(isOpen);
-  };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <Form {...addTrekForm}>
           <form onSubmit={addTrekForm.handleSubmit(handleFormSubmit)}>
@@ -181,3 +180,5 @@ export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) 
     </Dialog>
   );
 }
+
+    

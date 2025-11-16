@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ interface TrekCostingPageProps {
   initialData?: any;
 }
 
-export default function TrekCostingPage({ treks, setTreks, initialData }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -340,3 +340,9 @@ export default function TrekCostingPage({ treks, setTreks, initialData }: TrekCo
     </>
   );
 }
+
+const TrekCostingPage = memo(TrekCostingPageComponent);
+
+export default TrekCostingPage;
+
+    

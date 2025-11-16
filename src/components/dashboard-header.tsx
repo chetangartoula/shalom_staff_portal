@@ -55,3 +55,5 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
     </header>
   );
 }
+
+    
