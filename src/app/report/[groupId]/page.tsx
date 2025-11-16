@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -13,8 +12,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -53,6 +50,8 @@ const travelerSchema = z.object({
 });
 
 const partialTravelerSchema = travelerSchema.partial();
+type FormValues = { travelers: z.infer<typeof partialTravelerSchema>[] };
+
 
 export default function ReportPage() {
   const params = useParams();
@@ -82,11 +81,12 @@ export default function ReportPage() {
     [groupSize]
   );
   
-  // Define the schema dynamically inside the component
+  // Define the schema dynamically based on opened accordions
   const formSchema = z.object({
     travelers: z.array(partialTravelerSchema),
   }).refine((data, ctx) => {
     data.travelers.forEach((traveler, index) => {
+      // Only validate travelers whose accordion is open
       if (openedAccordions.includes(traveler.id!)) {
         const result = travelerSchema.safeParse(traveler);
         if (!result.success) {
@@ -102,9 +102,7 @@ export default function ReportPage() {
     return true;
   });
 
-  type FormData = z.infer<typeof formSchema>;
-
-  const form = useForm<FormData>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       travelers: defaultTravelers,
@@ -175,7 +173,7 @@ export default function ReportPage() {
     form.trigger();
   };
   
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: FormValues) => {
     // Filter out travelers that haven't been touched (are not in openedAccordions)
     const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
 
@@ -444,5 +442,3 @@ export default function ReportPage() {
     </>
   );
 }
-
-    
