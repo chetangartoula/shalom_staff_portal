@@ -1,21 +1,12 @@
+
 "use client";
 
-import { Suspense } from 'react';
-import { StatsCards } from './stats-cards';
-import { RecentReports } from './recent-reports';
-
-
-export function DashboardContent() {
+// This component is a client-side wrapper that can contain server components as children.
+// It no longer manages the modal state, as that has been moved to the layout.
+export function DashboardContent({ children }: { children: React.ReactNode }) {
     return (
-        <div className="space-y-8">
-            <Suspense fallback={<StatsCards.Skeleton />}>
-                {/* @ts-expect-error Server Component */}
-                <StatsCards />
-            </Suspense>
-             <Suspense fallback={<RecentReports.Skeleton />}>
-                {/* @ts-expect-error Server Component */}
-                <RecentReports />
-            </Suspense>
-        </div>
+        <>
+          {children}
+        </>
     );
 }

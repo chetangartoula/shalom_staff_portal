@@ -1,31 +1,25 @@
-"use client";
 
-import { useState } from 'react';
+import { Suspense } from 'react';
 import { DashboardLayout } from '@/components/dashboard-layout';
-import { ProtectedRoute } from '@/components/protected-route';
 import { DashboardContent } from '@/components/dashboard-content';
-import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
-import { useToast } from '@/hooks/use-toast';
+import { StatsCards } from '@/components/stats-cards';
+import { RecentReports } from '@/components/recent-reports';
 
 export default function DashboardPage() {
-    const { toast } = useToast();
-    const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
-    
-    const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-        // This is a placeholder for now
-        toast({
-          title: "Trek Added",
-          description: `${data.name} has been added.`,
-        });
-        setIsAddTrekModalOpen(false);
-    };
-
     return (
-        <ProtectedRoute>
-            <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-            <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-                <DashboardContent />
-            </DashboardLayout>
-        </ProtectedRoute>
+        <DashboardLayout>
+            <DashboardContent>
+                <div className="space-y-8">
+                    <Suspense fallback={<StatsCards.Skeleton />}>
+                        {/* @ts-expect-error Server Component */}
+                        <StatsCards />
+                    </Suspense>
+                    <Suspense fallback={<RecentReports.Skeleton />}>
+                        {/* @ts-expect-error Server Component */}
+                        <RecentReports />
+                    </Suspense>
+                </div>
+            </DashboardContent>
+        </DashboardLayout>
     );
 }
