@@ -1,21 +1,5 @@
 
-export interface Permit {
-  name: string;
-  rate: number;
-}
-
-export interface Trek {
-  id: string;
-  name: string;
-  description: string;
-  permits: Permit[];
-}
-
-export interface Service {
-  name: string;
-  rate: number;
-  times: number;
-}
+import type { Trek, Service } from './types';
 
 // This file will now only contain the initial data. 
 // The API routes will manage the state during runtime.
@@ -52,7 +36,8 @@ export const initialTreks: Trek[] = [
   },
 ];
 
-export const services: Service[] = [
+// Base services data without IDs
+export const services: Omit<Service, 'id'>[] = [
     { name: 'Guide days', rate: 30, times: 12 },
     { name: 'Porter days', rate: 25, times: 12 },
     { name: 'Normal Tea house', rate: 35, times: 11 },

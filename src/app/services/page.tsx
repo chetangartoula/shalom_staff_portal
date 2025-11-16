@@ -1,100 +1,146 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState, useEffect, useCallback } from 'react';
+import { Loader2, Plus, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
+import { AddServiceForm, type ServiceFormData } from '@/components/add-service-form';
+import { formatCurrency } from '@/lib/utils';
+import type { Service } from '@/lib/types';
 
-
-const serviceSchema = z.object({
-  name: z.string().min(1, 'Service name is required'),
-  rate: z.coerce.number().min(0, 'Rate must be non-negative'),
-  times: z.coerce.number().min(0, 'Times must be non-negative'),
-});
-
-const servicesFormSchema = z.object({
-  services: z.array(serviceSchema),
-});
-
-type ServicesFormData = z.infer<typeof servicesFormSchema>;
 
 export default function ServicesPage() {
   const { toast } = useToast();
+  const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
-
-  const form = useForm<ServicesFormData>({
-    resolver: zodResolver(servicesFormSchema),
-    defaultValues: {
-      services: [],
-    },
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'services',
-  });
-
-  useEffect(() => {
-    async function fetchServices() {
-      try {
-        const res = await fetch('/api/services');
-        if (!res.ok) throw new Error('Failed to fetch services');
-        const data = await res.json();
-        form.reset({ services: data.services });
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not load services.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    fetchServices();
-  }, [form, toast]);
-
-  const onSubmit = async (data: ServicesFormData) => {
-    setIsSubmitting(true);
-    // In a real app, you'd have a POST/PUT endpoint to save all services
-    console.log('Submitting data:', data);
+  const fetchServices = useCallback(async (pageNum: number) => {
+    setIsLoading(true);
     try {
-      // This is a placeholder for the actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast({
-        title: 'Success!',
-        description: 'Services have been updated.',
-      });
+      const res = await fetch(`/api/services?page=${pageNum}&limit=10`);
+      if (!res.ok) throw new Error('Failed to fetch services');
+      const data = await res.json();
+      
+      setServices(prev => pageNum === 1 ? data.services : [...prev, ...data.services]);
+      setHasMore(data.hasMore);
+
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to update services.',
+        description: 'Could not load services.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+  
+  useEffect(() => {
+    fetchServices(1);
+  }, [fetchServices]);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchServices(nextPage);
+  };
+  
+  const handleOpenServiceModal = (service: Service | null = null) => {
+    setEditingService(service);
+    setIsServiceModalOpen(true);
+  }
+
+  const handleServiceFormSubmit = async (data: ServiceFormData) => {
+    setIsSubmitting(true);
+    const url = editingService ? `/api/services/${editingService.id}` : '/api/services';
+    const method = editingService ? 'PUT' : 'POST';
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${editingService ? 'update' : 'add'} service`);
+      }
+
+      const { service: savedService } = await response.json();
+      
+      if (editingService) {
+        setServices(prev => prev.map(s => s.id === savedService.id ? savedService : s));
+      } else {
+        setServices(prev => [savedService, ...prev]);
+      }
+
+      toast({
+        title: 'Success!',
+        description: `Service has been ${editingService ? 'updated' : 'added'}.`,
+      });
+      setIsServiceModalOpen(false);
+
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: (error as Error).message,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete service');
+      }
+
+      setServices(prev => prev.filter(s => s.id !== serviceId));
+      toast({
+        title: 'Success!',
+        description: 'Service has been deleted.',
+      });
+
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: (error as Error).message,
+      });
+    }
+  }
+
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-    // This is a placeholder as the main logic is on the home page
-    // but we need to handle the form submission
+    // This is a placeholder
     toast({
       title: "Trek Added",
-      description: `${data.name} has been added to the list.`,
+      description: `${data.name} has been added.`,
     });
     setIsAddTrekModalOpen(false);
   };
@@ -102,98 +148,83 @@ export default function ServicesPage() {
   return (
     <>
       <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
+      <AddServiceForm 
+        open={isServiceModalOpen}
+        onOpenChange={setIsServiceModalOpen}
+        onSubmit={handleServiceFormSubmit}
+        isSubmitting={isSubmitting}
+        defaultValues={editingService}
+      />
       <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-        <Card className="flex flex-1 flex-col shadow-sm">
-          <CardHeader>
-            <CardTitle>Manage Services</CardTitle>
-            <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+                <CardTitle>Manage Services</CardTitle>
+                <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
+            </div>
+            <Button onClick={() => handleOpenServiceModal()}>
+                <Plus className="mr-2 h-4 w-4" /> Add Service
+            </Button>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-full flex-1">
+          <CardContent>
+            {isLoading && page === 1 ? (
+              <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 h-full flex flex-col">
-                  <div className="space-y-4 flex-1">
-                    {fields.map((field, index) => (
-                      <div key={field.id} className="flex items-end gap-3 p-3 border rounded-lg bg-background">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
-                          <FormField
-                            control={form.control}
-                            name={`services.${index}.name`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Service Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="e.g., Guide days" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`services.${index}.rate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Rate (USD)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" placeholder="30" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name={`services.${index}.times`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Default Times</FormLabel>
-                                <FormControl>
-                                  <Input type="number" placeholder="12" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => remove(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => append({ name: '', rate: 0, times: 1 })}
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Add Service
-                    </Button>
-                  </div>
-                  <CardFooter className="px-0 pt-6 mt-auto">
-                    <Button type="submit" disabled={isSubmitting}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save Changes
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Form>
+              <div className="border rounded-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Service Name</TableHead>
+                        <TableHead>Rate</TableHead>
+                        <TableHead>Default Times</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {services.map((service) => (
+                        <TableRow key={service.id}>
+                            <TableCell className="font-medium">{service.name}</TableCell>
+                            <TableCell>{formatCurrency(service.rate)}</TableCell>
+                            <TableCell>{service.times}</TableCell>
+                            <TableCell className="text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
+          {hasMore && (
+            <CardFooter className="justify-center">
+              <Button onClick={handleLoadMore} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Load More
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </DashboardLayout>
       <Toaster />
     </>
   );
 }
+

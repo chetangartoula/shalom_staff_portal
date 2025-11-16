@@ -12,6 +12,7 @@ export interface Trek {
 }
 
 export interface Service {
+  id: string;
   name: string;
   rate: number;
   times: number;
