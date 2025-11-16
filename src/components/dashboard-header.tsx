@@ -7,10 +7,10 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
 import { useState } from "react";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface DashboardHeaderProps {
   onAddTrekClick: () => void;
@@ -31,7 +31,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 bg-transparent px-4 sm:h-auto sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="shrink-0 md:hidden">
@@ -40,8 +40,8 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0">
-            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-            <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} onLinkClick={handleLinkClick} />
+          <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
+          <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} onLinkClick={handleLinkClick} />
         </SheetContent>
       </Sheet>
       
