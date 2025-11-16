@@ -76,6 +76,16 @@ export default function ReportPage() {
   const defaultTravelers = React.useMemo(() =>
     Array.from({ length: groupSize }, () => ({
       id: uuidv4(),
+      name: "",
+      phone: "",
+      address: "",
+      passportNumber: "",
+      emergencyContact: "",
+      nationality: "",
+      dateOfBirth: undefined,
+      passportExpiryDate: undefined,
+      passportPhoto: undefined,
+      visaPhoto: undefined,
     })),
     [groupSize]
   );
@@ -107,7 +117,23 @@ export default function ReportPage() {
               dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
               passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
             }));
-            form.reset({ travelers: formattedTravelers });
+            
+            // Create a map of existing travelers by ID
+            const existingTravelersMap = new Map(formattedTravelers.map((t: any) => [t.id, t]));
+
+            // Create a new default traveler list and merge existing data
+            const mergedTravelers = Array.from({ length: groupSize }, (_, i) => {
+                const defaultTraveler = {
+                    id: uuidv4(), name: "", phone: "", address: "", passportNumber: "", emergencyContact: "",
+                    nationality: "", dateOfBirth: undefined, passportExpiryDate: undefined, passportPhoto: undefined, visaPhoto: undefined
+                };
+                const existingTraveler = formattedTravelers[i];
+                // If an existing traveler at this index has data, use it. Otherwise, use a new default traveler.
+                // This isn't perfect if order changes, but handles resizing groupSize. A more robust solution might match by name/passport.
+                return existingTraveler ? { ...defaultTraveler, ...existingTraveler } : defaultTraveler;
+            });
+            
+            form.reset({ travelers: mergedTravelers });
           }
         }
       } catch (error) {
@@ -117,7 +143,7 @@ export default function ReportPage() {
       }
     };
     fetchTravelerData();
-  }, [groupId, form]);
+  }, [groupId, form, groupSize]);
 
   const handleAccordionChange = (value: string[]) => {
     setOpenedAccordions(value);
@@ -125,37 +151,41 @@ export default function ReportPage() {
   
   const onSubmit = async (data: FormData) => {
     // Manually trigger validation for any opened accordions before submitting
+    let isValid = true;
     for (const field of fields) {
       if (openedAccordions.includes(field.id)) {
         const travelerIndex = data.travelers.findIndex(t => t.id === field.id);
         if (travelerIndex !== -1) {
            const result = travelerSchema.safeParse(data.travelers[travelerIndex]);
            if(!result.success) {
+                isValid = false;
                 result.error.errors.forEach(err => {
                     form.setError(`travelers.${travelerIndex}.${err.path[0] as keyof FormData['travelers'][0]}`, {
                         type: 'manual',
                         message: err.message,
                     });
                 });
-                toast({
-                    variant: 'destructive',
-                    title: `Invalid Details for Traveler ${travelerIndex + 1}`,
-                    description: "Please fill in all required fields for the opened sections."
-                });
-                return; // Stop submission
            }
         }
       }
     }
     
-    // Filter out travelers that haven't been touched
+    if (!isValid) {
+        toast({
+            variant: 'destructive',
+            title: `Invalid Traveler Details`,
+            description: "Please fill in all required fields for the opened traveler sections."
+        });
+        return; // Stop submission
+    }
+    
+    // Filter out travelers that haven't been touched (are still default)
     const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id));
 
     if (travelersToSubmit.length === 0) {
         toast({
-            variant: "destructive",
-            title: "No Details Entered",
-            description: "Please fill out the details for at least one traveler.",
+            title: "No Details to Submit",
+            description: "Please fill out the details for at least one traveler by opening their section.",
         });
         return;
     }
