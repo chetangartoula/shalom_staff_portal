@@ -49,7 +49,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-xs sheet-content">
+        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm sheet-content">
             <SheetHeader className="p-4 border-b">
                <SheetTitle>
                  <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
