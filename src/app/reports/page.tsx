@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Edit, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
@@ -24,28 +24,33 @@ export default function ReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch('/api/reports');
-        if (!res.ok) throw new Error('Failed to fetch reports');
-        const data = await res.json();
-        setReports(data.reports);
-        setFilteredReports(data.reports);
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not load reports.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchReports();
+  const fetchReports = useCallback(async (pageNum: number) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/reports?page=${pageNum}&limit=10`);
+      if (!res.ok) throw new Error('Failed to fetch reports');
+      const data = await res.json();
+      
+      setReports(prev => pageNum === 1 ? data.reports : [...prev, ...data.reports]);
+      setHasMore(data.hasMore);
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load reports.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+  
+  useEffect(() => {
+    fetchReports(1);
+  }, [fetchReports]);
 
   useEffect(() => {
     const results = reports.filter(report =>
@@ -54,6 +59,12 @@ export default function ReportsPage() {
     );
     setFilteredReports(results);
   }, [searchTerm, reports]);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchReports(nextPage);
+  };
   
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
     // This is a placeholder
@@ -92,7 +103,7 @@ export default function ReportsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading && page === 1 ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
@@ -137,6 +148,14 @@ export default function ReportsPage() {
               </div>
             )}
           </CardContent>
+           {hasMore && (
+            <CardFooter className="justify-center pt-6">
+              <Button onClick={handleLoadMore} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Load More
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       </DashboardLayout>
       <Toaster />

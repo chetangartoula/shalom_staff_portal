@@ -2,10 +2,25 @@
 import { NextResponse } from 'next/server';
 import { addReport, reports } from '../data';
 
-export async function GET() {
+export async function GET(request: Request) {
   // In a real app, you'd fetch this from a database
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  
   // We reverse to show the latest reports first
-  return NextResponse.json({ reports: [...reports].reverse() });
+  const reversedReports = [...reports].reverse();
+
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
+  
+  const paginatedReports = reversedReports.slice(startIndex, endIndex);
+
+  return NextResponse.json({ 
+    reports: paginatedReports,
+    total: reports.length,
+    hasMore: endIndex < reports.length,
+  });
 }
 
 
