@@ -3,7 +3,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { v4 as uuidv4 } from "uuid";
 import React, { useState, useEffect, useMemo } from "react";
 import { Loader2, Mountain, Copy, Check, Save } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
@@ -37,7 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 
 const travelerSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(), // ID is now optional as it's generated on the backend
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone number is required"),
   address: z.string().min(1, "Address is required"),
@@ -50,10 +49,8 @@ const travelerSchema = z.object({
   visaPhoto: z.any().optional(),
 });
 
-const partialTravelerSchema = travelerSchema.partial().extend({ id: z.string() });
-
 const formSchema = z.object({
-  travelers: z.array(partialTravelerSchema),
+  travelers: z.array(travelerSchema.partial()),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -70,11 +67,17 @@ export default function ReportPage() {
   const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
   const [openedAccordions, setOpenedAccordions] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
+  
+  // Create a stable, client-side only ID for each traveler for React keys and form state
+  const clientSideTravelerIds = useMemo(
+    () => Array.from({ length: groupSize }, () => Math.random().toString(36).substr(2, 9)),
+    [groupSize]
+  );
 
   const defaultTravelers = useMemo(
     () =>
       Array.from({ length: groupSize }, (_, i) => ({
-        id: uuidv4(),
+        id: clientSideTravelerIds[i], // Use the stable client-side ID
         name: "",
         phone: "",
         address: "",
@@ -82,7 +85,7 @@ export default function ReportPage() {
         emergencyContact: "",
         nationality: "",
       })),
-    [groupSize]
+    [groupSize, clientSideTravelerIds]
   );
 
   const form = useForm<FormValues>({
@@ -92,7 +95,7 @@ export default function ReportPage() {
     },
     mode: "onChange",
   });
-
+  
   useEffect(() => {
     const fetchTravelerData = async () => {
       if (!groupId) {
@@ -104,56 +107,29 @@ export default function ReportPage() {
         if (response.ok) {
           const data = await response.json();
           if (data && data.travelers && data.travelers.length) {
-             const existingTravelers = data.travelers.map((t: any) => ({
-                ...t,
-                dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
-                passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
-             }));
-
-            const existingTravelersMap = new Map(
-              existingTravelers.map((t: any) => [t.id, t])
-            );
-
-            let mergedTravelers = defaultTravelers.map(
-              (defaultTraveler, index) => {
-                 const existingDataForId = existingTravelersMap.get(defaultTraveler.id);
-                 if (existingDataForId) {
-                     return { ...defaultTraveler, ...existingDataForId };
-                 }
-                 // If ID doesn't match, check by index as a fallback
-                 if (existingTravelers[index]) {
-                     return { ...defaultTraveler, ...existingTravelers[index] };
-                 }
-                 return defaultTraveler;
+            const existingTravelers = data.travelers.map((t: any) => ({
+              ...t,
+              dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
+              passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
+            }));
+             
+            // Map existing data to the structure with client-side IDs
+            const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
+              // The backend doesn't know about our client-side IDs, so we merge by index
+              const existingData = existingTravelers[index];
+              if (existingData) {
+                // We keep the client-side ID for UI purposes
+                return { ...defaultTraveler, ...existingData, id: defaultTraveler.id };
               }
-            );
-
-            // Add any additional travelers from the fetched data that weren't in the default set
-            existingTravelers.forEach((et: any) => {
-                if (!mergedTravelers.some(mt => mt.id === et.id)) {
-                    mergedTravelers.push(et);
-                }
+              return defaultTraveler;
             });
             
-            while (mergedTravelers.length < groupSize) {
-              mergedTravelers.push({
-                id: uuidv4(),
-                name: "",
-                phone: "",
-                address: "",
-                passportNumber: "",
-                emergencyContact: "",
-                nationality: "",
-              });
-            }
-            const finalTravelers = mergedTravelers.slice(0, groupSize);
-
-            form.reset({ travelers: finalTravelers });
-
-            const prefilledAccordionIds = finalTravelers
+            form.reset({ travelers: mergedTravelers });
+            const prefilledAccordionIds = mergedTravelers
               .filter((t) => t.name)
               .map((t) => t.id!);
             setOpenedAccordions(prefilledAccordionIds);
+
           } else {
             form.reset({ travelers: defaultTravelers });
           }
@@ -169,27 +145,30 @@ export default function ReportPage() {
   }, [groupId, groupSize]);
   
   const handleSaveTraveler = async (travelerIndex: number) => {
-    const travelerId = form.getValues(`travelers.${travelerIndex}.id`);
-    if (!travelerId) return;
+    const travelerClientId = form.getValues(`travelers.${travelerIndex}.id`);
+    if (!travelerClientId) return;
 
-    setIsSubmitting((prev) => ({ ...prev, [travelerId]: true }));
+    setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: true }));
 
     const travelerData = form.getValues(`travelers.${travelerIndex}`);
     const validationResult = travelerSchema.safeParse(travelerData);
 
     if (!validationResult.success) {
-         validationResult.error.errors.forEach((err) => {
-            form.setError(`travelers.${travelerIndex}.${err.path[0] as keyof Traveler}`, {
-                type: "manual",
-                message: err.message,
-            });
+        validationResult.error.errors.forEach((err) => {
+            const path = err.path[0] as keyof Traveler;
+            if (path) {
+                 form.setError(`travelers.${travelerIndex}.${path}`, {
+                    type: "manual",
+                    message: err.message,
+                });
+            }
         });
         toast({
             variant: "destructive",
             title: "Validation Failed",
             description: `Please fill all required fields for Traveler ${travelerIndex + 1}.`,
         });
-        setIsSubmitting((prev) => ({ ...prev, [travelerId]: false }));
+        setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: false }));
         return;
     }
     
@@ -197,6 +176,7 @@ export default function ReportPage() {
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        // We send the validated data, which does not include the client-side ID
         body: JSON.stringify({ traveler: validationResult.data }),
       });
 
@@ -215,7 +195,7 @@ export default function ReportPage() {
         description: "Could not save traveler details. Please try again.",
       });
     } finally {
-      setIsSubmitting((prev) => ({ ...prev, [travelerId]: false }));
+      setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: false }));
     }
   };
 

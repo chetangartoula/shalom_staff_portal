@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { travelers } from '../../data';
+import SHA256 from 'crypto-js/sha256';
 
 interface Params {
   params: {
@@ -27,11 +28,18 @@ export async function PUT(request: Request, { params }: Params) {
     try {
         const { groupId } = params;
         const body = await request.json();
-        const { traveler: submittedTraveler } = body;
+        let { traveler: submittedTraveler } = body;
 
-        if (!submittedTraveler || !submittedTraveler.id) {
-            return NextResponse.json({ message: 'Invalid traveler data submitted' }, { status: 400 });
+        if (!submittedTraveler || !submittedTraveler.passportNumber || !submittedTraveler.phone) {
+            return NextResponse.json({ message: 'Invalid traveler data submitted. Passport and phone are required.' }, { status: 400 });
         }
+        
+        // Generate a unique and stable ID based on passport and phone number
+        const uniqueString = `${submittedTraveler.passportNumber.trim()}-${submittedTraveler.phone.trim()}`;
+        const travelerId = SHA256(uniqueString).toString();
+
+        // Assign the generated ID to the traveler data
+        submittedTraveler.id = travelerId;
 
         const groupIndex = travelers.findIndex(t => t.groupId === groupId);
 
@@ -43,7 +51,7 @@ export async function PUT(request: Request, { params }: Params) {
             const travelerIndex = existingGroup.travelers.findIndex((t: any) => t.id === submittedTraveler.id);
 
             if (travelerIndex > -1) {
-                // Traveler exists, update their details
+                // Traveler exists, merge their details to preserve any fields not submitted in the current payload
                 existingGroup.travelers[travelerIndex] = { ...existingGroup.travelers[travelerIndex], ...submittedTraveler };
             } else {
                 // Traveler doesn't exist, add them to the group
