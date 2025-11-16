@@ -83,7 +83,7 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
       }
     };
     fetchData();
-  }, [toast, treks, initialData]);
+  }, [toast, treks, initialData, selectedTrekId]);
 
 
   const selectedTrek = useMemo(

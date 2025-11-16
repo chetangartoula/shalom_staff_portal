@@ -24,7 +24,6 @@ import { formatCurrency } from "@/lib/utils";
 import type { CostRow, SectionState } from "@/lib/types";
 
 interface CostTableProps {
-    title: string;
     section: SectionState;
     usePax: boolean;
     onSetUsePax: (sectionId: string, value: boolean) => void;
@@ -39,7 +38,6 @@ interface CostTableProps {
 }
 
 export const CostTable = React.memo(function CostTable({
-    title,
     section,
     usePax,
     onSetUsePax,
@@ -64,7 +62,7 @@ export const CostTable = React.memo(function CostTable({
     return (
         <Card className="shadow-none border-none">
             <CardHeader className="flex flex-row items-center justify-between px-0 mb-4">
-                <CardTitle>{title}</CardTitle>
+                <CardTitle>{section.name}</CardTitle>
                 <div className="flex items-center gap-4">
                     {isCustom && onEditSection && (
                          <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>

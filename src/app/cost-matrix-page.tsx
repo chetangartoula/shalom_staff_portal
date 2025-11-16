@@ -141,7 +141,7 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -196,7 +196,6 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
     
     if (step.name === "Permits & Food") {
        return <CostTable 
-                title="Permits & Food Details" 
                 section={permitsState}
                 usePax={usePax[permitsState.id] || false}
                 onSetUsePax={handleSetUsePax}
@@ -209,7 +208,6 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
     
     if (step.name === "Services") {
         return <CostTable 
-                 title="Services"
                  section={servicesState}
                  usePax={usePax[servicesState.id] || false}
                  onSetUsePax={handleSetUsePax}
@@ -224,7 +222,6 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
         const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
         if (customSection) {
             return <CostTable 
-                title={customSection.name}
                 section={customSection}
                 usePax={usePax[customSection.id] || false}
                 onSetUsePax={handleSetUsePax}
