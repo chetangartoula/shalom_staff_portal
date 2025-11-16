@@ -22,12 +22,11 @@ const initialSteps = [
   { id: "05", name: "Final" },
 ];
 
-export function useCostMatrix() {
+export function useCostMatrix(treks: Trek[]) {
   const { toast } = useToast();
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
-
-  const [treks, setTreks] = useState<Trek[]>([]);
+  
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -47,19 +46,17 @@ export function useCostMatrix() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [treksRes, servicesRes] = await Promise.all([
-            fetch('/api/treks'),
-            fetch('/api/services')
-        ]);
-        if (!treksRes.ok || !servicesRes.ok) {
+        const servicesRes = await fetch('/api/services');
+
+        if (!servicesRes.ok) {
             throw new Error('Failed to fetch data');
         }
-        const treksData = await treksRes.json();
+
         const servicesData = await servicesRes.json();
-        setTreks(treksData.treks);
         setServices(servicesData.services);
-        if (treksData.treks.length > 0) {
-          setSelectedTrekId(treksData.treks[0].id)
+
+        if (treks.length > 0 && !selectedTrekId) {
+          setSelectedTrekId(treks[0].id)
         }
       } catch (error) {
         toast({
@@ -72,7 +69,7 @@ export function useCostMatrix() {
       }
     };
     fetchData();
-  }, [toast]);
+  }, [toast, treks, selectedTrekId]);
 
 
   const selectedTrek = useMemo(
@@ -161,6 +158,11 @@ export function useCostMatrix() {
 
   const removeRow = (id: string, sectionId: string) => {
     setSectionState(sectionId, (prev) => ({...prev, rows: prev.rows.filter((row) => row.id !== id)}));
+  };
+
+  const removeSection = (sectionId: string) => {
+    setCustomSections(prev => prev.filter(s => s.id !== sectionId));
+    setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
   };
 
   const calculateSectionTotals = useCallback((section: SectionState) => {
@@ -451,8 +453,6 @@ export function useCostMatrix() {
     setSteps,
     currentStep,
     setCurrentStep,
-    treks,
-    setTreks,
     services,
     isLoading,
     selectedTrek,
@@ -476,6 +476,7 @@ export function useCostMatrix() {
     handleDiscountChange,
     addRow,
     removeRow,
+    removeSection,
     handleSave,
     savedReportUrl,
     isCopied,

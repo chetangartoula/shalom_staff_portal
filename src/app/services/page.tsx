@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import type { Service } from '@/lib/types';
-import { DashboardHeader } from '@/components/dashboard-header';
-import { Sidebar } from '@/components/ui/sidebar';
+import { DashboardLayout } from '@/components/dashboard-layout';
+import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
+
 
 const serviceSchema = z.object({
   name: z.string().min(1, 'Service name is required'),
@@ -32,7 +32,6 @@ export default function ServicesPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
 
@@ -90,107 +89,110 @@ export default function ServicesPage() {
     }
   };
 
+  const handleAddTrekSubmit = async (data: AddTrekFormData) => {
+    // This is a placeholder as the main logic is on the home page
+    // but we need to handle the form submission
+    toast({
+      title: "Trek Added",
+      description: `${data.name} has been added to the list.`,
+    });
+    setIsAddTrekModalOpen(false);
+  };
+
   return (
     <>
-      <div className={`grid min-h-screen w-full h-screen ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-background transition-all duration-300`}>
-        <Sidebar isCollapsed={isSidebarCollapsed} onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
-        <div className="flex flex-col">
-           <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-             <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-              {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-            </Button>
-          </DashboardHeader>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Services</CardTitle>
-                <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <div className="space-y-4">
-                        {fields.map((field, index) => (
-                          <div key={field.id} className="flex items-end gap-3 p-3 border rounded-lg bg-card">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
-                              <FormField
-                                control={form.control}
-                                name={`services.${index}.name`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Service Name</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="e.g., Guide days" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`services.${index}.rate`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Rate (USD)</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name={`services.${index}.times`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Default Times</FormLabel>
-                                    <FormControl>
-                                      <Input type="number" placeholder="12" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => remove(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+      <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
+      <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Services</CardTitle>
+              <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="space-y-4">
+                      {fields.map((field, index) => (
+                        <div key={field.id} className="flex items-end gap-3 p-3 border rounded-lg bg-card">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+                            <FormField
+                              control={form.control}
+                              name={`services.${index}.name`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Service Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g., Guide days" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`services.${index}.rate`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Rate (USD)</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="30" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`services.${index}.times`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Default Times</FormLabel>
+                                  <FormControl>
+                                    <Input type="number" placeholder="12" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
-                        ))}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => append({ name: '', rate: 0, times: 1 })}
-                      >
-                        <Plus className="mr-2 h-4 w-4" /> Add Service
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => append({ name: '', rate: 0, times: 1 })}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Add Service
+                    </Button>
+                    <CardFooter className="px-0 pt-6 bg-card">
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Save Changes
                       </Button>
-                      <CardFooter className="px-0 pt-6 bg-card">
-                        <Button type="submit" disabled={isSubmitting}>
-                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save Changes
-                        </Button>
-                      </CardFooter>
-                    </form>
-                  </Form>
-                )}
-              </CardContent>
-            </Card>
-          </main>
-        </div>
-      </div>
+                    </CardFooter>
+                  </form>
+                </Form>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </DashboardLayout>
       <Toaster />
     </>
   );

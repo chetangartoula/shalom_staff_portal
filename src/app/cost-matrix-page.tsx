@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusSquare, Copy, Check, Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { Stepper } from "@/components/ui/stepper";
-import { Sidebar } from "@/components/ui/sidebar";
-import { DashboardHeader } from "@/components/dashboard-header";
-import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
+import type { Trek } from "@/lib/types";
 
 import { useCostMatrix } from "@/hooks/use-cost-matrix";
 import { SelectTrekStep } from "@/components/steps/select-trek-step";
@@ -29,9 +27,13 @@ import { GroupDetailsStep } from "@/components/steps/group-details-step";
 import { FinalStep } from "@/components/steps/final-step";
 import { CostTable } from "@/components/cost-table";
 
-export default function TrekCostingPage() {
+interface TrekCostingPageProps {
+  treks: Trek[];
+  setTreks: React.Dispatch<React.SetStateAction<Trek[]>>;
+}
+
+export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -39,8 +41,6 @@ export default function TrekCostingPage() {
     setSteps,
     currentStep,
     setCurrentStep,
-    treks,
-    setTreks,
     isLoading,
     selectedTrekId,
     setSelectedTrekId,
@@ -68,12 +68,11 @@ export default function TrekCostingPage() {
     servicesTotals,
     customSectionsTotals,
     totalCost
-  } = useCostMatrix();
+  } = useCostMatrix(treks);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
-  const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -117,42 +116,6 @@ export default function TrekCostingPage() {
     setNewSectionName("");
   };
 
-  const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-    const newTrekData = {
-      id: data.name.toLowerCase().replace(/\s+/g, '-'),
-      ...data,
-    };
-    try {
-      const response = await fetch('/api/treks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTrekData),
-      });
-  
-      if (!response.ok) {
-        throw new Error('Failed to save trek');
-      }
-      
-      const { trek: newTrek } = await response.json();
-      
-      setTreks(prevTreks => [...prevTreks, newTrek]);
-      
-      toast({
-        title: "Trek Added",
-        description: `${data.name} has been added to the list.`,
-      });
-  
-      setIsAddTrekModalOpen(false);
-      
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not save the new trek. Please try again.",
-      });
-    }
-  };
-
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
       if (currentStep === 0 && !selectedTrekId) {
@@ -169,7 +132,7 @@ export default function TrekCostingPage() {
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -274,96 +237,82 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className={`grid min-h-screen w-full h-screen ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-background transition-all duration-300`}>
-        <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-        <Sidebar 
-          onAddTrekClick={() => setIsAddTrekModalOpen(true)} 
-          isCollapsed={isSidebarCollapsed}
-          className="bg-sidebar-background"
-        />
-        <div className="flex flex-col">
-          <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
-             <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-              {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-              <span className="sr-only">Toggle sidebar</span>
-            </Button>
-          </DashboardHeader>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">
-              <div className="flex items-center">
-                  <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
-              </div>
-              <div className="flex flex-1 rounded-lg shadow-sm bg-card p-4 md:p-0">
-                  <div className="w-full">
-                      <div className="mb-8 md:mb-12 pt-4">
-                        <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
-                          <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
-                            <Stepper
-                              steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
-                              currentStep={currentStep}
-                              setCurrentStep={setCurrentStep}
-                            />
-                          </div>
-                          <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
-                                    <PlusSquare /> Add Section
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
-                                </DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="section-name" className="text-right">Name</Label>
-                                        <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
-                                    </div>
+      <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <div className="flex items-center">
+              <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
+          </div>
+          <div className="flex flex-1 rounded-lg shadow-sm bg-card p-4 md:p-0">
+              <div className="w-full">
+                  <div className="mb-8 md:mb-12 pt-4">
+                    <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
+                      <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
+                        <Stepper
+                          steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
+                          currentStep={currentStep}
+                          setCurrentStep={setCurrentStep}
+                        />
+                      </div>
+                      <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
+                                <PlusSquare /> Add Section
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="section-name" className="text-right">Name</Label>
+                                    <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
                                 </div>
-                                <DialogFooter>
-                                    <Button onClick={handleSaveSection}>Save</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                      
-                      <div className="p-0 sm:p-6 md:p-8 md:pt-0 rounded-lg">
-                        {renderStepContent()}
-                      </div>
-
-                      <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8 pb-6">
-                        <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
-                          Previous
-                        </Button>
-                        
-                        <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
-                          {savedReportUrl && (
-                            <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
-                                <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
-                                  {savedReportUrl}
-                                </Link>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
-                                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                </Button>
                             </div>
-                          )}
-                          {currentStep === steps.length - 1 ? (
-                            <Button onClick={() => handleSave()}>
-                                Save
+                            <DialogFooter>
+                                <Button onClick={handleSaveSection}>Save</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                  
+                  <div className="p-0 sm:p-6 md:p-8 md:pt-0 rounded-lg">
+                    {renderStepContent()}
+                  </div>
+
+                  <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8 pb-6">
+                    <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+                      {savedReportUrl && (
+                        <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
+                            <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                              {savedReportUrl}
+                            </Link>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
+                              {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                             </Button>
-                          ) : (
-                            <Button onClick={nextStep}>
-                                Next
-                            </Button>
-                          )}
                         </div>
-                      </div>
+                      )}
+                      {currentStep === steps.length - 1 ? (
+                        <Button onClick={() => handleSave()}>
+                            Save
+                        </Button>
+                      ) : (
+                        <Button onClick={nextStep}>
+                            Next
+                        </Button>
+                      )}
+                    </div>
                   </div>
               </div>
-          </main>
-        </div>
-      </div>
+          </div>
+      </main>
       <Toaster />
     </>
   );
 }
+
+    
