@@ -32,10 +32,10 @@
     --radius: 0.5rem;
 
     /* Sidebar/Header variables */
-    --sidebar-background: hsl(var(--primary));
-    --sidebar-foreground: hsl(var(--primary-foreground));
+    --sidebar-background: var(--primary);
+    --sidebar-foreground: 231 20% 95%;
     --sidebar-muted-foreground: 231 20% 80%;
-    --sidebar-active-background: hsl(231 60% 25%);
+    --sidebar-active-background: 231 60% 25%;
 
     --header-background: hsl(var(--card));
     --header-foreground: hsl(var(--foreground));
@@ -65,7 +65,7 @@
     
     /* Sidebar/Header variables in dark mode */
     --sidebar-background: hsl(var(--primary));
-    --sidebar-foreground: hsl(var(--primary-foreground));
+    --sidebar-foreground: 231 20% 95%;
     --sidebar-muted-foreground: 231 20% 80%;
     --sidebar-active-background: hsl(231 60% 25%);
 
