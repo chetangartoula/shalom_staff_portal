@@ -37,10 +37,9 @@ body {
     --radius: 0.5rem;
 
     /* New variables for dark sidebar/header */
-    --sidebar-background: 240 6% 10%; /* #17181c */
-    --sidebar-foreground: 0 0% 98%;
+    --sidebar-background: hsl(var(--primary));
+    --sidebar-foreground: hsl(var(--primary-foreground));
     --sidebar-muted-foreground: 240 5% 65%;
-    --sidebar-active-background: 240 4% 16%;
     --header-background: 0 0% 100%;
     --header-foreground: 240 5.9% 10%;
     --header-border: 240 5.9% 90%;
@@ -73,10 +72,9 @@ body {
     --chart-5: 340 75% 55%;
 
     /* New variables for dark sidebar/header in dark mode */
-    --sidebar-background: 240 6% 10%;
-    --sidebar-foreground: 0 0% 98%;
+    --sidebar-background: hsl(var(--primary));
+    --sidebar-foreground: hsl(var(--primary-foreground));
     --sidebar-muted-foreground: 240 5% 65%;
-    --sidebar-active-background: 240 4% 16%;
     --header-background: 240 3.7% 15.9%;
     --header-foreground: 0 0% 98%;
     --header-border: 240 3.7% 15.9%;

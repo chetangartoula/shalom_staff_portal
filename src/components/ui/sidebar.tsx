@@ -73,7 +73,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
 
     return (
         <div className={cn("hidden bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
-            <div className={cn("flex h-14 items-center border-b border-header-border px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
+            <div className={cn("flex h-14 items-center border-b border-header-border/30 px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
                 <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
                     <Mountain className="h-6 w-6" />
                     {!isCollapsed && <span className="">Shalom</span>}
@@ -86,7 +86,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4 space-y-2 border-t border-header-border w-full", isCollapsed && "p-2 space-y-0")}>
+            <div className={cn("mt-auto p-4 space-y-2 border-t border-header-border/30 w-full", isCollapsed && "p-2 space-y-0")}>
                  {isCollapsed ? (
                     <TooltipProvider>
                         <Tooltip>
