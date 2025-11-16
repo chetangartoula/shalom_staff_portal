@@ -1,12 +1,20 @@
 
 import { NextResponse } from 'next/server';
 import { travelers } from '../../data';
-import SHA256 from 'crypto-js/sha256';
 
 interface Params {
   params: {
     groupId: string;
   };
+}
+
+async function sha256(str: string): Promise<string> {
+  const textAsBuffer = new TextEncoder().encode(str);
+  // The crypto object is globally available in modern Node.js and browsers
+  const hashBuffer = await crypto.subtle.digest('SHA-256', textAsBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 
 export async function GET(request: Request, { params }: Params) {
@@ -34,9 +42,9 @@ export async function PUT(request: Request, { params }: Params) {
             return NextResponse.json({ message: 'Invalid traveler data submitted. Passport and phone are required.' }, { status: 400 });
         }
         
-        // Generate a unique and stable ID based on passport and phone number
+        // Generate a unique and stable ID based on passport and phone number using Web Crypto API
         const uniqueString = `${submittedTraveler.passportNumber.trim()}-${submittedTraveler.phone.trim()}`;
-        const travelerId = SHA256(uniqueString).toString();
+        const travelerId = await sha256(uniqueString);
 
         // Assign the generated ID to the traveler data
         submittedTraveler.id = travelerId;
