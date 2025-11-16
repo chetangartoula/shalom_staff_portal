@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -168,7 +169,7 @@ export default function TrekCostingPage() {
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -278,6 +279,7 @@ export default function TrekCostingPage() {
         <Sidebar 
           onAddTrekClick={() => setIsAddTrekModalOpen(true)} 
           isCollapsed={isSidebarCollapsed}
+          className="bg-sidebar-background"
         />
         <div className="flex flex-col">
           <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
