@@ -1,6 +1,7 @@
+
 "use client";
 
-import { Menu, Mountain, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -33,7 +34,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Button variant="ghost" size="icon" className="shrink-0 md:hidden">
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
