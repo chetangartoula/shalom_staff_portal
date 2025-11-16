@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Menu, Mountain, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -40,7 +41,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
           <span className="sr-only">Toggle sidebar</span>
         </Button>
         <div className="flex-1">
-          <h1 className="text-lg font-semibold md:text-2xl hidden md:block">Dashboard</h1>
+          {/* Title can be re-added if needed, but removing for a cleaner look based on image */}
         </div>
       </div>
 
@@ -51,7 +52,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-xs sheet-content">
+        <SheetContent side="left" className="flex flex-col p-0 w-full sheet-content">
             <SheetHeader className="p-4 border-b">
                <SheetTitle>
                  <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
@@ -60,7 +61,9 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
                  </Link>
                 </SheetTitle>
             </SheetHeader>
-           <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
+           <div className="flex-1 bg-sidebar-background">
+             <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
+           </div>
         </SheetContent>
       </Sheet>
     </header>
