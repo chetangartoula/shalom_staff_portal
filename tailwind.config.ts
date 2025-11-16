@@ -57,6 +57,7 @@ const config = {
         'sidebar-background': 'hsl(var(--sidebar-background))',
         'sidebar-foreground': 'hsl(var(--sidebar-foreground))',
         'sidebar-muted-foreground': 'hsl(var(--sidebar-muted-foreground))',
+        'sidebar-active-background': 'hsl(var(--sidebar-active-background))',
         'header-background': 'hsl(var(--header-background))',
         'header-foreground': 'hsl(var(--header-foreground))',
         'header-border': 'hsl(var(--header-border))',

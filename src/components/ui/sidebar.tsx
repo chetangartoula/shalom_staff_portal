@@ -94,7 +94,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
     }
 
     return (
-        <div className={cn("flex h-full flex-col", className)}>
+        <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
             <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6">
                 <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
                     <Mountain className="h-6 w-6" />
@@ -112,7 +112,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
                 {user && (
                   <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className={cn("w-full h-auto p-2 flex items-center gap-3", isCollapsed ? 'justify-center' : 'justify-start')}>
+                          <Button variant="ghost" className={cn("w-full h-auto p-2 flex items-center gap-3 hover:bg-sidebar-active-background", isCollapsed ? 'justify-center' : 'justify-start')}>
                               <Avatar className="h-9 w-9">
                                   <AvatarFallback>{getUserInitials(user.name)}</AvatarFallback>
                               </Avatar>
