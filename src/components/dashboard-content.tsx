@@ -1,17 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { ClipboardList, Users, Mountain, Settings, Loader2, Edit } from 'lucide-react';
-import Link from 'next/link';
-import { format } from 'date-fns';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { RecentReports } from './recent-reports';
-import { StatsCards } from './stats-cards';
 import { Suspense } from 'react';
+import { StatsCards } from './stats-cards';
+import { RecentReports } from './recent-reports';
 
 
 export function DashboardContent() {
