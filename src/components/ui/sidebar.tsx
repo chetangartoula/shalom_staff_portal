@@ -95,7 +95,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
                 </nav>
             </div>
             <div className={cn("mt-auto p-4", isCollapsed && "px-2 pt-2")}>
-                 <div className={cn("border-t border-sidebar-foreground/10", isCollapsed ? "mx-auto" : "-mx-4")} />
+                 <div className={cn("border-t border-transparent", isCollapsed ? "mx-auto" : "-mx-4")} />
                  <div className={cn(isCollapsed ? "pt-2" : "pt-4")}>
                     {isCollapsed ? (
                         <TooltipProvider>
