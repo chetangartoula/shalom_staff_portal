@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -56,6 +55,7 @@ export default function TrekCostingPage() {
     handleDiscountChange,
     addRow,
     removeRow,
+    removeSection,
     setCustomSections,
     handleSave,
     savedReportUrl,
@@ -273,7 +273,7 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className={`grid min-h-screen w-full ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-muted/40 transition-all duration-300`}>
+      <div className={`grid min-h-screen w-full h-screen ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-background transition-all duration-300`}>
         <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
         <Sidebar 
           onAddTrekClick={() => setIsAddTrekModalOpen(true)} 
@@ -286,11 +286,11 @@ export default function TrekCostingPage() {
               <span className="sr-only">Toggle sidebar</span>
             </Button>
           </DashboardHeader>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">
               <div className="flex items-center">
                   <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
               </div>
-              <div className="flex flex-1 rounded-lg shadow-sm bg-background p-4 md:p-0">
+              <div className="flex flex-1 rounded-lg shadow-sm bg-card p-4 md:p-0">
                   <div className="w-full">
                       <div className="mb-8 md:mb-12 pt-4">
                         <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -33,6 +33,8 @@ export default function ServicesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
+
 
   const form = useForm<ServicesFormData>({
     resolver: zodResolver(servicesFormSchema),
@@ -90,15 +92,15 @@ export default function ServicesPage() {
 
   return (
     <>
-      <div className={`grid min-h-screen w-full ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-muted/40 transition-all duration-300`}>
-        <Sidebar isCollapsed={isSidebarCollapsed} onAddTrekClick={() => { /* Not needed on this page */ }} />
+      <div className={`grid min-h-screen w-full h-screen ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-background transition-all duration-300`}>
+        <Sidebar isCollapsed={isSidebarCollapsed} onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
         <div className="flex flex-col">
-           <DashboardHeader>
+           <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
              <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-              {isSidebarCollapsed ? <span className="lucide lucide-panel-left-open"></span> : <span className="lucide lucide-panel-left-close"></span>}
+              {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
             </Button>
           </DashboardHeader>
-          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 overflow-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Manage Services</CardTitle>
@@ -114,7 +116,7 @@ export default function ServicesPage() {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <div className="space-y-4">
                         {fields.map((field, index) => (
-                          <div key={field.id} className="flex items-end gap-3 p-3 border rounded-lg">
+                          <div key={field.id} className="flex items-end gap-3 p-3 border rounded-lg bg-card">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
                               <FormField
                                 control={form.control}
@@ -175,7 +177,7 @@ export default function ServicesPage() {
                       >
                         <Plus className="mr-2 h-4 w-4" /> Add Service
                       </Button>
-                      <CardFooter className="px-0 pt-6">
+                      <CardFooter className="px-0 pt-6 bg-card">
                         <Button type="submit" disabled={isSubmitting}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Save Changes
