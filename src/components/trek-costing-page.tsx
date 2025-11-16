@@ -4,7 +4,7 @@ import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from 'next/dynamic';
-import { Loader2, PlusSquare, Check, Copy, Edit, Trash2, Plus, FileDown, Mountain, Users, Home, Calculator, ClipboardList, Settings, MoreVertical, LogOut, PanelLeftOpen, PanelLeftClose, Menu, Search, Save, ChevronDown } from "lucide-react";
+import { Loader2, PlusSquare, Check, Copy, Edit, Trash2, Plus, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {

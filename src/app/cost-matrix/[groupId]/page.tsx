@@ -1,5 +1,5 @@
 
-import { TrekCostingPage } from "@/app/cost-matrix-page";
+import { TrekCostingPage } from "@/components/trek-costing-page";
 import { DashboardLayoutShell } from "@/components/dashboard-layout-shell";
 import { notFound } from "next/navigation";
 import { getReportByGroupId, getTreks } from "@/app/api/data";
