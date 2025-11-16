@@ -5,12 +5,9 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
-import Link from "next/link";
 import { useState } from "react";
 
 interface DashboardHeaderProps {
@@ -27,6 +24,10 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
     setIsSheetOpen(false);
   }
 
+  const handleLinkClick = () => {
+    setIsSheetOpen(false);
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -37,19 +38,7 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm sheet-content">
-          <div className="flex h-full flex-col">
-            <SheetHeader className="p-4 border-b">
-              <SheetTitle>
-                <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
-                    <Mountain className="h-6 w-6 text-primary" />
-                    <span>Shalom</span>
-                </Link>
-              </SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-auto">
-              <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
-            </div>
-          </div>
+            <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} onLinkClick={handleLinkClick} />
         </SheetContent>
       </Sheet>
       

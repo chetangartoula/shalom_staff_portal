@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link"
@@ -14,9 +13,10 @@ interface SidebarProps {
   className?: string;
   isCollapsed: boolean;
   onAddTrekClick: () => void;
+  onLinkClick?: () => void;
 }
 
-export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps) {
+export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }: SidebarProps) {
     const pathname = usePathname();
     const { logout } = useAuth();
     const router = useRouter();
@@ -35,6 +35,15 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
         const isActive = (pathname === "/" && item.href === "/") || (item.href !== "/" && pathname.startsWith(item.href));
         
+        const handleClick = () => {
+          if (item.action) {
+            item.action();
+          }
+          if (onLinkClick) {
+            onLinkClick();
+          }
+        };
+
         const linkContent = (
              <span className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
@@ -47,9 +56,9 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
         );
 
         const linkElement = item.href === "#" ? (
-            <a onClick={item.action} className="group">{linkContent}</a>
+            <a onClick={handleClick} className="group">{linkContent}</a>
         ) : (
-            <Link href={item.href} className="group">{linkContent}</Link>
+            <Link href={item.href} className="group" onClick={handleClick}>{linkContent}</Link>
         );
 
         return (
@@ -71,9 +80,9 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("flex h-full flex-col", className)}>
-            <div className="flex h-14 items-center border-b border-sidebar-foreground/20 px-4 lg:h-[60px] lg:px-6">
-                <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
+        <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
+            <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6">
+                <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
                     <Mountain className="h-6 w-6" />
                     {!isCollapsed && <span className="">Shalom</span>}
                 </Link>
@@ -86,7 +95,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                 </nav>
             </div>
             <div className={cn("mt-auto p-4", isCollapsed && "px-2 pt-2")}>
-                 <div className={cn("border-t border-sidebar-foreground/20", isCollapsed ? "mx-auto" : "-mx-4")} />
+                 <div className={cn("border-t border-sidebar-foreground/10", isCollapsed ? "mx-auto" : "-mx-4")} />
                  <div className={cn(isCollapsed ? "pt-2" : "pt-4")}>
                     {isCollapsed ? (
                         <TooltipProvider>
