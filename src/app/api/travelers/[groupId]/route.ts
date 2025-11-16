@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { travelers } from '../../data';
+import { getTravelerGroup, updateTravelerGroup } from '../../data';
 
 interface Params {
   params: {
@@ -10,7 +10,6 @@ interface Params {
 
 async function sha256(str: string): Promise<string> {
   const textAsBuffer = new TextEncoder().encode(str);
-  // The crypto object is globally available in modern Node.js and browsers
   const hashBuffer = await crypto.subtle.digest('SHA-256', textAsBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -20,7 +19,7 @@ async function sha256(str: string): Promise<string> {
 export async function GET(request: Request, { params }: Params) {
   try {
     const { groupId } = params;
-    const travelerGroup = travelers.find(t => t.groupId === groupId);
+    const travelerGroup = getTravelerGroup(groupId);
 
     if (travelerGroup) {
       return NextResponse.json(travelerGroup);
@@ -42,39 +41,17 @@ export async function PUT(request: Request, { params }: Params) {
             return NextResponse.json({ message: 'Invalid traveler data submitted. Passport and phone are required.' }, { status: 400 });
         }
         
-        // Generate a unique and stable ID based on passport and phone number using Web Crypto API
         const uniqueString = `${submittedTraveler.passportNumber.trim()}-${submittedTraveler.phone.trim()}`;
         const travelerId = await sha256(uniqueString);
-
-        // Assign the generated ID to the traveler data
         submittedTraveler.id = travelerId;
 
-        const groupIndex = travelers.findIndex(t => t.groupId === groupId);
+        const updatedGroup = updateTravelerGroup(groupId, submittedTraveler);
 
-        if (groupIndex > -1) {
-            // Group exists, update it.
-            const existingGroup = travelers[groupIndex];
-            
-            // Find if the traveler already exists in the group to update them
-            const travelerIndex = existingGroup.travelers.findIndex((t: any) => t.id === submittedTraveler.id);
-
-            if (travelerIndex > -1) {
-                // Traveler exists, merge their details to preserve any fields not submitted in the current payload
-                existingGroup.travelers[travelerIndex] = { ...existingGroup.travelers[travelerIndex], ...submittedTraveler };
-            } else {
-                // Traveler doesn't exist, add them to the group
-                existingGroup.travelers.push(submittedTraveler);
-            }
-            
-            travelers[groupIndex] = existingGroup;
-
-            return NextResponse.json({ message: 'Traveler details updated successfully', data: travelers[groupIndex] }, { status: 200 });
-        } else {
-            // Group doesn't exist, create it with the first traveler.
-            const newTravelerGroup = { groupId, travelers: [submittedTraveler] };
-            travelers.push(newTravelerGroup);
-            return NextResponse.json({ message: 'Traveler details saved successfully', data: newTravelerGroup }, { status: 201 });
+        if (updatedGroup) {
+            return NextResponse.json({ message: 'Traveler details updated successfully', data: updatedGroup }, { status: 200 });
         }
+        return NextResponse.json({ message: 'Error saving traveler details' }, { status: 500 });
+
     } catch (error) {
         return NextResponse.json({ message: 'Error saving traveler details', error: (error as Error).message }, { status: 500 });
     }

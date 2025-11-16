@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 
 interface Traveler {
     id: string;
@@ -24,31 +23,13 @@ interface Traveler {
     trekName: string;
 }
 
-export function TravelersContent() {
-  const [travelers, setTravelers] = useState<Traveler[]>([]);
+interface TravelersContentProps {
+    initialData: Traveler[];
+}
+
+export function TravelersContent({ initialData }: TravelersContentProps) {
+  const [travelers] = useState<Traveler[]>(initialData);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchTravelers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-        const res = await fetch('/api/travelers/all');
-        if (!res.ok) {
-            throw new Error("Failed to fetch travelers");
-        }
-        const data = await res.json();
-        setTravelers(data.travelers);
-    } catch(e) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not load travelers data.' });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchTravelers();
-  }, [fetchTravelers]);
 
   const filteredTravelers = useMemo(() => {
     if (!searchTerm) return travelers;
@@ -81,11 +62,6 @@ export function TravelersContent() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
             <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
@@ -122,7 +98,6 @@ export function TravelersContent() {
                     </TableBody>
                 </Table>
             </div>
-          )}
         </CardContent>
       </Card>
     </>

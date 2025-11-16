@@ -1,27 +1,14 @@
 
 import { NextResponse } from 'next/server';
-import { services, addService } from '../data';
+import { services, addService, getPaginatedServices } from '../data';
 import type { Service } from '@/lib/types';
-
-export async function getPaginatedServices(page: number, limit: number) {
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  
-  const paginatedServices = services.slice(startIndex, endIndex);
-  
-  return { 
-    services: paginatedServices,
-    total: services.length,
-    hasMore: endIndex < services.length,
-  };
-}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   
-  const data = await getPaginatedServices(page, limit);
+  const data = getPaginatedServices(page, limit);
   
   return NextResponse.json(data);
 }

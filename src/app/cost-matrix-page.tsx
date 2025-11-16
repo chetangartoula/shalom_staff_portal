@@ -25,10 +25,10 @@ import { Stepper } from "@/components/ui/stepper";
 import type { Trek } from "@/lib/types";
 import { useAuth } from "@/context/auth-context";
 
-import { useCostMatrix, handleExportPDF, handleExportExcel } from "@/hooks/use-cost-matrix";
+import { useCostMatrix } from "@/hooks/use-cost-matrix";
 import { useToast } from "@/hooks/use-toast";
+import { handleExportPDF, handleExportExcel } from "@/lib/export";
 
-// Lazy-load all step components to reduce initial bundle size
 const LoadingStep = () => (
   <div className="flex justify-center items-center h-96">
     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -43,29 +43,13 @@ const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mo
 
 interface TrekCostingPageProps {
   initialData?: any;
+  treks?: Trek[];
 }
 
-function TrekCostingPageComponent({ initialData }: TrekCostingPageProps) {
-  const [isClient, setIsClient] = useState(false);
-  const [treks, setTreks] = useState<Trek[]>([]);
+function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPageProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
-  
-  useEffect(() => {
-    async function fetchTreks() {
-        try {
-            const res = await fetch('/api/treks');
-            const data = await res.json();
-            setTreks(data.treks);
-        } catch (error) {
-            console.error("Failed to fetch treks", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not load treks.' });
-        }
-    }
-    fetchTreks();
-    setIsClient(true);
-  }, [toast]);
 
   const {
     report,
@@ -194,31 +178,23 @@ function TrekCostingPageComponent({ initialData }: TrekCostingPageProps) {
     }
     router.push('/reports');
   };
-
-  if (!isClient) {
-    return (
-        <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
   
   const renderStepContent = () => {
     const step = steps[currentStep];
 
-    if (isLoading || (treks.length === 0 && !initialData)) {
+    if (isLoading) {
       return <LoadingStep />;
     }
     
     switch (step.id) {
       case '01':
-        return treks.length > 0 ? (
+        return (
           <SelectTrekStep
             treks={treks}
             selectedTrekId={report.trekId}
             onSelectTrek={handleTrekSelect}
           />
-        ) : <LoadingStep />;
+        );
 
       case '02':
         return (

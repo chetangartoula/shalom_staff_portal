@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { reports } from '../../data';
+import { getReportByGroupId, updateReport } from '../../data';
 
 interface Params {
   params: {
@@ -8,15 +8,10 @@ interface Params {
   };
 }
 
-export async function getReportByGroupId(groupId: string) {
-  const report = reports.find(r => r.groupId === groupId);
-  return report || null;
-}
-
 export async function GET(request: Request, { params }: Params) {
   try {
     const { groupId } = params;
-    const report = await getReportByGroupId(groupId);
+    const report = getReportByGroupId(groupId);
     if (report) {
       return NextResponse.json(report);
     }
@@ -30,11 +25,10 @@ export async function PUT(request: Request, { params }: Params) {
   try {
     const { groupId } = params;
     const body = await request.json();
-    const reportIndex = reports.findIndex(r => r.groupId === groupId);
+    const updated = updateReport(groupId, body);
 
-    if (reportIndex > -1) {
-      reports[reportIndex] = { ...reports[reportIndex], ...body };
-      return NextResponse.json({ message: 'Report updated successfully', report: reports[reportIndex] }, { status: 200 });
+    if (updated) {
+      return NextResponse.json({ message: 'Report updated successfully', report: updated }, { status: 200 });
     }
     return NextResponse.json({ message: 'Report not found' }, { status: 404 });
   } catch (error) {

@@ -1,22 +1,5 @@
 import { NextResponse } from 'next/server';
-import { travelers, reports } from '../../data';
-
-export async function getAllTravelers() {
-  // Create a map for quick report lookup
-  const reportMap = new Map(reports.map(r => [r.groupId, r]));
-
-  // Flatten the traveler data and enrich it with trekName from reports
-  const allTravelers = travelers.flatMap(group => {
-    const report = reportMap.get(group.groupId);
-    return group.travelers.map((traveler: any) => ({
-      ...traveler,
-      groupId: group.groupId,
-      trekName: report ? report.trekName : 'N/A', // Add trek name
-    }));
-  });
-
-  return { travelers: allTravelers };
-}
+import { getAllTravelers } from '../../data';
 
 export async function GET() {
   try {
