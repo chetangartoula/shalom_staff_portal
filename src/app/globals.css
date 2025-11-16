@@ -10,7 +10,7 @@ body {
 
 @layer base {
   :root {
-    --background: 240 10% 96.1%; /* Slightly off-white for content area */
+    --background: 240 10% 97.5%; /* A very light gray, close to #f5f5f6 */
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -80,6 +80,20 @@ body {
     --header-background: 240 3.7% 15.9%;
     --header-foreground: 0 0% 98%;
     --header-border: 240 3.7% 15.9%;
+  }
+
+  /* Specific styles for light mobile sheet */
+  .sheet-content {
+      --sidebar-background: 240 10% 97.5%; /* #f5f5f6 equivalent */
+      --sidebar-foreground: hsl(var(--primary));
+      --sidebar-muted-foreground: 240 3.8% 46.1%;
+      --sidebar-active-background: 231 60% 90%;
+      --border: 240 5.9% 90%;
+  }
+
+  .sheet-content.bg-sidebar-background {
+    background-color: var(--sidebar-background) !important;
+    color: var(--sidebar-foreground) !important;
   }
 }
 

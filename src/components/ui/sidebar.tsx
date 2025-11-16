@@ -33,10 +33,12 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     ];
 
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
+        const isActive = (pathname === "/" && item.href === "/") || (item.href !== "/" && pathname.startsWith(item.href));
+        
         const linkContent = (
              <span className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:text-sidebar-foreground hover:bg-sidebar-active-background",
-                pathname === item.href && "bg-sidebar-active-background text-sidebar-foreground",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground group-hover:bg-sidebar-active-background",
+                isActive && "bg-sidebar-active-background text-sidebar-foreground",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -45,9 +47,9 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
         );
 
         const linkElement = item.href === "#" ? (
-            <a onClick={item.action}>{linkContent}</a>
+            <a onClick={item.action} className="group">{linkContent}</a>
         ) : (
-            <Link href={item.href}>{linkContent}</Link>
+            <Link href={item.href} className="group">{linkContent}</Link>
         );
 
         return (
@@ -69,8 +71,8 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("hidden border-r border-gray-700 bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
-            <div className={cn("flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
+        <div className={cn("hidden border-r bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
+            <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Mountain className="h-6 w-6 text-primary" />
                     {!isCollapsed && <span className="">Shalom Dashboard</span>}
@@ -83,7 +85,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4 space-y-2 border-t border-gray-700 w-full", isCollapsed && "p-2")}>
+            <div className={cn("mt-auto p-4 space-y-2 border-t w-full", isCollapsed && "p-2")}>
                  {isCollapsed ? (
                     <TooltipProvider>
                         <Tooltip>
