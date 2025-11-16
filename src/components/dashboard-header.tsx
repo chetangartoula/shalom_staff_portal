@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -27,10 +29,10 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
   }
 
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-header-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
-      <Link href="/" className="flex items-center gap-2 font-semibold text-header-foreground md:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-header-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+       <Link href="/" className="flex items-center gap-2 font-semibold text-header-foreground md:hidden">
         <Mountain className="h-6 w-6 text-primary" />
-        <span className="sr-only">Shalom Dashboard</span>
+        <span className="">Shalom</span>
       </Link>
       
       <div className="w-full flex-1 flex items-center gap-4">
@@ -48,6 +50,14 @@ export function DashboardHeader({ onAddTrekClick, isSidebarCollapsed, setIsSideb
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col p-0 w-full max-w-xs sheet-content">
+            <SheetHeader className="p-4 border-b">
+               <SheetTitle>
+                 <Link href="/" className="flex items-center gap-2 font-semibold" onClick={() => setIsSheetOpen(false)}>
+                    <Mountain className="h-6 w-6 text-primary" />
+                    <span className="">Shalom</span>
+                 </Link>
+                </SheetTitle>
+            </SheetHeader>
            <Sidebar onAddTrekClick={handleAddTrekClick} isCollapsed={false} />
         </SheetContent>
       </Sheet>
