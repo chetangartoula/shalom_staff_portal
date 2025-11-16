@@ -11,9 +11,7 @@ interface IconProps extends LucideProps {
 const fallback = <div style={{ background: 'transparent', width: 24, height: 24 }}/>
 
 const Icon = ({ name, ...props }: IconProps) => {
-  const LucideIcon = lazy(() => 
-    dynamicIconImports[name]().then(module => ({ default: module as React.ComponentType<any> }))
-  );
+  const LucideIcon = lazy(dynamicIconImports[name]);
 
   return (
     <Suspense fallback={fallback}>
