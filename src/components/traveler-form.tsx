@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useParams } from "next/navigation";
+import { Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
@@ -26,7 +27,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Icon } from "./ui/icon";
 
 const travelerSchema = z.object({
   id: z.string().optional(), // ID is now optional as it's generated on the backend
@@ -189,7 +189,7 @@ export default function TravelerForm() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Icon name="loader-2" className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -399,9 +399,9 @@ export default function TravelerForm() {
                     disabled={isSubmitting[field.id!]}
                   >
                     {isSubmitting[field.id!] && (
-                      <Icon name="loader-2" className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    <Icon name="save" className="mr-2 h-4 w-4" /> Save Details
+                    <Save className="mr-2 h-4 w-4" /> Save Details
                   </Button>
                 </CardFooter>
               </AccordionContent>

@@ -10,7 +10,7 @@ import {
 import { Sidebar } from "@/components/ui/sidebar";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import type { User } from "@/lib/auth";
-import { Icon } from "@/components/ui/icon";
+import { Menu, PanelLeftOpen, PanelLeftClose } from "lucide-react";
 
 interface DashboardHeaderProps {
   isSidebarCollapsed: boolean;
@@ -30,7 +30,7 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, use
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="shrink-0 md:hidden">
-            <Icon name="Menu" className="h-5 w-5" />
+            <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
@@ -42,7 +42,7 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, use
       
       <div className="w-full flex-1 flex items-center gap-4">
         <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          {isSidebarCollapsed ? <Icon name="PanelLeftOpen" /> : <Icon name="PanelLeftClose" />}
+          {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           <span className="sr-only">Toggle sidebar</span>
         </Button>
         <div className="flex-1" />

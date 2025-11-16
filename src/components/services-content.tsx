@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { Loader2, Search, Plus, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import type { ServiceFormData } from '@/components/add-service-form';
-import { Icon } from './ui/icon';
 
 const AddServiceForm = lazy(() => import('@/components/add-service-form').then(mod => ({ default: mod.AddServiceForm })));
 
@@ -151,7 +151,7 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
   return (
     <>
       {isServiceModalOpen && (
-        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
             <AddServiceForm 
               open={isServiceModalOpen}
               onOpenChange={setIsServiceModalOpen}
@@ -170,7 +170,7 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
               </div>
                <div className="flex items-center gap-2">
                   <div className="relative">
-                      <Icon name="Search" className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                           type="search"
                           placeholder="Search by service name..."
@@ -180,7 +180,7 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
                       />
                   </div>
                   <Button onClick={() => handleOpenServiceModal()} className="shrink-0">
-                      <Icon name="Plus" className="mr-2 h-4 w-4" /> Add Service
+                      <Plus className="mr-2 h-4 w-4" /> Add Service
                   </Button>
               </div>
           </div>
@@ -188,7 +188,7 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-                <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <div className="border rounded-lg">
@@ -212,15 +212,15 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
                                 <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0">
                                     <span className="sr-only">Open menu</span>
-                                    <Icon name="MoreHorizontal" className="h-4 w-4" />
+                                    <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
-                                    <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
-                                    <Icon name="Trash2" className="mr-2 h-4 w-4" /> Delete
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
                                 </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -240,7 +240,7 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
         {hasMore && !searchTerm && (
           <CardFooter className="justify-center">
             <Button onClick={handleLoadMore} disabled={isMoreLoading}>
-              {isMoreLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
+              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>

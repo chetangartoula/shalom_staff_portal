@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { Search, Loader2, Copy, Check, Edit } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { Icon } from './ui/icon';
 
 interface Report {
     groupId: string;
@@ -95,7 +95,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                   <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
               </div>
               <div className="relative">
-                  <Icon name="Search" className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
                       placeholder="Search by trek or group ID..."
@@ -109,7 +109,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
         <CardContent>
           {isLoading ? (
              <div className="flex justify-center items-center h-64">
-                <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
             <div className="border rounded-lg">
@@ -133,7 +133,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                                     {report.groupId.substring(0, 8)}...
                                   </Link>
                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
-                                      {copiedId === report.groupId ? <Icon name="Check" className="h-4 w-4 text-green-500" /> : <Icon name="Copy" className="h-4 w-4" />}
+                                      {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                       <span className="sr-only">Copy Group ID</span>
                                     </Button>
                                 </div>
@@ -142,7 +142,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                    <Icon name="Edit" className="mr-2 h-4 w-4" /> Edit
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
                                 </Button>
                             </TableCell>
                         </TableRow>
@@ -161,7 +161,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
          {hasMore && !searchTerm && (
           <CardFooter className="justify-center pt-6">
             <Button onClick={handleLoadMore} disabled={isMoreLoading}>
-              {isMoreLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
+              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>

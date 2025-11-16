@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
 import type { CostRow, SectionState } from "@/lib/types";
-import { Icon } from './ui/icon';
+import { Edit, Trash2, Plus } from 'lucide-react';
 
 interface CostTableProps {
     section: SectionState;
@@ -65,7 +65,7 @@ const CostTableComponent = ({
                 <div className="flex items-center gap-4">
                     {isCustom && onEditSection && (
                          <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>
-                            <Icon name="Edit" className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                              <span className="sr-only">Edit section name</span>
                         </Button>
                     )}
@@ -75,7 +75,7 @@ const CostTableComponent = ({
                     </div>
                     {isCustom && onRemoveSection && (
                         <Button variant="ghost" size="icon" onClick={() => onRemoveSection(section.id)}>
-                            <Icon name="Trash2" className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4 text-destructive" />
                             <span className="sr-only">Remove section</span>
                         </Button>
                     )}
@@ -124,7 +124,7 @@ const CostTableComponent = ({
                             <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
                             <TableCell className="text-center">
                                 <Button variant="ghost" size="icon" onClick={() => onRemoveRow(row.id, section.id)}>
-                                    <Icon name="Trash2" className="h-4 w-4 text-destructive" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                     <span className="sr-only">Remove row</span>
                                 </Button>
                             </TableCell>
@@ -135,7 +135,7 @@ const CostTableComponent = ({
                 </div>
                  <div className="mt-6">
                     <Button onClick={() => onAddRow(section.id)} variant="outline" className="w-full border-dashed border-primary text-primary hover:text-primary hover:bg-primary/5">
-                        <Icon name="Plus" className="h-4 w-4 mr-2" /> Add New Row
+                        <Plus className="h-4 w-4 mr-2" /> Add New Row
                     </Button>
                 </div>
                 <div className="mt-6 flex flex-col md:flex-row items-end justify-between gap-6">

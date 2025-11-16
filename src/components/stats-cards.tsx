@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Icon } from '@/components/ui/icon';
-import type { LucideProps } from 'lucide-react';
+import { ClipboardList, Users, Mountain, Settings, LucideProps } from 'lucide-react';
 
 interface StatsCardsProps {
     stats: {
@@ -11,27 +10,39 @@ interface StatsCardsProps {
     } | null;
 }
 
+type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings";
+
+const icons: { [key in IconName]: React.ElementType<LucideProps> } = {
+    ClipboardList,
+    Users,
+    Mountain,
+    Settings
+};
+
 export function StatsCards({ stats }: StatsCardsProps) {
     const statCards = [
-        { title: 'Total Reports', value: stats?.reports ?? 0, icon: "ClipboardList", color: 'text-blue-500' },
-        { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: "Users", color: 'text-green-500' },
-        { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain", color: 'text-purple-500' },
-        { title: 'Available Services', value: stats?.services ?? 0, icon: "Settings", color: 'text-orange-500' },
+        { title: 'Total Reports', value: stats?.reports ?? 0, icon: "ClipboardList" as IconName, color: 'text-blue-500' },
+        { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: "Users" as IconName, color: 'text-green-500' },
+        { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain" as IconName, color: 'text-purple-500' },
+        { title: 'Available Services', value: stats?.services ?? 0, icon: "Settings" as IconName, color: 'text-orange-500' },
     ];
 
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((card, index) => (
-                <Card key={index} className="shadow-sm hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                        <Icon name={card.icon as any} className={`h-5 w-5 ${card.color}`} />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{card.value}</div>
-                    </CardContent>
-                </Card>
-            ))}
+            {statCards.map((card, index) => {
+                const Icon = icons[card.icon];
+                return (
+                    <Card key={index} className="shadow-sm hover:shadow-lg transition-shadow duration-300">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                            <Icon className={`h-5 w-5 ${card.color}`} />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{card.value}</div>
+                        </CardContent>
+                    </Card>
+                );
+            })}
         </div>
     );
 }

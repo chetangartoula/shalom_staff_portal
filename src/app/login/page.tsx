@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Icon } from "@/components/ui/icon";
+import { Mountain, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("admin");
@@ -60,7 +60,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-                <Icon name="Mountain" className="h-8 w-8 text-primary" />
+                <Mountain className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Shalom Dashboard</CardTitle>
             <CardDescription>
@@ -96,7 +96,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <Button type="submit" className="mt-6 w-full" disabled={isLoading}>
-                {isLoading && <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>

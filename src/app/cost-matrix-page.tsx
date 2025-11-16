@@ -4,6 +4,7 @@ import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from 'next/dynamic';
+import { Loader2, PlusSquare, Check, Copy } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +25,6 @@ import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import { getUser } from "@/lib/auth";
 import type { User } from "@/lib/auth";
-import { Icon } from "@/components/ui/icon";
 
 type ReportState = {
   groupId: string;
@@ -64,7 +64,7 @@ const createInitialReportState = (groupId?: string): ReportState => ({
 
 const LoadingStep = () => (
   <div className="flex justify-center items-center h-96">
-    <Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" />
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
   </div>
 );
 
@@ -537,7 +537,7 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
               <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
-                        <Icon name="PlusSquare" /> Add Section
+                        <PlusSquare /> Add Section
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -579,13 +579,13 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
                   {savedReportUrl}
                 </Link>
                 <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
-                  {isCopied ? <Icon name="Check" className="h-4 w-4 text-green-500" /> : <Icon name="Copy" className="h-4 w-4" />}
+                  {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
             </div>
           )}
           {currentStep === steps.length - 1 ? (
             <Button onClick={handleFinish} disabled={isLoading}>
-                {isLoading ? <Icon name="Loader2" className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
             </Button>
           ) : (
             <Button onClick={nextStep}>

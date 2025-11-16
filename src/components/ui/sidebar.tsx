@@ -2,6 +2,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
+import { Home, Calculator, ClipboardList, Users, Plus, Settings, Mountain, MoreVertical, LogOut, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
@@ -18,7 +19,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
 import type { AddTrekFormData } from '@/components/add-trek-form';
 import type { User } from '@/lib/auth';
-import { Icon } from './icon';
 
 const AddTrekForm = lazy(() => import('@/components/add-trek-form').then(mod => ({ default: mod.AddTrekForm })));
 
@@ -77,12 +77,12 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
     };
 
     const navItems = [
-        { href: "/dashboard", label: "Dashboard", icon: "Home" },
-        { href: "/cost-estimator", label: "Cost Estimator", icon: "Calculator" },
-        { href: "/reports", label: "Reports", icon: "ClipboardList" },
-        { href: "/travelers", label: "Travelers", icon: "Users" },
-        { href: "#", label: "Add Trek", icon: "Plus", action: () => setIsAddTrekModalOpen(true) },
-        { href: "/services", label: "Services", icon: "Settings" },
+        { href: "/dashboard", label: "Dashboard", icon: Home },
+        { href: "/cost-estimator", label: "Cost Estimator", icon: Calculator },
+        { href: "/reports", label: "Reports", icon: ClipboardList },
+        { href: "/travelers", label: "Travelers", icon: Users },
+        { href: "#", label: "Add Trek", icon: Plus, action: () => setIsAddTrekModalOpen(true) },
+        { href: "/services", label: "Services", icon: Settings },
     ];
 
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
@@ -98,13 +98,15 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
           }
         };
 
+        const Icon = item.icon;
+
         const linkContent = (
              <span className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
                 isActive && "text-sidebar-foreground bg-sidebar-active-background font-bold",
                 isCollapsed && "justify-center"
             )}>
-                <Icon name={item.icon as any} className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
                 {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
                  <span className="sr-only">{item.label}</span>
             </span>
@@ -138,14 +140,14 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
     return (
         <>
             {isAddTrekModalOpen && (
-                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Icon name="Loader2" className="h-8 w-8 animate-spin text-primary" /></div>}>
+                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
                     <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} isSubmitting={isSubmitting} />
                 </Suspense>
             )}
             <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
                 <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6 shadow-md">
                     <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
-                        <Icon name="Mountain" className="h-6 w-6" />
+                        <Mountain className="h-6 w-6" />
                         {!isCollapsed && <span className="">Shalom</span>}
                     </Link>
                 </div>
@@ -170,7 +172,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
                                     <p className="text-xs text-sidebar-muted-foreground">{user.email}</p>
                                     </div>
                                 )}
-                                {!isCollapsed && <Icon name="MoreVertical" className="h-4 w-4 ml-auto text-sidebar-muted-foreground" />}
+                                {!isCollapsed && <MoreVertical className="h-4 w-4 ml-auto text-sidebar-muted-foreground" />}
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="top" align="start" className="w-56 bg-background">
@@ -180,7 +182,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={handleLogout}>
-                                <Icon name="LogOut" className="mr-2 h-4 w-4" />
+                                <LogOut className="mr-2 h-4 w-4" />
                                 <span>Log out</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
