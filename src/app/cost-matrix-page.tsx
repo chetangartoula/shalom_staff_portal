@@ -4,7 +4,7 @@ import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from 'next/dynamic';
-import { Loader2, PlusSquare, Check, Copy } from "lucide-react";
+import { Loader2, PlusSquare, Check, Copy, Edit, Trash2, Plus, FileDown, Mountain, Users, Home, Calculator, ClipboardList, Settings, MoreVertical, LogOut, PanelLeftOpen, PanelLeftClose, Menu, Search, Save, ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,6 @@ import { Stepper } from "@/components/ui/stepper";
 import type { Trek, CostRow, SectionState } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
-import { getUser } from "@/lib/auth";
 import type { User } from "@/lib/auth";
 
 type ReportState = {
@@ -77,9 +76,10 @@ const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mo
 interface TrekCostingPageProps {
   initialData?: any;
   treks?: Trek[];
+  user?: User | null;
 }
 
-function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData, treks = [], user = null }: TrekCostingPageProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -90,16 +90,11 @@ function TrekCostingPageComponent({ initialData, treks = [] }: TrekCostingPagePr
   const [usePax, setUsePax] = useState<{ [key: string]: boolean }>({});
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(initialData?.reportUrl || null);
   const [isCopied, setIsCopied] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
   
-  useEffect(() => {
-    getUser().then(setUser);
-  }, []);
-
   useEffect(() => {
     if (initialData) {
         setIsLoading(true);
