@@ -1,21 +1,16 @@
 
 import { NextResponse } from 'next/server';
 import { treks, addTrek as apiAddTrek } from '../data';
-
-
-export async function getTreks() {
-  // In a real app, you'd fetch this from a database
-  return { treks };
-}
+import type { Trek } from '@/lib/types';
 
 export async function GET() {
-  const data = await getTreks();
-  return NextResponse.json(data);
+  // In a real app, you'd fetch this from a database
+  return NextResponse.json({ treks });
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = await request.json() as Omit<Trek, 'id'>;
     // In a real app, you'd validate the body and save to a database
     const newTrek = await apiAddTrek(body);
     return NextResponse.json({ message: 'Trek added successfully', trek: newTrek }, { status: 201 });

@@ -1,36 +1,22 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClipboardList, Users, Mountain, Settings } from 'lucide-react';
-import { getPaginatedReports } from '@/app/api/reports/route';
-import { getAllTravelers } from '@/app/api/travelers/all/route';
-import { getTreks } from '@/app/api/treks/route';
-import { getPaginatedServices } from '@/app/api/services/route';
 
-
-async function getStats() {
-    // Fetch all stats in parallel
-    const [reportsData, travelersData, treksData, servicesData] = await Promise.all([
-        getPaginatedReports(1, 1),
-        getAllTravelers(),
-        getTreks(),
-        getPaginatedServices(1, 1)
-    ]);
-
-    return {
-        reports: reportsData.total,
-        travelers: travelersData.travelers.length,
-        treks: treksData.treks.length,
-        services: servicesData.total,
-    };
+interface StatsCardsProps {
+    stats: {
+        reports: number;
+        travelers: number;
+        treks: number;
+        services: number;
+    } | null;
 }
 
-export async function StatsCards() {
-    const stats = await getStats();
-
+export function StatsCards({ stats }: StatsCardsProps) {
     const statCards = [
-        { title: 'Total Reports', value: stats?.reports, icon: ClipboardList, color: 'text-blue-500' },
-        { title: 'Total Travelers', value: stats?.travelers, icon: Users, color: 'text-green-500' },
-        { title: 'Available Treks', value: stats?.treks, icon: Mountain, color: 'text-purple-500' },
-        { title: 'Available Services', value: stats?.services, icon: Settings, color: 'text-orange-500' },
+        { title: 'Total Reports', value: stats?.reports ?? 0, icon: ClipboardList, color: 'text-blue-500' },
+        { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: Users, color: 'text-green-500' },
+        { title: 'Available Treks', value: stats?.treks ?? 0, icon: Mountain, color: 'text-purple-500' },
+        { title: 'Available Services', value: stats?.services ?? 0, icon: Settings, color: 'text-orange-500' },
     ];
 
     return (

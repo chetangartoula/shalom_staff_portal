@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,7 +10,6 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
@@ -21,52 +21,50 @@ interface Report {
     reportUrl: string;
 }
 
-interface ReportsContentProps {
-  initialData: {
-    reports: Report[];
-    total: number;
-    hasMore: boolean;
-  };
-}
-
-export function ReportsContent({ initialData }: ReportsContentProps) {
+export function ReportsContent() {
   const { toast } = useToast();
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>(initialData.reports);
-  const [filteredReports, setFilteredReports] = useState<Report[]>(initialData.reports);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(initialData.hasMore);
+  const [hasMore, setHasMore] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const fetchReports = useCallback(async (pageNum: number) => {
-    // This function is now only for "Load More"
-    if (pageNum === 1) return;
-    setIsLoading(true);
+  const fetchReports = useCallback(async (pageNum: number, initialLoad = false) => {
+    if(initialLoad) setIsLoading(true);
+    else setIsMoreLoading(true);
+
     try {
       const res = await fetch(`/api/reports?page=${pageNum}&limit=10`);
       if (!res.ok) throw new Error('Failed to fetch reports');
       const data = await res.json();
       
-      setReports(prev => [...prev, ...data.reports]);
+      setReports(prev => pageNum === 1 ? data.reports : [...prev, ...data.reports]);
       setHasMore(data.hasMore);
 
     } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Could not load more reports.',
+        description: 'Could not load reports.',
       });
     } finally {
-      setIsLoading(false);
+      if(initialLoad) setIsLoading(false);
+      else setIsMoreLoading(false);
     }
   }, [toast]);
   
   useEffect(() => {
+    fetchReports(1, true);
+  }, [fetchReports]);
+
+  useEffect(() => {
     const results = reports.filter(report =>
-      report.trekName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.groupId.toLowerCase().includes(searchTerm.toLowerCase())
+      (report.trekName && report.trekName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (report.groupId && report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredReports(results);
   }, [searchTerm, reports]);
@@ -113,61 +111,66 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Trek Name</TableHead>
-                    <TableHead>Group ID</TableHead>
-                    <TableHead>Group Size</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredReports.length > 0 ? filteredReports.map((report) => (
-                    <TableRow key={report.groupId}>
-                        <TableCell className="font-medium">{report.trekName}</TableCell>
-                        <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
-                                {report.groupId.substring(0, 8)}...
-                              </Link>
-                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
-                                  {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                  <span className="sr-only">Copy Group ID</span>
+          {isLoading ? (
+             <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+             </div>
+          ) : (
+            <div className="border rounded-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Trek Name</TableHead>
+                        <TableHead>Group ID</TableHead>
+                        <TableHead>Group Size</TableHead>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredReports.length > 0 ? filteredReports.map((report) => (
+                        <TableRow key={report.groupId}>
+                            <TableCell className="font-medium">{report.trekName}</TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
+                                    {report.groupId.substring(0, 8)}...
+                                  </Link>
+                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
+                                      {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                      <span className="sr-only">Copy Group ID</span>
+                                    </Button>
+                                </div>
+                            </TableCell>
+                            <TableCell>{report.groupSize}</TableCell>
+                            <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
+                            <TableCell className="text-right">
+                                <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
                                 </Button>
-                            </div>
-                        </TableCell>
-                        <TableCell>{report.groupSize}</TableCell>
-                        <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
-                        <TableCell className="text-right">
-                            <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-                    )) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                          No reports found.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-          </div>
+                            </TableCell>
+                        </TableRow>
+                        )) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                              No reports found.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+          )}
         </CardContent>
          {hasMore && !searchTerm && (
           <CardFooter className="justify-center pt-6">
-            <Button onClick={handleLoadMore} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleLoadMore} disabled={isMoreLoading}>
+              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>
         )}
       </Card>
-      <Toaster />
     </>
   );
 }

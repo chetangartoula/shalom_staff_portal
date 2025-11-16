@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 
 import type { Trek, CostRow, SectionState } from "@/lib/types";
@@ -31,7 +31,7 @@ const initialSteps = [
 
 // Helper to create an initial empty report state
 const createInitialReportState = (): ReportState => ({
-  groupId: uuidv4(),
+  groupId: crypto.randomUUID(),
   trekId: null,
   trekName: '',
   groupSize: 1,
@@ -249,7 +249,7 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   const { toast } = useToast();
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   const [report, setReport] = useState<ReportState>(createInitialReportState());
 
@@ -260,10 +260,12 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   
   useEffect(() => {
     if (initialData) {
+        setIsLoading(true);
         const fullReport = {
             ...createInitialReportState(),
             ...initialData,
-            startDate: initialData.startDate ? new Date(initialData.startDate) : undefined,
+            groupId: initialData.groupId || crypto.randomUUID(), // Ensure groupId exists
+            startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
         };
         setReport(fullReport);
 
@@ -276,8 +278,8 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
             });
             setSteps(newSteps);
         }
+        setIsLoading(false);
     }
-    setIsLoading(false);
   }, [initialData]);
 
   const selectedTrek = useMemo(
@@ -295,46 +297,32 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
     setReport(currentReport => {
         let changed = false;
         const newReport = { ...currentReport };
-        const sectionsToUpdate: (keyof ReportState)[] = ['permits', 'services', 'extraDetails'];
-
-        sectionsToUpdate.forEach(sectionKey => {
-            const section = newReport[sectionKey] as SectionState;
+        
+        const updateSectionRows = (section: SectionState): SectionState => {
             if (isPaxEnabled(section.id)) {
+                let sectionChanged = false;
                 const newRows = section.rows.map(row => {
                     if (row.no !== currentReport.groupSize) {
-                        changed = true;
+                        sectionChanged = true;
                         const newNo = currentReport.groupSize;
                         return { ...row, no: newNo, total: (row.rate || 0) * newNo * (row.times || 0) };
                     }
                     return row;
                 });
-                if(changed) {
-                    (newReport[sectionKey] as SectionState) = { ...section, rows: newRows };
+                if (sectionChanged) {
+                    changed = true;
+                    return { ...section, rows: newRows };
                 }
             }
-        });
-        
-        const newCustomSections = newReport.customSections.map(section => {
-            if (isPaxEnabled(section.id)) {
-                const newRows = section.rows.map(row => {
-                    if (row.no !== currentReport.groupSize) {
-                        changed = true;
-                        const newNo = currentReport.groupSize;
-                        return { ...row, no: newNo, total: (row.rate || 0) * newNo * (row.times || 0) };
-                    }
-                    return row;
-                });
-                 if(changed) return { ...section, rows: newRows };
-            }
             return section;
-        });
-
-        if (changed) {
-            newReport.customSections = newCustomSections;
-            return newReport;
         }
 
-        return currentReport;
+        newReport.permits = updateSectionRows(newReport.permits);
+        newReport.services = updateSectionRows(newReport.services);
+        newReport.extraDetails = updateSectionRows(newReport.extraDetails);
+        newReport.customSections = newReport.customSections.map(updateSectionRows);
+
+        return changed ? newReport : currentReport;
     });
   }, [report.groupSize, usePax]);
 
@@ -346,7 +334,7 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
         const isPax = usePax['permits'] ?? false;
         const numberValue = isPax ? prev.groupSize : 1;
         const initialPermits = newSelectedTrek.permits.map(p => ({
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             description: p.name,
             rate: p.rate,
             no: numberValue,
@@ -355,8 +343,8 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
         }));
 
         const initialExtraDetails = [
-            { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-            { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
+            { id: crypto.randomUUID(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
+            { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
         ];
 
         return {
@@ -409,7 +397,7 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   }, [handleSectionUpdate]);
 
   const addRow = useCallback((sectionId: string) => {
-    const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
+    const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: 1, times: 1, total: 0 };
     handleSectionUpdate(sectionId, (prev) => ({...prev, rows: [...prev.rows, newRow]}));
   }, [handleSectionUpdate]);
 
@@ -443,6 +431,7 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   }, [report]);
 
   const handleSave = useCallback(async () => {
+    setIsLoading(true);
     const payload = getReportPayload();
     try {
       const response = await fetch('/api/reports', {
@@ -455,10 +444,13 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
       toast({ title: "Data Saved", description: "Your trek costing details have been saved." });
     } catch(error) {
        toast({ variant: "destructive", title: "Error", description: "Could not save the report." });
+    } finally {
+        setIsLoading(false);
     }
   }, [getReportPayload, toast]);
 
   const handleUpdate = useCallback(async () => {
+    setIsLoading(true);
     const payload = getReportPayload();
     try {
       const response = await fetch(`/api/reports/${payload.groupId}`, {
@@ -470,6 +462,8 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
       toast({ title: "Report Updated", description: "Your changes have been saved." });
     } catch(error) {
        toast({ variant: "destructive", title: "Error", description: "Could not update the report." });
+    } finally {
+        setIsLoading(false);
     }
   }, [getReportPayload, toast]);
 

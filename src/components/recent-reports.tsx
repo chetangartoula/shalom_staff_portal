@@ -1,16 +1,16 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Edit, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import { getPaginatedReports } from '@/app/api/reports/route';
 
+interface RecentReportsProps {
+    reports: any[];
+}
 
-export async function RecentReports() {
-    const data = await getPaginatedReports(1, 5);
-    const recentReports = data.reports;
-
+export function RecentReports({ reports }: RecentReportsProps) {
     return (
         <Card className="shadow-sm">
             <CardHeader>
@@ -28,7 +28,7 @@ export async function RecentReports() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {recentReports.length > 0 ? recentReports.map((report: any) => (
+                        {reports.length > 0 ? reports.map((report: any) => (
                             <TableRow key={report.groupId}>
                                 <TableCell className="font-medium">{report.trekName}</TableCell>
                                 <TableCell>{report.groupId.substring(0, 8)}...</TableCell>

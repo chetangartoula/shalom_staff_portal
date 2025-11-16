@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
@@ -26,37 +25,29 @@ const AddServiceForm = dynamic(() => import('@/components/add-service-form').the
     loading: () => <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 });
 
-
-interface ServicesContentProps {
-  initialData: {
-    services: Service[];
-    total: number;
-    hasMore: boolean;
-  };
-}
-
-export function ServicesContent({ initialData }: ServicesContentProps) {
+export function ServicesContent() {
   const { toast } = useToast();
-  const [services, setServices] = useState<Service[]>(initialData.services);
-  const [filteredServices, setFilteredServices] = useState<Service[]>(initialData.services);
+  const [services, setServices] = useState<Service[]>([]);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(initialData.hasMore);
+  const [hasMore, setHasMore] = useState(false);
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
-  const fetchServices = useCallback(async (pageNum: number) => {
-    // This function is now only for "Load More"
-    if (pageNum === 1) return; 
-    setIsLoading(true);
+  const fetchServices = useCallback(async (pageNum: number, initialLoad = false) => {
+    if (initialLoad) setIsLoading(true);
+    else setIsMoreLoading(true);
+
     try {
       const res = await fetch(`/api/services?page=${pageNum}&limit=10`);
       if (!res.ok) throw new Error('Failed to fetch services');
       const data = await res.json();
       
-      setServices(prev => [...prev, ...data.services]);
+      setServices(prev => pageNum === 1 ? data.services : [...prev, ...data.services]);
       setHasMore(data.hasMore);
 
     } catch (error) {
@@ -66,9 +57,14 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
         description: 'Could not load more services.',
       });
     } finally {
-      setIsLoading(false);
+      if (initialLoad) setIsLoading(false);
+      else setIsMoreLoading(false);
     }
   }, [toast]);
+
+  useEffect(() => {
+    fetchServices(1, true);
+  }, [fetchServices]);
 
   useEffect(() => {
     const results = services.filter(service =>
@@ -132,6 +128,10 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
   };
 
   const handleDeleteService = async (serviceId: string) => {
+    // Optimistic UI update
+    const originalServices = services;
+    setServices(prev => prev.filter(s => s.id !== serviceId));
+
     try {
       const response = await fetch(`/api/services/${serviceId}`, {
         method: 'DELETE',
@@ -141,13 +141,13 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
         throw new Error('Failed to delete service');
       }
 
-      setServices(prev => prev.filter(s => s.id !== serviceId));
       toast({
         title: 'Success!',
         description: 'Service has been deleted.',
       });
 
     } catch (error) {
+       setServices(originalServices); // Rollback on error
        toast({
         variant: 'destructive',
         title: 'Error',
@@ -192,61 +192,66 @@ export function ServicesContent({ initialData }: ServicesContentProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Service Name</TableHead>
-                    <TableHead>Rate</TableHead>
-                    <TableHead>Default Times</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {filteredServices.map((service) => (
-                    <TableRow key={service.id}>
-                        <TableCell className="font-medium">{service.name}</TableCell>
-                        <TableCell>{formatCurrency(service.rate)}</TableCell>
-                        <TableCell>{service.times}</TableCell>
-                        <TableCell className="text-right">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-             {filteredServices.length === 0 && (
-              <div className="text-center p-8 text-muted-foreground">
-                No services found.
-              </div>
-            )}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Service Name</TableHead>
+                        <TableHead>Rate</TableHead>
+                        <TableHead>Default Times</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredServices.map((service) => (
+                        <TableRow key={service.id}>
+                            <TableCell className="font-medium">{service.name}</TableCell>
+                            <TableCell>{formatCurrency(service.rate)}</TableCell>
+                            <TableCell>{service.times}</TableCell>
+                            <TableCell className="text-right">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenServiceModal(service)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteService(service.id)} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                 {filteredServices.length === 0 && !isLoading && (
+                  <div className="text-center p-8 text-muted-foreground">
+                    No services found.
+                  </div>
+                )}
+            </div>
+          )}
         </CardContent>
         {hasMore && !searchTerm && (
           <CardFooter className="justify-center">
-            <Button onClick={handleLoadMore} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleLoadMore} disabled={isMoreLoading}>
+              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>
         )}
       </Card>
-      <Toaster />
     </>
   );
 }

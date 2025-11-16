@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 
 const permitSchema = z.object({
   name: z.string().min(1, "Permit name is required"),
-  rate: z.number().min(0, "Rate must be a positive number"),
+  rate: z.coerce.number().min(0, "Rate must be a positive number"),
 });
 
 export const addTrekFormSchema = z.object({
@@ -39,9 +39,10 @@ interface AddTrekFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: AddTrekFormData) => Promise<void>;
+  isSubmitting: boolean;
 }
 
-export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) {
+export function AddTrekForm({ open, onOpenChange, onSubmit, isSubmitting }: AddTrekFormProps) {
 
   const addTrekForm = useForm<AddTrekFormData>({
     resolver: zodResolver(addTrekFormSchema),
@@ -169,8 +170,8 @@ export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) 
 
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={addTrekForm.formState.isSubmitting}>
-                {addTrekForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save Trek
               </Button>
             </DialogFooter>
@@ -180,5 +181,3 @@ export function AddTrekForm({ open, onOpenChange, onSubmit }: AddTrekFormProps) 
     </Dialog>
   );
 }
-
-    

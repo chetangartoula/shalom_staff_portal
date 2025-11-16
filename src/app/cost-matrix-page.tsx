@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, memo } from "react";
@@ -41,16 +42,31 @@ const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mo
 
 
 interface TrekCostingPageProps {
-  treks?: Trek[];
   initialData?: any;
 }
 
-function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
+  const [treks, setTreks] = useState<Trek[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   
+  useEffect(() => {
+    async function fetchTreks() {
+        try {
+            const res = await fetch('/api/treks');
+            const data = await res.json();
+            setTreks(data.treks);
+        } catch (error) {
+            console.error("Failed to fetch treks", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not load treks.' });
+        }
+    }
+    fetchTreks();
+    setIsClient(true);
+  }, [toast]);
+
   const {
     report,
     steps,
@@ -82,10 +98,6 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const handleOpenAddSectionModal = () => {
     setEditingSection(null);
     setNewSectionName("");
@@ -109,7 +121,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
       const stepId = `custom_step_${editingSection.id}`;
       setSteps(prev => prev.map(s => s.id === stepId ? { ...s, name: newSectionName } : s));
     } else {
-      const newSectionId = Math.random().toString(36).substr(2, 9);
+      const newSectionId = crypto.randomUUID();
       const newSection = { id: newSectionId, name: newSectionName, rows: [], discount: 0 };
       setCustomSections(prev => [...prev, newSection]);
   
@@ -144,31 +156,33 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
     }
   };
 
-  const onExportPDF = () => {
+  const onExportPDF = async () => {
     if (!selectedTrek) return;
-    handleExportPDF({
-      selectedTrek,
-      report,
-      calculateSectionTotals,
-      userName: user?.name,
-    }).then(() => {
+    try {
+      await handleExportPDF({
+        selectedTrek,
+        report,
+        calculateSectionTotals,
+        userName: user?.name,
+      });
       toast({ title: "Success", description: "PDF has been exported." });
-    }).catch(err => {
+    } catch(err) {
       console.error(err);
       toast({ variant: "destructive", title: "Error", description: "Could not export PDF." });
-    });
+    }
   }
 
-  const onExportExcel = () => {
-    handleExportExcel({
-      report,
-      calculateSectionTotals,
-    }).then(() => {
+  const onExportExcel = async () => {
+    try {
+      await handleExportExcel({
+        report,
+        calculateSectionTotals,
+      });
       toast({ title: "Success", description: "Excel file has been exported." });
-    }).catch(err => {
+    } catch(err) {
       console.error(err);
       toast({ variant: "destructive", title: "Error", description: "Could not export Excel file." });
-    });
+    }
   }
 
 
@@ -192,13 +206,13 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
   const renderStepContent = () => {
     const step = steps[currentStep];
 
-    if (isLoading) {
+    if (isLoading || (treks.length === 0 && !initialData)) {
       return <LoadingStep />;
     }
     
     switch (step.id) {
       case '01':
-        return treks ? (
+        return treks.length > 0 ? (
           <SelectTrekStep
             treks={treks}
             selectedTrekId={report.trekId}

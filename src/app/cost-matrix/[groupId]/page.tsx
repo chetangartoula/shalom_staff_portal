@@ -1,9 +1,11 @@
 
-import { getTreks } from "@/app/api/treks/route";
-import { getReportByGroupId } from "@/app/api/reports/[groupId]/route";
+"use client";
+
+import { useState, useEffect } from 'react';
 import { TrekCostingPage } from "@/app/cost-matrix-page";
 import { DashboardLayoutShell } from "@/components/dashboard-layout-shell";
 import { notFound } from "next/navigation";
+import { Loader2 } from 'lucide-react';
 
 interface EditCostMatrixPageProps {
   params: {
@@ -11,23 +13,47 @@ interface EditCostMatrixPageProps {
   };
 }
 
-export default async function EditCostMatrixPage({ params }: EditCostMatrixPageProps) {
+export default function EditCostMatrixPage({ params }: EditCostMatrixPageProps) {
     const { groupId } = params;
+    const [initialData, setInitialData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Fetch treks and the specific report data in parallel on the server.
-    const [treksData, reportData] = await Promise.all([
-        getTreks(),
-        getReportByGroupId(groupId)
-    ]);
-
-    if (!reportData) {
-        // If the report doesn't exist, show a 404 page.
-        notFound();
+    useEffect(() => {
+        async function fetchReport() {
+            try {
+                const res = await fetch(`/api/reports/${groupId}`);
+                if (res.status === 404) {
+                    notFound();
+                    return;
+                }
+                if (!res.ok) {
+                    throw new Error("Failed to fetch report");
+                }
+                const data = await res.json();
+                setInitialData(data);
+            } catch (error) {
+                console.error(error);
+                // Handle error, maybe show a toast
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchReport();
+    }, [groupId]);
+    
+    if (isLoading) {
+        return (
+            <DashboardLayoutShell>
+                <div className="flex h-full w-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+            </DashboardLayoutShell>
+        );
     }
 
     return (
         <DashboardLayoutShell>
-            <TrekCostingPage treks={treksData.treks} initialData={reportData} />
+            <TrekCostingPage initialData={initialData} />
         </DashboardLayoutShell>
     );
 }
