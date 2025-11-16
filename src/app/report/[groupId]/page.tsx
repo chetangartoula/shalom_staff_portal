@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
@@ -18,7 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
@@ -52,14 +52,7 @@ const travelerSchema = z.object({
   visaPhoto: z.any().optional(),
 });
 
-// For the form, all fields are optional until a section is opened.
-const optionalTravelerSchema = travelerSchema.deepPartial().extend({ id: z.string() });
-
-const formSchema = z.object({
-  travelers: z.array(optionalTravelerSchema),
-});
-
-type FormData = z.infer<typeof formSchema>;
+const partialTravelerSchema = travelerSchema.partial();
 
 export default function ReportPage() {
   const params = useParams();
@@ -88,6 +81,29 @@ export default function ReportPage() {
     })),
     [groupSize]
   );
+  
+  const formSchema = z.object({
+    travelers: z.array(partialTravelerSchema),
+  }).refine((data, ctx) => {
+    // This is where the conditional validation happens.
+    data.travelers.forEach((traveler, index) => {
+      // Only validate if the accordion for this traveler has been opened.
+      if (openedAccordions.includes(traveler.id!)) {
+        const result = travelerSchema.safeParse(traveler);
+        if (!result.success) {
+          result.error.issues.forEach((issue) => {
+            ctx.addIssue({
+              ...issue,
+              path: ["travelers", index, ...issue.path],
+            });
+          });
+        }
+      }
+    });
+    return true;
+  });
+
+  type FormData = z.infer<typeof formSchema>;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -104,34 +120,39 @@ export default function ReportPage() {
 
   useEffect(() => {
     const fetchTravelerData = async () => {
-      if (!groupId) return;
+      if (!groupId) {
+        setIsLoading(false);
+        return;
+      };
       try {
         const response = await fetch(`/api/travelers/${groupId}`);
         if (response.ok) {
           const data = await response.json();
-          if (data && data.travelers.length) {
-            // Convert date strings back to Date objects
-            const formattedTravelers = data.travelers.map((t: any) => ({
-              ...t,
-              dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
-              passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
-            }));
+          if (data && data.travelers && data.travelers.length) {
             
-            // Create a map of existing travelers by ID
-            const existingTravelersMap = new Map(formattedTravelers.map((t: any) => [t.id, t]));
+            const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
 
-            // Create a new default traveler list and merge existing data
-            const mergedTravelers = Array.from({ length: groupSize }, (_, i) => {
-                const defaultTraveler = {
-                    id: uuidv4(), name: "", phone: "", address: "", passportNumber: "", emergencyContact: "",
-                    nationality: "", dateOfBirth: undefined, passportExpiryDate: undefined, passportPhoto: undefined, visaPhoto: undefined
-                };
-                const existingTraveler = formattedTravelers[i];
-                // If an existing traveler at this index has data, use it. Otherwise, use a new default traveler.
-                // This isn't perfect if order changes, but handles resizing groupSize. A more robust solution might match by name/passport.
-                return existingTraveler ? { ...defaultTraveler, ...existingTraveler } : defaultTraveler;
+            const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
+                const existingTraveler = data.travelers[index]; // Simple merge by index
+                if (existingTraveler) {
+                    return {
+                        ...defaultTraveler,
+                        ...existingTraveler,
+                        dateOfBirth: existingTraveler.dateOfBirth ? new Date(existingTraveler.dateOfBirth) : undefined,
+                        passportExpiryDate: existingTraveler.passportExpiryDate ? new Date(existingTraveler.passportExpiryDate) : undefined,
+                    };
+                }
+                return defaultTraveler;
             });
             
+            // Ensure the array has the correct length based on groupSize
+            while(mergedTravelers.length < groupSize) {
+                 mergedTravelers.push(defaultTravelers[mergedTravelers.length]);
+            }
+            if(mergedTravelers.length > groupSize) {
+                mergedTravelers.length = groupSize;
+            }
+
             form.reset({ travelers: mergedTravelers });
           }
         }
@@ -142,44 +163,24 @@ export default function ReportPage() {
       }
     };
     fetchTravelerData();
-  }, [groupId, form, groupSize]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId, groupSize, form.reset]);
 
   const handleAccordionChange = (value: string[]) => {
     setOpenedAccordions(value);
+    // When an accordion is opened, trigger validation for that specific field array item.
+    // This helps show errors immediately if fields are empty.
+    value.forEach(id => {
+      const index = form.getValues('travelers').findIndex(t => t.id === id);
+      if (index !== -1) {
+        form.trigger(`travelers.${index}`);
+      }
+    })
   };
   
   const onSubmit = async (data: FormData) => {
-    // Manually trigger validation for any opened accordions before submitting
-    let isValid = true;
-    for (const field of fields) {
-      if (openedAccordions.includes(field.id)) {
-        const travelerIndex = data.travelers.findIndex(t => t.id === field.id);
-        if (travelerIndex !== -1) {
-           const result = travelerSchema.safeParse(data.travelers[travelerIndex]);
-           if(!result.success) {
-                isValid = false;
-                result.error.errors.forEach(err => {
-                    form.setError(`travelers.${travelerIndex}.${err.path[0] as keyof FormData['travelers'][0]}`, {
-                        type: 'manual',
-                        message: err.message,
-                    });
-                });
-           }
-        }
-      }
-    }
-    
-    if (!isValid) {
-        toast({
-            variant: 'destructive',
-            title: `Invalid Traveler Details`,
-            description: "Please fill in all required fields for the opened traveler sections."
-        });
-        return; // Stop submission
-    }
-    
-    // Filter out travelers that haven't been touched (are still default)
-    const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id));
+    // Filter out travelers that haven't been touched (are not in openedAccordions)
+    const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
 
     if (travelersToSubmit.length === 0) {
         toast({
@@ -193,6 +194,7 @@ export default function ReportPage() {
       groupId,
       travelers: travelersToSubmit.map(t => ({
         ...t,
+        // Handle file objects if they exist
         passportPhoto: t.passportPhoto?.[0]?.name,
         visaPhoto: t.visaPhoto?.[0]?.name,
       }))
@@ -224,6 +226,7 @@ export default function ReportPage() {
   };
 
   const handleCopy = () => {
+    if (!groupId) return;
     navigator.clipboard.writeText(groupId);
     setIsCopied(true);
     toast({
