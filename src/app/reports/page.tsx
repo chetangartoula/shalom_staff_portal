@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Edit, Search } from 'lucide-react';
+import { Loader2, Edit, Search, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ export default function ReportsPage() {
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchReports = useCallback(async (pageNum: number) => {
     setIsLoading(true);
@@ -79,6 +80,16 @@ export default function ReportsPage() {
     router.push(`/cost-matrix/${groupId}`);
   };
 
+  const handleCopy = (id: string) => {
+    navigator.clipboard.writeText(id);
+    toast({
+        title: "Copied!",
+        description: "Group ID copied to clipboard.",
+    });
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
     <>
       <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
@@ -124,9 +135,15 @@ export default function ReportsPage() {
                         <TableRow key={report.groupId}>
                             <TableCell className="font-medium">{report.trekName}</TableCell>
                             <TableCell>
-                              <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline">
-                                {report.groupId.substring(0, 8)}...
-                              </Link>
+                                <div className="flex items-center gap-2">
+                                  <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
+                                    {report.groupId.substring(0, 8)}...
+                                  </Link>
+                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
+                                      {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                      <span className="sr-only">Copy Group ID</span>
+                                    </Button>
+                                </div>
                             </TableCell>
                             <TableCell>{report.groupSize}</TableCell>
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
