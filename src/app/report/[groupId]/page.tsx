@@ -1,10 +1,10 @@
 "use client";
 
-import { useFieldArray, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Loader2, Mountain, Copy, Check } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
 
@@ -50,12 +50,11 @@ const travelerSchema = z.object({
   visaPhoto: z.any().optional(),
 });
 
-const partialTravelerSchema = travelerSchema.partial();
-const formSchema = z.object({
-  travelers: z.array(partialTravelerSchema),
-});
-type FormValues = z.infer<typeof formSchema>;
+const partialTravelerSchema = travelerSchema.partial().extend({ id: z.string() });
 
+type Traveler = z.infer<typeof travelerSchema>;
+type PartialTraveler = z.infer<typeof partialTravelerSchema>;
+type FormValues = { travelers: PartialTraveler[] };
 
 export default function ReportPage() {
   const params = useParams();
@@ -65,11 +64,10 @@ export default function ReportPage() {
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [openedAccordions, setOpenedAccordions] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
 
-  const defaultTravelers = React.useMemo(() =>
+  const defaultTravelers = useMemo(() =>
     Array.from({ length: groupSize }, () => ({
       id: uuidv4(),
       name: "",
@@ -86,17 +84,30 @@ export default function ReportPage() {
     [groupSize]
   );
   
+  const formSchema = z.object({
+    travelers: z.array(partialTravelerSchema).superRefine((travelers, ctx) => {
+      travelers.forEach((traveler, index) => {
+        if (openedAccordions.includes(traveler.id!)) {
+          const result = travelerSchema.safeParse(traveler);
+          if (!result.success) {
+            result.error.issues.forEach((issue) => {
+              ctx.addIssue({
+                ...issue,
+                path: ['travelers', index, ...issue.path],
+              });
+            });
+          }
+        }
+      });
+    }),
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       travelers: defaultTravelers,
     },
     mode: 'onChange',
-  });
-
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: "travelers",
   });
 
   useEffect(() => {
@@ -110,31 +121,20 @@ export default function ReportPage() {
         if (response.ok) {
           const data = await response.json();
           if (data && data.travelers && data.travelers.length) {
-            
             const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
-
-            const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-                let existingTraveler = data.travelers.find((t: any, i: number) => i === index);
-                
-                if (existingTraveler) {
+            const mergedTravelers = defaultTravelers.map(defaultTraveler => {
+                const existing = [...existingTravelersMap.values()].find(t => t.name === defaultTraveler.name); // Simple match by name or needs better logic
+                if (existing) {
+                    existingTravelersMap.delete(existing.id); // Prevent reuse
                     return {
                         ...defaultTraveler,
-                        ...existingTraveler,
-                        id: existingTraveler.id || defaultTraveler.id, // Ensure ID is preserved
-                        dateOfBirth: existingTraveler.dateOfBirth ? new Date(existingTraveler.dateOfBirth) : undefined,
-                        passportExpiryDate: existingTraveler.passportExpiryDate ? new Date(existingTraveler.passportExpiryDate) : undefined,
+                        ...existing,
+                        dateOfBirth: existing.dateOfBirth ? new Date(existing.dateOfBirth) : undefined,
+                        passportExpiryDate: existing.passportExpiryDate ? new Date(existing.passportExpiryDate) : undefined,
                     };
                 }
                 return defaultTraveler;
             });
-            
-            while(mergedTravelers.length < groupSize) {
-                 mergedTravelers.push(defaultTravelers[mergedTravelers.length]);
-            }
-            if(mergedTravelers.length > groupSize) {
-                mergedTravelers.length = groupSize;
-            }
-
             form.reset({ travelers: mergedTravelers });
           }
         }
@@ -148,56 +148,26 @@ export default function ReportPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, groupSize, form.reset]);
   
-  const handleAccordionChange = async (value: string[]) => {
-    setOpenedAccordions(value);
-    // Trigger validation for newly opened accordions
-    for (const travelerId of value) {
-      if (!openedAccordions.includes(travelerId)) {
-        const travelerIndex = form.getValues('travelers').findIndex(t => t.id === travelerId);
-        if (travelerIndex !== -1) {
-          await form.trigger(`travelers.${travelerIndex}`);
-        }
-      }
-    }
-  };
-  
   const onSubmit = async (data: FormValues) => {
-    setIsSubmitting(true);
-    let isValid = true;
-    const travelersToSubmit = [];
-
-    // Clear all previous errors
     form.clearErrors();
+    const activeTravelerIndexes = data.travelers
+      .map((t, i) => (openedAccordions.includes(t.id!) ? i : -1))
+      .filter(i => i !== -1);
 
-    if (openedAccordions.length === 0) {
+    if (activeTravelerIndexes.length === 0) {
       toast({
         variant: "destructive",
         title: "No Details to Submit",
         description: "Please open at least one traveler section to fill in and submit.",
       });
-      setIsSubmitting(false);
       return;
     }
     
-    // Manually validate only the opened sections
-    for (const traveler of data.travelers) {
-      if (traveler.id && openedAccordions.includes(traveler.id)) {
-        const result = travelerSchema.safeParse(traveler);
-        if (!result.success) {
-          isValid = false;
-          const travelerIndex = data.travelers.findIndex(t => t.id === traveler.id);
-          // Set errors for the specific fields that failed
-          result.error.issues.forEach(issue => {
-            form.setError(`travelers.${travelerIndex}.${issue.path[0] as keyof typeof traveler}`, {
-              type: 'manual',
-              message: issue.message,
-            });
-          });
-        } else {
-          travelersToSubmit.push(result.data);
-        }
-      }
-    }
+    const fieldsToValidate = activeTravelerIndexes.flatMap(index => 
+      Object.keys(travelerSchema.shape).map(field => `travelers.${index}.${field}` as const)
+    );
+
+    const isValid = await form.trigger(fieldsToValidate);
 
     if (!isValid) {
       toast({
@@ -205,19 +175,11 @@ export default function ReportPage() {
         title: "Validation Failed",
         description: "Please fill out all required fields in the opened sections.",
       });
-      setIsSubmitting(false);
       return;
     }
-    
-    if (travelersToSubmit.length === 0) {
-        toast({
-            title: "No new details to submit",
-            description: "The opened traveler sections are empty. Please fill them out to save.",
-        });
-        setIsSubmitting(false);
-        return;
-    }
 
+    const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
+    
     const submissionData = {
       groupId,
       travelers: travelersToSubmit.map(t => ({
@@ -240,7 +202,7 @@ export default function ReportPage() {
 
       toast({
         title: "Details Submitted",
-        description: "Traveler details have been saved. Thank you!",
+        description: "Traveler details for the opened sections have been saved. Thank you!",
       });
 
     } catch (error) {
@@ -249,8 +211,6 @@ export default function ReportPage() {
         title: "Submission Failed",
         description: "Could not save traveler details. Please try again.",
       });
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -301,9 +261,9 @@ export default function ReportPage() {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <Accordion type="multiple" onValueChange={handleAccordionChange} value={openedAccordions} className="w-full">
-                      {fields.map((field, index) => (
-                        <AccordionItem value={field.id} key={field.id}>
+                    <Accordion type="multiple" onValueChange={setOpenedAccordions} value={openedAccordions} className="w-full">
+                      {form.watch('travelers').map((field, index) => (
+                        <AccordionItem value={field.id!} key={field.id}>
                           <AccordionTrigger>
                             <span className="font-semibold">Traveler {index + 1}</span>
                           </AccordionTrigger>
@@ -385,7 +345,7 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Nationality</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="American" {...field} />
+                                      <Input placeholder="American" {...field} value={field.value ?? ''}/>
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -425,13 +385,14 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.passportPhoto`}
-                                render={({ field }) => (
+                                render={({ field: { onChange, ...fieldProps} }) => (
                                   <FormItem>
                                     <FormLabel>Passport Photo</FormLabel>
                                     <FormControl>
                                       <Input
                                         type="file"
-                                        onChange={(e) => field.onChange(e.target.files)}
+                                        {...fieldProps}
+                                        onChange={(e) => onChange(e.target.files)}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -441,13 +402,14 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.visaPhoto`}
-                                render={({ field }) => (
+                                render={({ field: { onChange, ...fieldProps} }) => (
                                   <FormItem>
                                     <FormLabel>Visa Photo</FormLabel>
                                     <FormControl>
                                      <Input
                                         type="file"
-                                        onChange={(e) => field.onChange(e.target.files)}
+                                        {...fieldProps}
+                                        onChange={(e) => onChange(e.target.files)}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -460,8 +422,8 @@ export default function ReportPage() {
                       ))}
                     </Accordion>
                     <CardFooter className="px-0 pt-6">
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Button type="submit" disabled={form.formState.isSubmitting}>
+                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Submit Details
                       </Button>
                     </CardFooter>
