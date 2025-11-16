@@ -285,7 +285,7 @@ export function useCostMatrix(treks: Trek[]) {
     }
   };
   
-    const handleExportPDF = useCallback(async () => {
+  const handleExportPDF = useCallback(async (userName?: string) => {
     if (!selectedTrek) return;
     
     const doc = new (jsPDF as any)();
@@ -312,8 +312,11 @@ export function useCostMatrix(treks: Trek[]) {
             const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
             doc.setFontSize(8);
             doc.setTextColor(150);
-            const footerText = `Prepared by Shalom Treks | © ${new Date().getFullYear()}`;
-            doc.text(footerText, pageLeftMargin, pageHeight - 10);
+            
+            const preparedByText = `Prepared by: ${userName || 'N/A'}`;
+            doc.text(preparedByText, pageLeftMargin, pageHeight - 15);
+            doc.text('Signature: ..........................', pageLeftMargin, pageHeight - 10);
+            
             doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 35, pageHeight - 10);
         }
     };

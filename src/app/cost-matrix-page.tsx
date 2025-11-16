@@ -28,6 +28,7 @@ import { SelectTrekStep } from "@/components/steps/select-trek-step";
 import { GroupDetailsStep } from "@/components/steps/group-details-step";
 import { FinalStep } from "@/components/steps/final-step";
 import { CostTable } from "@/components/cost-table";
+import { useAuth } from "@/context/auth-context";
 
 interface TrekCostingPageProps {
   treks: Trek[];
@@ -37,6 +38,7 @@ interface TrekCostingPageProps {
 export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const {
     steps,
@@ -138,9 +140,13 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep(currentStep - 1);
     }
   };
+
+  const onExportPDF = () => {
+    handleExportPDF(user?.name);
+  }
 
   if (!isClient) {
     return null;
@@ -233,7 +239,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onEditSection={handleOpenEditSectionModal}
-            onExportPDF={handleExportPDF}
+            onExportPDF={onExportPDF}
             onExportExcel={handleExportExcel}
             totalCost={totalCost}
             usePax={usePax[extraDetailsState.id] || false}
@@ -325,5 +331,3 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     </>
   );
 }
-
-    
