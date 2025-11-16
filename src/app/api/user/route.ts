@@ -7,6 +7,7 @@ export async function GET() {
   const user = {
     name: 'Admin User',
     email: 'admin@shalom.com',
+    role: 'Admin',
   };
   return NextResponse.json(user);
 }

@@ -3,12 +3,21 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, LogOut, Plus, Settings } from "lucide-react"
+import { Mountain, Home, LogOut, Plus, Settings, MoreVertical } from "lucide-react"
 import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarProps {
   className?: string;
@@ -73,6 +82,15 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
             </TooltipProvider>
         );
     };
+    
+    const getUserInitials = (name: string) => {
+        if (!name) return "";
+        const parts = name.split(' ');
+        if (parts.length > 1) {
+            return parts[0][0] + parts[parts.length - 1][0];
+        }
+        return name.substring(0, 2);
+    }
 
     return (
         <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
@@ -89,33 +107,36 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4", isCollapsed && "px-2 pt-2")}>
-                {user && !isCollapsed && (
-                    <div className="mb-4 rounded-lg bg-sidebar-active-background/50 p-3 text-center">
-                        <p className="text-sm font-semibold text-sidebar-foreground">{user.name}</p>
-                        <p className="text-xs text-sidebar-muted-foreground">{user.email}</p>
-                    </div>
+            <div className="mt-auto border-t border-sidebar-foreground/10">
+                {user && (
+                  <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className={cn("w-full h-auto p-2 flex items-center gap-3", isCollapsed ? 'justify-center' : 'justify-start')}>
+                              <Avatar className="h-9 w-9">
+                                  <AvatarFallback>{getUserInitials(user.name)}</AvatarFallback>
+                              </Avatar>
+                              {!isCollapsed && (
+                                <div className="text-left">
+                                  <p className="text-sm font-semibold text-sidebar-foreground">{user.name}</p>
+                                  <p className="text-xs text-sidebar-muted-foreground">{user.email}</p>
+                                </div>
+                              )}
+                              {!isCollapsed && <MoreVertical className="h-4 w-4 ml-auto text-sidebar-muted-foreground" />}
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="top" align="start" className="w-56 bg-background">
+                          <DropdownMenuLabel>
+                            <p>{user.name}</p>
+                            <p className="text-xs text-muted-foreground font-normal">{user.role}</p>
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={handleLogout}>
+                              <LogOut className="mr-2 h-4 w-4" />
+                              <span>Log out</span>
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-                 <div className={cn(isCollapsed ? "pt-2" : "pt-4")}>
-                    {isCollapsed ? (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
-                                        <LogOut className="h-5 w-5" />
-                                        <span className="sr-only">Logout</span>
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right"><p>Logout</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    ) : (
-                        <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
-                            <LogOut className="mr-2 h-5 w-5" />
-                            Logout
-                        </Button>
-                    )}
-                 </div>
             </div>
         </div>
     )
