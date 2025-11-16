@@ -247,7 +247,7 @@ export default function TrekCostingPage({ treks, setTreks, initialData }: TrekCo
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
             onAddRow={addRow}
-            onRemoveRow={onRemoveRow}
+            onRemoveRow={removeRow}
             onExportPDF={onExportPDF}
             onExportExcel={handleExportExcel}
             totalCost={totalCost}
