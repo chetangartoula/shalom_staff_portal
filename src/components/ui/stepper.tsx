@@ -20,8 +20,8 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
     <nav aria-label="Progress" className="w-full">
       <ol role="list" className="flex items-center">
         {steps.map((step, stepIdx) => (
-          <li key={step.id} className={cn("relative flex-1", { "sm:flex-initial sm:min-w-40": stepIdx !== steps.length - 1 })}>
-             <div className="flex items-center justify-center">
+          <li key={step.id} className="relative flex-1">
+             <div className="flex items-center flex-col">
                 <button
                 onClick={() => setCurrentStep(stepIdx)}
                 className={cn("group flex flex-col items-center text-center space-y-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md p-2 transition-colors",
@@ -31,7 +31,7 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                 >
                 <span
                     className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors border-2",
+                    "flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors border-2 z-10 bg-background",
                     stepIdx === currentStep
                         ? "bg-primary text-primary-foreground border-primary ring-2 ring-offset-2 ring-primary"
                         : stepIdx < currentStep
@@ -48,13 +48,17 @@ export function Stepper({ steps, currentStep, setCurrentStep }: StepperProps) {
                 </button>
              </div>
 
-
-            {stepIdx < steps.length - 1 && (
-              <div className={cn(
-                "absolute top-[1.125rem] left-1/2 w-full h-0.5 -z-10",
-                stepIdx < currentStep ? "bg-primary/30" : "bg-gray-200"
-              )} />
-            )}
+            {stepIdx < steps.length - 1 ? (
+              <>
+                <div
+                  className={cn(
+                    "absolute top-5 left-0 w-full h-0.5",
+                     stepIdx < currentStep ? "bg-primary/30" : "bg-gray-200"
+                  )}
+                  aria-hidden="true"
+                />
+              </>
+            ) : null}
           </li>
         ))}
       </ol>
