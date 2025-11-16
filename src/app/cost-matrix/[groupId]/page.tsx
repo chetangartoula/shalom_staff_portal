@@ -2,7 +2,8 @@
 import { TrekCostingPage } from "@/app/cost-matrix-page";
 import { DashboardLayoutShell } from "@/components/dashboard-layout-shell";
 import { notFound } from "next/navigation";
-import { getReportByGroupId } from "@/app/api/data";
+import { getReportByGroupId, getTreks } from "@/app/api/data";
+import type { Trek } from "@/lib/types";
 
 interface EditCostMatrixPageProps {
   params: {
@@ -13,6 +14,7 @@ interface EditCostMatrixPageProps {
 export default async function EditCostMatrixPage({ params }: EditCostMatrixPageProps) {
     const { groupId } = params;
     const initialData = getReportByGroupId(groupId);
+    const { treks }: { treks: Trek[] } = getTreks();
 
     if (!initialData) {
         notFound();
@@ -20,7 +22,7 @@ export default async function EditCostMatrixPage({ params }: EditCostMatrixPageP
 
     return (
         <DashboardLayoutShell>
-            <TrekCostingPage initialData={initialData} />
+            <TrekCostingPage initialData={initialData} treks={treks} />
         </DashboardLayoutShell>
     );
 }
