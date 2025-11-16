@@ -84,16 +84,16 @@ body {
 
   /* Specific styles for light mobile sheet */
   .sheet-content {
-      background-color: #f6f6f7 !important;
-      color: hsl(var(--primary)) !important;
+      background-color: hsl(var(--background)) !important;
+      color: hsl(var(--foreground)) !important;
       --sidebar-background: transparent;
-      --sidebar-foreground: hsl(var(--primary));
+      --sidebar-foreground: hsl(var(--foreground));
       --sidebar-muted-foreground: hsl(var(--muted-foreground));
-      --sidebar-active-background: hsl(var(--primary) / 0.1);
+      --sidebar-active-background: hsl(var(--accent));
       --border: hsl(var(--border));
   }
 
-  .sheet-content.bg-sidebar-background {
+  .sheet-content .bg-sidebar-background {
     background-color: var(--sidebar-background) !important;
     color: var(--sidebar-foreground) !important;
   }

@@ -241,9 +241,9 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
           <div className="flex items-center">
               <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
           </div>
-          <div className="flex flex-1 rounded-lg shadow-sm bg-card p-4 md:p-0">
+          <div className="flex flex-1 rounded-lg shadow-sm bg-card p-4 md:p-8">
               <div className="w-full">
-                  <div className="mb-8 md:mb-12 pt-4">
+                  <div className="mb-8 md:mb-12">
                     <div className="flex items-center justify-center gap-x-4 gap-y-2 flex-wrap">
                       <div className="flex-grow md:flex-grow-0 overflow-x-auto pb-4 hide-scrollbar">
                         <Stepper
@@ -254,7 +254,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
                       </div>
                       <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="outline" className="border-dashed shrink-0" onClick={handleOpenAddSectionModal}>
+                            <Button variant="outline" className="border-dashed shrink-0">
                                 <PlusSquare /> Add Section
                             </Button>
                         </DialogTrigger>
@@ -276,11 +276,11 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
                     </div>
                   </div>
                   
-                  <div className="p-0 sm:p-6 md:p-8 md:pt-0 rounded-lg">
+                  <div className="rounded-lg">
                     {renderStepContent()}
                   </div>
 
-                  <div className="mt-8 flex justify-between items-center px-0 sm:px-6 md:px-8 pb-6">
+                  <div className="mt-8 flex justify-between items-center">
                     <Button onClick={prevStep} variant="outline" disabled={currentStep === 0}>
                       Previous
                     </Button>
@@ -314,5 +314,3 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     </>
   );
 }
-
-    

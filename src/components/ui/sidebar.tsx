@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Separator } from "./separator";
 
 interface SidebarProps {
   className?: string;
@@ -37,8 +38,8 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
         
         const linkContent = (
              <span className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground group-hover:bg-sidebar-active-background",
-                isActive && "bg-sidebar-active-background text-sidebar-foreground",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all group-hover:text-sidebar-foreground",
+                isActive && "text-sidebar-foreground",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -71,11 +72,11 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("hidden md:flex md:flex-col", className, isCollapsed && "items-center")}>
-            <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
-                <Link href="/" className="flex items-center gap-2 font-semibold">
-                    <Mountain className="h-6 w-6 text-primary" />
-                    {!isCollapsed && <span className="">Shalom Dashboard</span>}
+        <div className={cn("hidden bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
+            <div className={cn("flex h-14 items-center border-b border-header-border px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
+                <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
+                    <Mountain className="h-6 w-6" />
+                    {!isCollapsed && <span className="">Shalom</span>}
                 </Link>
             </div>
             <div className="flex-1 overflow-auto py-2 w-full">
@@ -85,12 +86,12 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4 space-y-2 border-t w-full", isCollapsed && "p-2")}>
+            <div className={cn("mt-auto p-4 space-y-2 border-t border-header-border w-full", isCollapsed && "p-2 space-y-0")}>
                  {isCollapsed ? (
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
+                                <Button variant="ghost" size="icon" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground" onClick={handleLogout}>
                                     <LogOut className="h-5 w-5" />
                                 </Button>
                             </TooltipTrigger>
@@ -98,7 +99,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                         </Tooltip>
                     </TooltipProvider>
                 ) : (
-                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
+                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground" onClick={handleLogout}>
                         <LogOut className="mr-2 h-5 w-5" />
                         Logout
                     </Button>
