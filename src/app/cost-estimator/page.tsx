@@ -1,28 +1,45 @@
 
 "use client";
 
-import TrekCostingPage from "../cost-matrix-page";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
 import { useToast } from "@/hooks/use-toast";
 import { ProtectedRoute } from "@/components/protected-route";
+import TrekCostingPage from "../cost-matrix-page";
+import type { Trek } from "@/lib/types";
+
 
 export default function NewCostReportPage() {
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
   const { toast } = useToast();
-  const [treks, setTreks] = useState<any[]>([]);
+  const [treks, setTreks] = useState<Trek[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchTreks = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const response = await fetch('/api/treks');
+        if (!response.ok) {
+            throw new Error('Failed to fetch treks');
+        }
+        const data = await response.json();
+        setTreks(data.treks);
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not load treks. Please try again.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
-    fetch('/api/treks')
-      .then(res => res.json())
-      .then(data => {
-        setTreks(data.treks)
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+    fetchTreks();
+  }, [fetchTreks]);
 
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
     const newTrekData = {

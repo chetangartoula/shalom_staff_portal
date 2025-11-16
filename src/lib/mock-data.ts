@@ -1,8 +1,8 @@
 
 import type { Trek, Service } from './types';
 
-// This file will now only contain the initial data. 
-// The API routes will manage the state during runtime.
+// This file contains the initial static data for the application.
+// The API routes will manage the state during runtime, starting with this data.
 
 export const initialTreks: Trek[] = [
   {
@@ -36,7 +36,7 @@ export const initialTreks: Trek[] = [
   },
 ];
 
-// Base services data without IDs
+// Base services data without IDs. IDs will be added by the API.
 export const services: Omit<Service, 'id'>[] = [
     { name: 'Guide days', rate: 30, times: 12 },
     { name: 'Porter days', rate: 25, times: 12 },

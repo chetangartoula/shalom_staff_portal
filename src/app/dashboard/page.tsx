@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ClipboardList, Users, Mountain, Settings, Loader2, Edit } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -36,47 +36,48 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const [reportsRes, travelersRes, treksRes, servicesRes] = await Promise.all([
-                    fetch('/api/reports?page=1&limit=5'),
-                    fetch('/api/travelers/all'),
-                    fetch('/api/treks'),
-                    fetch('/api/services')
-                ]);
+    const fetchDashboardData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [reportsRes, travelersRes, treksRes, servicesRes] = await Promise.all([
+                fetch('/api/reports?page=1&limit=5'),
+                fetch('/api/travelers/all'),
+                fetch('/api/treks'),
+                fetch('/api/services')
+            ]);
 
-                if (!reportsRes.ok || !travelersRes.ok || !treksRes.ok || !servicesRes.ok) {
-                    throw new Error('Failed to fetch dashboard data');
-                }
-
-                const reportsData = await reportsRes.json();
-                const travelersData = await travelersRes.json();
-                const treksData = await treksRes.json();
-                const servicesData = await servicesRes.json();
-                
-                setStats({
-                    reports: reportsData.total,
-                    travelers: travelersData.travelers.length,
-                    treks: treksData.treks.length,
-                    services: servicesData.total,
-                });
-                
-                setRecentReports(reportsData.reports);
-
-            } catch (error) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Error',
-                    description: 'Could not load dashboard data. Please try again.'
-                });
-            } finally {
-                setIsLoading(false);
+            if (!reportsRes.ok || !travelersRes.ok || !treksRes.ok || !servicesRes.ok) {
+                throw new Error('Failed to fetch dashboard data');
             }
-        };
 
-        fetchDashboardData();
+            const reportsData = await reportsRes.json();
+            const travelersData = await travelersRes.json();
+            const treksData = await treksRes.json();
+            const servicesData = await servicesRes.json();
+            
+            setStats({
+                reports: reportsData.total,
+                travelers: travelersData.travelers.length,
+                treks: treksData.treks.length,
+                services: servicesData.total,
+            });
+            
+            setRecentReports(reportsData.reports);
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not load dashboard data. Please try again.'
+            });
+        } finally {
+            setIsLoading(false);
+        }
     }, [toast]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
     
     const handleAddTrekSubmit = async (data: AddTrekFormData) => {
         // This is a placeholder for now

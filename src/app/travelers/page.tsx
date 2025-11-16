@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,26 +35,27 @@ export default function TravelersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchTravelers = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetch('/api/travelers/all');
-        if (!res.ok) throw new Error('Failed to fetch travelers');
-        const data = await res.json();
-        setTravelers(data.travelers);
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not load traveler data.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchTravelers();
+  const fetchTravelers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/travelers/all');
+      if (!res.ok) throw new Error('Failed to fetch travelers');
+      const data = await res.json();
+      setTravelers(data.travelers);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load traveler data.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    fetchTravelers();
+  }, [fetchTravelers]);
 
   const filteredTravelers = useMemo(() => {
     if (!searchTerm) return travelers;

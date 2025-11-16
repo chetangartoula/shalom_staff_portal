@@ -45,7 +45,7 @@ export const updateService = (id: string, updatedData: Partial<Service>) => {
 };
 
 export const deleteService = (id: string) => {
-  const serviceIndex = services.findIndex(s => s.id === id);
+  const serviceIndex = services.findIndex(s => s.id === serviceIndex, 1);
   if (serviceIndex > -1) {
     const deleted = services.splice(serviceIndex, 1);
     return deleted[0];
