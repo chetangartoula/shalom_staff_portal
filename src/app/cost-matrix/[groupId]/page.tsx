@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
-import TrekCostingPage from "../cost-matrix-page";
+import TrekCostingPage from "@/app/cost-matrix-page";
 import type { Trek } from "@/lib/types";
 
 export default function EditCostMatrixPage() {
