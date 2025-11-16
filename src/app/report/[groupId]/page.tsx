@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
   CardFooter,
-  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,8 +50,10 @@ const travelerSchema = z.object({
   visaPhoto: z.any().optional(),
 });
 
+const partialTravelerSchema = travelerSchema.partial().extend({ id: z.string() });
+
 const formSchema = z.object({
-  travelers: z.array(travelerSchema.partial()),
+  travelers: z.array(partialTravelerSchema),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -103,35 +104,37 @@ export default function ReportPage() {
         if (response.ok) {
           const data = await response.json();
           if (data && data.travelers && data.travelers.length) {
-            const existingTravelersMap = new Map(
-              data.travelers.map((t: any) => [t.id, t])
-            );
-            const newDefaultTravelers = [...defaultTravelers];
+             const existingTravelers = data.travelers.map((t: any) => ({
+                ...t,
+                dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
+                passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
+             }));
 
-            const mergedTravelers = newDefaultTravelers.map(
-              (defaultTraveler) => {
-                const existingData = existingTravelersMap.get(
-                  defaultTraveler.id
-                );
-                if (existingData) {
-                  return {
-                    ...defaultTraveler,
-                    ...existingData,
-                    dateOfBirth: existingData.dateOfBirth
-                      ? new Date(existingData.dateOfBirth)
-                      : undefined,
-                    passportExpiryDate: existingData.passportExpiryDate
-                      ? new Date(existingData.passportExpiryDate)
-                      : undefined,
-                  };
-                }
-                const foundIndex = newDefaultTravelers.indexOf(defaultTraveler);
-                const found = data.travelers[foundIndex];
-                
-                return found ? { ...defaultTraveler, id: found.id, name: found.name, phone: found.phone, address: found.address, passportNumber: found.passportNumber, emergencyContact: found.emergencyContact, nationality: found.nationality, dateOfBirth: found.dateOfBirth ? new Date(found.dateOfBirth) : undefined, passportExpiryDate: found.passportExpiryDate ? new Date(found.passportExpiryDate) : undefined } : defaultTraveler;
+            const existingTravelersMap = new Map(
+              existingTravelers.map((t: any) => [t.id, t])
+            );
+
+            let mergedTravelers = defaultTravelers.map(
+              (defaultTraveler, index) => {
+                 const existingDataForId = existingTravelersMap.get(defaultTraveler.id);
+                 if (existingDataForId) {
+                     return { ...defaultTraveler, ...existingDataForId };
+                 }
+                 // If ID doesn't match, check by index as a fallback
+                 if (existingTravelers[index]) {
+                     return { ...defaultTraveler, ...existingTravelers[index] };
+                 }
+                 return defaultTraveler;
               }
             );
 
+            // Add any additional travelers from the fetched data that weren't in the default set
+            existingTravelers.forEach((et: any) => {
+                if (!mergedTravelers.some(mt => mt.id === et.id)) {
+                    mergedTravelers.push(et);
+                }
+            });
+            
             while (mergedTravelers.length < groupSize) {
               mergedTravelers.push({
                 id: uuidv4(),
@@ -163,7 +166,7 @@ export default function ReportPage() {
     };
     fetchTravelerData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, groupSize, form.reset]);
+  }, [groupId, groupSize]);
   
   const handleSaveTraveler = async (travelerIndex: number) => {
     const travelerId = form.getValues(`travelers.${travelerIndex}.id`);
@@ -171,8 +174,16 @@ export default function ReportPage() {
 
     setIsSubmitting((prev) => ({ ...prev, [travelerId]: true }));
 
-    const isFormValid = await form.trigger(`travelers.${travelerIndex}`);
-    if (!isFormValid) {
+    const travelerData = form.getValues(`travelers.${travelerIndex}`);
+    const validationResult = travelerSchema.safeParse(travelerData);
+
+    if (!validationResult.success) {
+         validationResult.error.errors.forEach((err) => {
+            form.setError(`travelers.${travelerIndex}.${err.path[0] as keyof Traveler}`, {
+                type: "manual",
+                message: err.message,
+            });
+        });
         toast({
             variant: "destructive",
             title: "Validation Failed",
@@ -182,13 +193,11 @@ export default function ReportPage() {
         return;
     }
     
-    const travelerData = form.getValues(`travelers.${travelerIndex}`);
-
     try {
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ traveler: travelerData }),
+        body: JSON.stringify({ traveler: validationResult.data }),
       });
 
       if (!response.ok) {
@@ -243,8 +252,7 @@ export default function ReportPage() {
             <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle>Traveler Details Form</CardTitle>
-                <CardDescription>
-                  <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span>
                       Please fill out the details for each member of your group.
                       Your Group ID is:
@@ -268,7 +276,6 @@ export default function ReportPage() {
                       </Button>
                     </div>
                   </div>
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
