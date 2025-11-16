@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Mountain } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ interface SelectTrekStepProps {
   onSelectTrek: (id: string) => void;
 }
 
-export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
+export const SelectTrekStep = React.memo(function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
   return (
     <div className="text-center">
         <h2 className="text-3xl font-bold tracking-tight">Choose Your Adventure</h2>
@@ -39,4 +40,4 @@ export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTr
         </div>
     </div>
   );
-}
+});

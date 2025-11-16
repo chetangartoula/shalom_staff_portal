@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +38,7 @@ interface CostTableProps {
     onRemoveSection?: (sectionId: string) => void;
 }
 
-export function CostTable({
+export const CostTable = React.memo(function CostTable({
     title,
     section,
     usePax,
@@ -163,4 +164,4 @@ export function CostTable({
             </CardContent>
         </Card>
     );
-}
+});

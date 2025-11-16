@@ -1,6 +1,6 @@
 
 "use client";
-
+import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
 import { Mountain, Home, LogOut, Plus, Settings, MoreVertical } from "lucide-react"
@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface SidebarProps {
   className?: string;
@@ -26,7 +26,7 @@ interface SidebarProps {
   onLinkClick?: () => void;
 }
 
-export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }: SidebarProps) {
+export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }: SidebarProps) {
     const pathname = usePathname();
     const { logout, user } = useAuth();
     const router = useRouter();
@@ -140,4 +140,4 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick, onLinkClick }:
             </div>
         </div>
     )
-}
+});

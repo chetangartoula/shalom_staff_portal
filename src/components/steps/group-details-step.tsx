@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ interface GroupDetailsStepProps {
   onStartDateChange: (date: Date | undefined) => void;
 }
 
-export function GroupDetailsStep({
+export const GroupDetailsStep = React.memo(function GroupDetailsStep({
   groupSize,
   onGroupSizeChange,
   startDate,
@@ -41,4 +42,4 @@ export function GroupDetailsStep({
       </Card>
     </div>
   );
-}
+});
