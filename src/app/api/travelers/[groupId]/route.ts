@@ -57,5 +57,3 @@ export async function PUT(request: Request, { params }: Params) {
         return NextResponse.json({ message: 'Error saving traveler details', error: (error as Error).message }, { status: 500 });
     }
 }
-
-    

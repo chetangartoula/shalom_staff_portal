@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Loader2, Mountain, Copy, Check } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
 
@@ -43,18 +43,17 @@ const travelerSchema = z.object({
   address: z.string().min(1, "Address is required"),
   passportNumber: z.string().min(1, "Passport number is required"),
   emergencyContact: z.string().min(1, "Emergency contact is required"),
-  dateOfBirth: z.date().optional(),
-  nationality: z.string().optional(),
-  passportExpiryDate: z.date().optional(),
+  dateOfBirth: z.date({ required_error: "Date of birth is required" }),
+  nationality: z.string().min(1, "Nationality is required"),
+  passportExpiryDate: z.date({ required_error: "Passport expiry is required" }),
   passportPhoto: z.any().optional(),
   visaPhoto: z.any().optional(),
 });
 
 const partialTravelerSchema = travelerSchema.partial().extend({ id: z.string() });
+const formSchema = z.object({ travelers: z.array(partialTravelerSchema) });
 
-type Traveler = z.infer<typeof travelerSchema>;
-type PartialTraveler = z.infer<typeof partialTravelerSchema>;
-type FormValues = { travelers: PartialTraveler[] };
+type FormValues = z.infer<typeof formSchema>;
 
 export default function ReportPage() {
   const params = useParams();
@@ -68,7 +67,7 @@ export default function ReportPage() {
   const [isCopied, setIsCopied] = useState(false);
 
   const defaultTravelers = useMemo(() =>
-    Array.from({ length: groupSize }, () => ({
+    Array.from({ length: groupSize }, (_, i) => ({
       id: uuidv4(),
       name: "",
       phone: "",
@@ -84,24 +83,6 @@ export default function ReportPage() {
     [groupSize]
   );
   
-  const formSchema = z.object({
-    travelers: z.array(partialTravelerSchema).superRefine((travelers, ctx) => {
-      travelers.forEach((traveler, index) => {
-        if (openedAccordions.includes(traveler.id!)) {
-          const result = travelerSchema.safeParse(traveler);
-          if (!result.success) {
-            result.error.issues.forEach((issue) => {
-              ctx.addIssue({
-                ...issue,
-                path: ['travelers', index, ...issue.path],
-              });
-            });
-          }
-        }
-      });
-    }),
-  });
-
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -122,20 +103,24 @@ export default function ReportPage() {
           const data = await response.json();
           if (data && data.travelers && data.travelers.length) {
             const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
-            const mergedTravelers = defaultTravelers.map(defaultTraveler => {
-                const existing = [...existingTravelersMap.values()].find(t => t.name === defaultTraveler.name); // Simple match by name or needs better logic
-                if (existing) {
-                    existingTravelersMap.delete(existing.id); // Prevent reuse
+            const newDefaultTravelers = [...defaultTravelers];
+
+            const mergedTravelers = newDefaultTravelers.map(defaultTraveler => {
+                const existingData = existingTravelersMap.get(defaultTraveler.id);
+                if (existingData) {
                     return {
                         ...defaultTraveler,
-                        ...existing,
-                        dateOfBirth: existing.dateOfBirth ? new Date(existing.dateOfBirth) : undefined,
-                        passportExpiryDate: existing.passportExpiryDate ? new Date(existing.passportExpiryDate) : undefined,
+                        ...existingData,
+                        dateOfBirth: existingData.dateOfBirth ? new Date(existingData.dateOfBirth) : undefined,
+                        passportExpiryDate: existingData.passportExpiryDate ? new Date(existingData.passportExpiryDate) : undefined,
                     };
                 }
                 return defaultTraveler;
             });
+            
             form.reset({ travelers: mergedTravelers });
+          } else {
+             form.reset({ travelers: defaultTravelers });
           }
         }
       } catch (error) {
@@ -149,11 +134,18 @@ export default function ReportPage() {
   }, [groupId, groupSize, form.reset]);
   
   const onSubmit = async (data: FormValues) => {
-    form.clearErrors();
-    const activeTravelerIndexes = data.travelers
-      .map((t, i) => (openedAccordions.includes(t.id!) ? i : -1))
-      .filter(i => i !== -1);
-
+    const activeTravelerIndexes: number[] = [];
+    const travelerFieldsToValidate: `travelers.${number}.${keyof z.infer<typeof travelerSchema>}`[] = [];
+  
+    data.travelers.forEach((traveler, index) => {
+      if (openedAccordions.includes(traveler.id!)) {
+        activeTravelerIndexes.push(index);
+        (Object.keys(travelerSchema.shape) as (keyof z.infer<typeof travelerSchema>)[]).forEach(field => {
+          travelerFieldsToValidate.push(`travelers.${index}.${field}`);
+        });
+      }
+    });
+  
     if (activeTravelerIndexes.length === 0) {
       toast({
         variant: "destructive",
@@ -162,13 +154,9 @@ export default function ReportPage() {
       });
       return;
     }
-    
-    const fieldsToValidate = activeTravelerIndexes.flatMap(index => 
-      Object.keys(travelerSchema.shape).map(field => `travelers.${index}.${field}` as const)
-    );
-
-    const isValid = await form.trigger(fieldsToValidate);
-
+  
+    const isValid = await form.trigger(travelerFieldsToValidate);
+  
     if (!isValid) {
       toast({
         variant: "destructive",
@@ -177,7 +165,7 @@ export default function ReportPage() {
       });
       return;
     }
-
+    
     const travelersToSubmit = data.travelers.filter(t => openedAccordions.includes(t.id!));
     
     const submissionData = {
