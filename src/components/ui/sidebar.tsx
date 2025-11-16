@@ -1,8 +1,9 @@
+
 "use client";
 import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList, Users } from "lucide-react"
+import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList, Users, Calculator } from "lucide-react"
 import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
@@ -36,7 +37,8 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
     };
 
     const navItems = [
-        { href: "/", label: "Dashboard", icon: Home },
+        { href: "/dashboard", label: "Dashboard", icon: Home },
+        { href: "/cost-estimator", label: "Cost Estimator", icon: Calculator },
         { href: "/reports", label: "Reports", icon: ClipboardList },
         { href: "/travelers", label: "Travelers", icon: Users },
         { href: "#", label: "Add Trek", icon: Plus, action: onAddTrekClick },
@@ -44,7 +46,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
     ];
 
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
-        const isActive = (pathname === "/" && item.href === "/") || (item.href !== "/" && pathname.startsWith(item.href));
+        const isActive = (pathname === "/" && item.href === "/dashboard") || (item.href !== "/" && pathname.startsWith(item.href));
         
         const handleClick = (e: React.MouseEvent) => {
           if (item.action) {
