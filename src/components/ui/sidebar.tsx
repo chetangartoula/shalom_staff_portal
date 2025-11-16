@@ -71,7 +71,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("hidden border-r text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
+        <div className={cn("hidden md:flex md:flex-col", className, isCollapsed && "items-center")}>
             <div className={cn("flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Mountain className="h-6 w-6 text-primary" />

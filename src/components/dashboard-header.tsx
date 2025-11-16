@@ -28,8 +28,8 @@ export function DashboardHeader({ onAddTrekClick, children }: DashboardHeaderPro
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm border-r-0 sheet-content bg-sidebar-background">
-           <Sidebar onAddTrekClick={onAddTrekClick} isCollapsed={false} className="flex" />
+        <SheetContent side="left" className="flex flex-col p-0 w-full max-w-sm border-r-0">
+           <Sidebar onAddTrekClick={onAddTrekClick} isCollapsed={false} className="flex sheet-content" />
         </SheetContent>
       </Sheet>
       <div className="w-full flex-1 flex items-center gap-4">

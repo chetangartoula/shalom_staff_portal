@@ -84,11 +84,13 @@ body {
 
   /* Specific styles for light mobile sheet */
   .sheet-content {
-      --sidebar-background: 240 3% 97%; /* #f6f6f7 */
+      background-color: #f6f6f7 !important;
+      color: hsl(var(--primary)) !important;
+      --sidebar-background: transparent;
       --sidebar-foreground: hsl(var(--primary));
-      --sidebar-muted-foreground: 240 3.8% 46.1%;
-      --sidebar-active-background: 231 60% 90%;
-      --border: 240 5.9% 90%;
+      --sidebar-muted-foreground: hsl(var(--muted-foreground));
+      --sidebar-active-background: hsl(var(--primary) / 0.1);
+      --border: hsl(var(--border));
   }
 
   .sheet-content.bg-sidebar-background {
