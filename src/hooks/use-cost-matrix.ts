@@ -5,9 +5,21 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 
-import type { Trek, Service, CostRow, SectionState } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import type { Trek, CostRow, SectionState } from "@/lib/types";
 
+// Define a type for the entire report state
+type ReportState = {
+  groupId: string;
+  trekId: string | null;
+  trekName: string;
+  groupSize: number;
+  startDate: Date | undefined;
+  permits: SectionState;
+  services: SectionState;
+  extraDetails: SectionState;
+  customSections: SectionState[];
+  serviceCharge: number;
+};
 
 const initialSteps = [
   { id: "01", name: "Select Trek" },
@@ -17,26 +29,28 @@ const initialSteps = [
   { id: "05", name: "Final" },
 ];
 
+// Helper to create an initial empty report state
+const createInitialReportState = (): ReportState => ({
+  groupId: uuidv4(),
+  trekId: null,
+  trekName: '',
+  groupSize: 1,
+  startDate: new Date(),
+  permits: { id: 'permits', name: 'Permits & Food', rows: [], discount: 0 },
+  services: { id: 'services', name: 'Services', rows: [], discount: 0 },
+  extraDetails: { id: 'extraDetails', name: 'Extra Details', rows: [], discount: 0 },
+  customSections: [],
+  serviceCharge: 10,
+});
+
 export async function handleExportPDF({
   selectedTrek,
-  initialData,
-  groupSize,
-  startDate,
-  permitsState,
-  servicesState,
-  customSections,
-  extraDetailsState,
+  report,
   calculateSectionTotals,
   userName
 }: {
   selectedTrek: Trek | undefined,
-  initialData: any,
-  groupSize: number,
-  startDate: Date | undefined,
-  permitsState: SectionState,
-  servicesState: SectionState,
-  customSections: SectionState[],
-  extraDetailsState: SectionState,
+  report: ReportState,
   calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
   userName?: string
 }) {
@@ -47,11 +61,10 @@ export async function handleExportPDF({
   const { default: QRCode } = await import("qrcode");
 
   const doc = new jsPDF();
-  const groupId = initialData?.groupId || uuidv4();
-  const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
+  const qrCodeUrl = `${window.location.origin}/report/${report.groupId}?groupSize=${report.groupSize}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
   
-  const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+  const allSections = [report.permits, report.services, ...report.customSections, report.extraDetails];
 
   const sectionsToExport = allSections.map(section => ({
       ...section,
@@ -86,7 +99,7 @@ export async function handleExportPDF({
   doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text(`Group ID: ${groupId}`, pageLeftMargin, pageTopMargin + 15);
+  doc.text(`Group ID: ${report.groupId}`, pageLeftMargin, pageTopMargin + 15);
   
   doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
 
@@ -100,8 +113,8 @@ export async function handleExportPDF({
       startY: yPos,
       body: [
           ['Trek Name', selectedTrek.name || 'N/A'],
-          ['Group Size', groupSize.toString()],
-          ['Start Date', startDate ? format(startDate, 'PPP') : 'N/A'],
+          ['Group Size', report.groupSize.toString()],
+          ['Start Date', report.startDate ? format(report.startDate, 'PPP') : 'N/A'],
       ],
       theme: 'plain',
       styles: { fontSize: 10 },
@@ -123,18 +136,18 @@ export async function handleExportPDF({
     const body = section.rows.map((row, i) => [
         i + 1,
         row.description,
-        formatCurrency(row.rate),
+        `$${row.rate.toFixed(2)}`,
         row.no,
         row.times,
-        formatCurrency(row.total)
+        `$${row.total.toFixed(2)}`
     ]);
     const {subtotal, total} = calculateSectionTotals(section);
 
-    body.push(['', 'Subtotal', '', '', '', formatCurrency(subtotal)]);
+    body.push(['', 'Subtotal', '', '', '', `$${subtotal.toFixed(2)}`]);
     if (section.discount > 0) {
-      body.push(['', 'Discount', '', '', '', `- ${formatCurrency(section.discount)}`]);
+      body.push(['', 'Discount', '', '', '', `- $${section.discount.toFixed(2)}`]);
     }
-    body.push(['', 'Total', '', '', '', formatCurrency(total)]);
+    body.push(['', 'Total', '', '', '', `$${total.toFixed(2)}`]);
 
     autoTable(doc, {
         startY: yPos,
@@ -163,9 +176,9 @@ export async function handleExportPDF({
 
     const summaryData = sectionsToExport.map(section => {
       const { total } = calculateSectionTotals(section);
-      return [`${section.name} Total`, formatCurrency(total)];
+      return [`${section.name} Total`, `$${total.toFixed(2)}`];
     });
-    summaryData.push(['Grand Total', formatCurrency(grandTotal)]);
+    summaryData.push(['Grand Total', `$${grandTotal.toFixed(2)}`]);
     
     autoTable(doc, {
         startY: yPos,
@@ -176,27 +189,21 @@ export async function handleExportPDF({
 
   addFooter();
 
-  doc.save(`cost-report-${groupId.substring(0,8)}.pdf`);
+  doc.save(`cost-report-${report.groupId.substring(0,8)}.pdf`);
 }
 
 export async function handleExportExcel({
-  permitsState,
-  servicesState,
-  customSections,
-  extraDetailsState,
+  report,
   calculateSectionTotals
 }: {
-  permitsState: SectionState,
-  servicesState: SectionState,
-  customSections: SectionState[],
-  extraDetailsState: SectionState,
+  report: ReportState,
   calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
 }) {
   const XLSX = await import("xlsx");
 
   const wb = XLSX.utils.book_new();
    
-   const allSections = [permitsState, servicesState, ...customSections, extraDetailsState];
+   const allSections = [report.permits, report.services, ...report.customSections, report.extraDetails];
    const sectionsToExport = allSections.map(section => ({
       ...section,
       rows: section.rows.filter(row => row.total !== 0)
@@ -235,62 +242,47 @@ export async function handleExportExcel({
     XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
   }
 
-   XLSX.writeFile(wb, `cost-report-${uuidv4().substring(0,8)}.xlsx`);
+   XLSX.writeFile(wb, `cost-report-${report.groupId.substring(0,8)}.xlsx`);
 }
 
 export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   const { toast } = useToast();
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
-  
-  const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const [selectedTrekId, setSelectedTrekId] = useState<string | null>(null);
-  const [groupSize, setGroupSize] = useState<number>(1);
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   
-  const [usePax, setUsePax] = useState<{[key: string]: boolean}>({});
+  const [report, setReport] = useState<ReportState>(createInitialReportState());
 
-  const [permitsState, setPermitsState] = useState<SectionState>({id: 'permits', name: 'Permits & Food', rows: [], discount: 0});
-  const [servicesState, setServicesState] = useState<SectionState>({id: 'services', name: 'Services', rows: [], discount: 0});
-  const [extraDetailsState, setExtraDetailsState] = useState<SectionState>({id: 'extraDetails', name: 'Extra Details', rows: [], discount: 0});
-  const [customSections, setCustomSections] = useState<SectionState[]>([]);
+  const [usePax, setUsePax] = useState<{[key: string]: boolean}>({});
 
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
-  const [serviceCharge, setServiceCharge] = useState(10);
-
+  
   useEffect(() => {
-    // This effect now only handles initialization from initialData
-    if (initialData?.trekId) {
-      // If there's initial data, we're in "edit" mode.
-      setSelectedTrekId(initialData.trekId);
-      setGroupSize(initialData.groupSize);
-      setStartDate(initialData.startDate ? new Date(initialData.startDate) : undefined);
-      setPermitsState(initialData.permits);
-      setServicesState(initialData.services);
-      setExtraDetailsState(initialData.extraDetails);
-      setCustomSections(initialData.customSections || []);
-      setServiceCharge(initialData.serviceCharge || 10);
-      
-      const newSteps = [...initialSteps];
-      const finalStepIndex = newSteps.findIndex(s => s.name === "Final");
-      if(initialData.customSections) {
-        initialData.customSections.forEach((section: SectionState) => {
-          const newStep = { id: `custom_step_${section.id}`, name: section.name };
-          newSteps.splice(finalStepIndex, 0, newStep);
-        });
-        setSteps(newSteps);
-      }
+    if (initialData) {
+        const fullReport = {
+            ...createInitialReportState(),
+            ...initialData,
+            startDate: initialData.startDate ? new Date(initialData.startDate) : undefined,
+        };
+        setReport(fullReport);
+
+        const newSteps = [...initialSteps];
+        const finalStepIndex = newSteps.findIndex(s => s.name === "Final");
+        if(initialData.customSections) {
+            initialData.customSections.forEach((section: SectionState) => {
+                const newStep = { id: `custom_step_${section.id}`, name: section.name };
+                newSteps.splice(finalStepIndex, 0, newStep);
+            });
+            setSteps(newSteps);
+        }
     }
     setIsLoading(false);
   }, [initialData]);
 
-
   const selectedTrek = useMemo(
-    () => treks?.find((trek) => trek.id === selectedTrekId),
-    [selectedTrekId, treks]
+    () => treks?.find((trek) => trek.id === report.trekId),
+    [report.trekId, treks]
   );
   
   const handleSetUsePax = useCallback((sectionId: string, value: boolean) => {
@@ -298,113 +290,140 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   }, []);
 
   useEffect(() => {
-    // This effect now ONLY runs when a new trek is selected in "new" mode.
-    if (initialData?.trekId || !selectedTrek || !treks) return;
+    const isPaxEnabled = (sectionId: string) => usePax[sectionId] ?? false;
 
-    const isPaxEnabled = usePax['permits'] ?? false;
-    const numberValue = isPaxEnabled ? groupSize : 1;
+    setReport(currentReport => {
+        let changed = false;
+        const newReport = { ...currentReport };
+        const sectionsToUpdate: (keyof ReportState)[] = ['permits', 'services', 'extraDetails'];
 
-    const initialPermits = selectedTrek.permits.map((permit) => ({
-      id: uuidv4(),
-      description: permit.name,
-      rate: permit.rate,
-      no: numberValue,
-      times: 1,
-      total: permit.rate * numberValue,
-    }));
-    setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
+        sectionsToUpdate.forEach(sectionKey => {
+            const section = newReport[sectionKey] as SectionState;
+            if (isPaxEnabled(section.id)) {
+                const newRows = section.rows.map(row => {
+                    if (row.no !== currentReport.groupSize) {
+                        changed = true;
+                        const newNo = currentReport.groupSize;
+                        return { ...row, no: newNo, total: (row.rate || 0) * newNo * (row.times || 0) };
+                    }
+                    return row;
+                });
+                if(changed) {
+                    (newReport[sectionKey] as SectionState) = { ...section, rows: newRows };
+                }
+            }
+        });
+        
+        const newCustomSections = newReport.customSections.map(section => {
+            if (isPaxEnabled(section.id)) {
+                const newRows = section.rows.map(row => {
+                    if (row.no !== currentReport.groupSize) {
+                        changed = true;
+                        const newNo = currentReport.groupSize;
+                        return { ...row, no: newNo, total: (row.rate || 0) * newNo * (row.times || 0) };
+                    }
+                    return row;
+                });
+                 if(changed) return { ...section, rows: newRows };
+            }
+            return section;
+        });
 
-      const initialExtraDetails = [
-      { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-      { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
-    ];
-    setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
-    
-  }, [selectedTrek, treks, groupSize, usePax, initialData]);
-  
-  useEffect(() => {
-      // This effect updates the 'no' value when groupSize or usePax changes.
-      const updateNoBasedOnPax = (section: SectionState) => {
-          const isPax = usePax[section.id] ?? false;
-          if (!isPax) return section; // No change if not using pax
-
-          return {
-              ...section,
-              rows: section.rows.map(row => {
-                  const newNo = groupSize;
-                  return {
-                      ...row,
-                      no: newNo,
-                      total: (row.rate || 0) * newNo * (row.times || 0)
-                  };
-              })
-          };
-      };
-      
-      setPermitsState(updateNoBasedOnPax);
-      setServicesState(updateNoBasedOnPax);
-      setExtraDetailsState(updateNoBasedOnPax);
-      setCustomSections(prev => prev.map(updateNoBasedOnPax));
-
-  }, [groupSize, usePax]);
-
-
-  const getSectionState = useCallback((sectionId: string): SectionState | undefined => {
-    if (sectionId === "permits") return permitsState;
-    if (sectionId === "services") return servicesState;
-    if (sectionId === "extraDetails") return extraDetailsState;
-    return customSections.find(s => s.id === sectionId);
-  }, [permitsState, servicesState, extraDetailsState, customSections]);
-
-  const setSectionState = useCallback((sectionId: string, newState: Partial<SectionState> | ((prevState: SectionState) => SectionState)) => {
-    const updater = (prev: SectionState): SectionState => {
-        if (typeof newState === 'function') {
-            return newState(prev);
+        if (changed) {
+            newReport.customSections = newCustomSections;
+            return newReport;
         }
-        return { ...prev, ...newState };
-    };
 
-    if (sectionId === "permits") setPermitsState(updater);
-    else if (sectionId === "services") setServicesState(updater);
-    else if (sectionId === "extraDetails") setExtraDetailsState(updater);
-    else {
-        setCustomSections(prev => prev.map(s => s.id === sectionId ? updater(s) : s));
-    }
+        return currentReport;
+    });
+  }, [report.groupSize, usePax]);
+
+  const handleTrekSelect = useCallback((trekId: string) => {
+    const newSelectedTrek = treks?.find(t => t.id === trekId);
+    if (!newSelectedTrek) return;
+
+    setReport(prev => {
+        const isPax = usePax['permits'] ?? false;
+        const numberValue = isPax ? prev.groupSize : 1;
+        const initialPermits = newSelectedTrek.permits.map(p => ({
+            id: uuidv4(),
+            description: p.name,
+            rate: p.rate,
+            no: numberValue,
+            times: 1,
+            total: p.rate * numberValue,
+        }));
+
+        const initialExtraDetails = [
+            { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
+            { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
+        ];
+
+        return {
+            ...prev,
+            trekId: newSelectedTrek.id,
+            trekName: newSelectedTrek.name,
+            permits: { ...prev.permits, rows: initialPermits },
+            extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
+        };
+    });
+  }, [treks, usePax]);
+
+  const handleDetailChange = useCallback((field: keyof ReportState, value: any) => {
+      setReport(prev => ({...prev, [field]: value}));
+  }, []);
+
+  const handleSectionUpdate = useCallback((sectionId: string, updatedSection: Partial<SectionState> | ((s: SectionState) => SectionState)) => {
+    setReport(prevReport => {
+        const newReport = {...prevReport};
+        if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
+            const currentSection = newReport[sectionId];
+            newReport[sectionId] = typeof updatedSection === 'function' ? updatedSection(currentSection) : { ...currentSection, ...updatedSection };
+        } else {
+            newReport.customSections = newReport.customSections.map(s => 
+                s.id === sectionId ? (typeof updatedSection === 'function' ? updatedSection(s) : { ...s, ...updatedSection }) : s
+            );
+        }
+        return newReport;
+    });
   }, []);
 
   const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
-    const section = getSectionState(sectionId);
-    if (!section) return;
-
-    const updatedRows = section.rows.map((row) => {
-      if (row.id === id) {
-        const newRow = { ...row, [field]: value };
-        if (field === 'no' || field === 'rate' || field === 'times') {
-          newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+    handleSectionUpdate(sectionId, (section) => ({
+      ...section,
+      rows: section.rows.map((row) => {
+        if (row.id === id) {
+          const newRow = { ...row, [field]: value };
+          if (field === 'no' || field === 'rate' || field === 'times') {
+            newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+          }
+          return newRow;
         }
-        return newRow;
-      }
-      return row;
-    });
-    setSectionState(sectionId, { rows: updatedRows });
-  }, [getSectionState, setSectionState]);
+        return row;
+      })
+    }));
+  }, [handleSectionUpdate]);
   
   const handleDiscountChange = useCallback((sectionId: string, value: number) => {
-    setSectionState(sectionId, { discount: value });
-  }, [setSectionState]);
+    handleSectionUpdate(sectionId, { discount: value });
+  }, [handleSectionUpdate]);
 
   const addRow = useCallback((sectionId: string) => {
     const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
-    setSectionState(sectionId, (prev) => ({...prev, rows: [...prev.rows, newRow]}));
-  }, [setSectionState]);
+    handleSectionUpdate(sectionId, (prev) => ({...prev, rows: [...prev.rows, newRow]}));
+  }, [handleSectionUpdate]);
 
   const removeRow = useCallback((id: string, sectionId: string) => {
-    setSectionState(sectionId, (prev) => ({...prev, rows: prev.rows.filter((row) => row.id !== id)}));
-  }, [setSectionState]);
+    handleSectionUpdate(sectionId, (prev) => ({...prev, rows: prev.rows.filter((row) => row.id !== id)}));
+  }, [handleSectionUpdate]);
 
   const removeSection = useCallback((sectionId: string) => {
-    setCustomSections(prev => prev.filter(s => s.id !== sectionId));
+    setReport(prev => ({...prev, customSections: prev.customSections.filter(s => s.id !== sectionId)}));
     setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
+  }, []);
+  
+  const setCustomSections = useCallback((updater: (prev: SectionState[]) => SectionState[]) => {
+      setReport(prev => ({...prev, customSections: updater(prev.customSections)}));
   }, []);
 
   const calculateSectionTotals = useCallback((section: SectionState) => {
@@ -413,122 +432,46 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
     return { subtotal, total };
   }, []);
 
-  const {
-    permitsTotals,
-    servicesTotals,
-    extraDetailsTotals,
-    customSectionsTotals,
-    totalCost,
-  } = useMemo(() => {
-    const permitsTotals = calculateSectionTotals(permitsState);
-    const servicesTotals = calculateSectionTotals(servicesState);
-    const extraDetailsTotals = calculateSectionTotals(extraDetailsState);
-    
-    const customSectionsTotals = customSections.map(section => ({
-        ...section,
-        ...calculateSectionTotals(section),
-    }));
+  const totalCost = useMemo(() => {
+    const sections = [report.permits, report.services, report.extraDetails, ...report.customSections];
+    return sections.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+  }, [report, calculateSectionTotals]);
 
-    const totalCustomsTotal = customSectionsTotals.reduce((acc, section) => acc + section.total, 0);
-
-    const totalCost = permitsTotals.total + servicesTotals.total + extraDetailsTotals.total + totalCustomsTotal;
-
-    return {
-      permitsTotals,
-      servicesTotals,
-      extraDetailsTotals,
-      customSectionsTotals,
-      totalCost
-    };
-  }, [permitsState, servicesState, extraDetailsState, customSections, calculateSectionTotals]);
-
-  const compileReportData = useCallback((groupId?: string) => {
-    if (!selectedTrek) return null;
-    const finalGroupId = groupId || uuidv4();
-    const url = `${window.location.origin}/report/${finalGroupId}?groupSize=${groupSize}`;
-
-    return {
-      groupId: finalGroupId,
-      reportUrl: url,
-      trekId: selectedTrek.id,
-      trekName: selectedTrek.name,
-      groupSize,
-      startDate,
-      permits: permitsState,
-      services: servicesState,
-      extraDetails: extraDetailsState,
-      customSections,
-      totals: {
-        permitsTotal: permitsTotals.total,
-        servicesTotal: servicesTotals.total,
-        extraDetailsTotal: extraDetailsTotals.total,
-        customSectionsTotals: customSectionsTotals.map(s => ({name: s.name, total: s.total})),
-        grandTotal: totalCost
-      },
-      serviceCharge,
-    };
-  }, [selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, permitsTotals, servicesTotals, extraDetailsTotals, customSectionsTotals, totalCost, serviceCharge]);
+  const getReportPayload = useCallback(() => {
+    const url = `${window.location.origin}/report/${report.groupId}?groupSize=${report.groupSize}`;
+    return { ...report, reportUrl: url };
+  }, [report]);
 
   const handleSave = useCallback(async () => {
-    const reportData = compileReportData();
-    if (!reportData) return;
-    
+    const payload = getReportPayload();
     try {
       const response = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reportData),
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to save report');
-      }
-
-      setSavedReportUrl(reportData.reportUrl);
-
-      toast({
-        title: "Data Saved",
-        description: "Your trek costing details have been saved.",
-      });
-
+      if (!response.ok) throw new Error('Failed to save report');
+      setSavedReportUrl(payload.reportUrl);
+      toast({ title: "Data Saved", description: "Your trek costing details have been saved." });
     } catch(error) {
-       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not save the report. Please try again.",
-      });
+       toast({ variant: "destructive", title: "Error", description: "Could not save the report." });
     }
-  }, [compileReportData, toast]);
+  }, [getReportPayload, toast]);
 
   const handleUpdate = useCallback(async () => {
-    if (!initialData?.groupId) return;
-    const reportData = compileReportData(initialData.groupId);
-    if (!reportData) return;
-
+    const payload = getReportPayload();
     try {
-      const response = await fetch(`/api/reports/${initialData.groupId}`, {
+      const response = await fetch(`/api/reports/${payload.groupId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reportData),
+        body: JSON.stringify(payload),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update report');
-      }
-      
-      toast({
-        title: "Report Updated",
-        description: "Your changes have been saved successfully.",
-      });
-
+      if (!response.ok) throw new Error('Failed to update report');
+      toast({ title: "Report Updated", description: "Your changes have been saved." });
     } catch(error) {
-       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Could not update the report. Please try again.",
-      });
+       toast({ variant: "destructive", title: "Error", description: "Could not update the report." });
     }
-  }, [compileReportData, initialData, toast]);
+  }, [getReportPayload, toast]);
 
   const handleCopyToClipboard = useCallback(() => {
     if (savedReportUrl) {
@@ -540,43 +483,29 @@ export function useCostMatrix(treks: Trek[] | undefined, initialData?: any) {
   }, [savedReportUrl, toast]);
 
   return {
+    report,
     steps,
     setSteps,
     currentStep,
     setCurrentStep,
-    services,
     isLoading,
     selectedTrek,
-    selectedTrekId,
-    setSelectedTrekId,
-    groupSize,
-    setGroupSize,
-    startDate,
-    setStartDate,
-    permitsState,
-    servicesState,
-    extraDetailsState,
-    customSections,
-    setCustomSections,
-    permitsTotals,
-    servicesTotals,
-    extraDetailsTotals,
-    customSectionsTotals,
-    totalCost,
+    handleTrekSelect,
+    handleDetailChange,
     handleRowChange,
     handleDiscountChange,
     addRow,
     removeRow,
     removeSection,
+    setCustomSections,
     handleSave,
     handleUpdate,
     savedReportUrl,
     isCopied,
     handleCopyToClipboard,
-    calculateSectionTotals, // Export for use in export handlers
+    calculateSectionTotals,
     usePax,
     handleSetUsePax,
-    serviceCharge,
-    setServiceCharge,
+    totalCost
   };
 }

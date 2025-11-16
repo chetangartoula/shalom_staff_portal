@@ -41,7 +41,7 @@ const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mo
 
 
 interface TrekCostingPageProps {
-  treks?: Trek[]; // Make treks optional
+  treks?: Trek[];
   initialData?: any;
 }
 
@@ -52,22 +52,15 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
   const router = useRouter();
   
   const {
+    report,
     steps,
     setSteps,
     currentStep,
     setCurrentStep,
     isLoading,
     selectedTrek,
-    selectedTrekId,
-    setSelectedTrekId,
-    groupSize,
-    setGroupSize,
-    startDate,
-    setStartDate,
-    permitsState,
-    servicesState,
-    extraDetailsState,
-    customSections,
+    handleTrekSelect,
+    handleDetailChange,
     handleRowChange,
     handleDiscountChange,
     addRow,
@@ -82,8 +75,6 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
     totalCost,
     usePax,
     handleSetUsePax,
-    serviceCharge,
-    setServiceCharge,
     calculateSectionTotals,
   } = useCostMatrix(treks, initialData);
   
@@ -135,7 +126,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
 
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
-      if (currentStep === 0 && !selectedTrekId) {
+      if (currentStep === 0 && !report.trekId) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -154,15 +145,10 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
   };
 
   const onExportPDF = () => {
+    if (!selectedTrek) return;
     handleExportPDF({
       selectedTrek,
-      initialData,
-      groupSize,
-      startDate,
-      permitsState,
-      servicesState,
-      customSections,
-      extraDetailsState,
+      report,
       calculateSectionTotals,
       userName: user?.name,
     }).then(() => {
@@ -175,10 +161,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
 
   const onExportExcel = () => {
     handleExportExcel({
-      permitsState,
-      servicesState,
-      customSections,
-      extraDetailsState,
+      report,
       calculateSectionTotals,
     }).then(() => {
       toast({ title: "Success", description: "Excel file has been exported." });
@@ -213,32 +196,31 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
       return <LoadingStep />;
     }
     
-    // Render only the current step
     switch (step.id) {
       case '01':
         return treks ? (
           <SelectTrekStep
             treks={treks}
-            selectedTrekId={selectedTrekId}
-            onSelectTrek={setSelectedTrekId}
+            selectedTrekId={report.trekId}
+            onSelectTrek={handleTrekSelect}
           />
         ) : <LoadingStep />;
 
       case '02':
         return (
           <GroupDetailsStep
-            groupSize={groupSize}
-            onGroupSizeChange={setGroupSize}
-            startDate={startDate}
-            onStartDateChange={setStartDate}
+            groupSize={report.groupSize}
+            onGroupSizeChange={(size) => handleDetailChange('groupSize', size)}
+            startDate={report.startDate}
+            onStartDateChange={(date) => handleDetailChange('startDate', date)}
           />
         );
 
       case '03':
         return (
           <CostTable
-            section={permitsState}
-            usePax={usePax[permitsState.id] || false}
+            section={report.permits}
+            usePax={usePax[report.permits.id] || false}
             onSetUsePax={handleSetUsePax}
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
@@ -250,8 +232,8 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
       case '04':
         return (
           <CostTable
-            section={servicesState}
-            usePax={usePax[servicesState.id] || false}
+            section={report.services}
+            usePax={usePax[report.services.id] || false}
             onSetUsePax={handleSetUsePax}
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
@@ -263,7 +245,7 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
       case '05':
         return (
           <FinalStep
-            extraDetailsState={extraDetailsState}
+            extraDetailsState={report.extraDetails}
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
             onAddRow={addRow}
@@ -271,17 +253,17 @@ function TrekCostingPageComponent({ treks, initialData }: TrekCostingPageProps) 
             onExportPDF={onExportPDF}
             onExportExcel={onExportExcel}
             totalCost={totalCost}
-            usePax={usePax[extraDetailsState.id] || false}
+            usePax={usePax[report.extraDetails.id] || false}
             onSetUsePax={handleSetUsePax}
-            groupSize={groupSize}
-            serviceCharge={serviceCharge}
-            setServiceCharge={setServiceCharge}
+            groupSize={report.groupSize}
+            serviceCharge={report.serviceCharge}
+            setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
           />
         );
 
       default:
         if (step.id.startsWith('custom_step_')) {
-          const customSection = customSections.find(cs => `custom_step_${cs.id}` === step.id);
+          const customSection = report.customSections.find(cs => `custom_step_${cs.id}` === step.id);
           if (customSection) {
             return (
               <CostTable

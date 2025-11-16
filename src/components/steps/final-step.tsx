@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from 'react';
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +33,7 @@ interface FinalStepProps {
     setServiceCharge: (value: number) => void;
 }
 
-export function FinalStep({
+function FinalStepComponent({
     extraDetailsState,
     onRowChange,
     onDiscountChange,
@@ -120,3 +121,5 @@ export function FinalStep({
         </div>
     );
 }
+
+export const FinalStep = memo(FinalStepComponent);

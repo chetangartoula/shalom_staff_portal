@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Plus, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,9 +50,9 @@ const CostTableComponent = ({
     onRemoveSection,
 }: CostTableProps) => {
 
-    const calculateSectionTotals = (section: SectionState) => {
-        const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
-        const total = subtotal - section.discount;
+    const calculateSectionTotals = (currentSection: SectionState) => {
+        const subtotal = currentSection.rows.reduce((acc, row) => acc + row.total, 0);
+        const total = subtotal - currentSection.discount;
         return { subtotal, total };
     };
 
@@ -163,4 +163,4 @@ const CostTableComponent = ({
     );
 };
 
-export const CostTable = React.memo(CostTableComponent);
+export const CostTable = memo(CostTableComponent);
