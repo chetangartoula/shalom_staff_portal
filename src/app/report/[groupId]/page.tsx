@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from "uuid";
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Loader2, Mountain, Copy, Check, Save } from "lucide-react";
 import { useSearchParams, useParams } from "next/navigation";
 
@@ -66,7 +66,7 @@ export default function ReportPage() {
   const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState<{[key: string]: boolean}>({});
+  const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
   const [openedAccordions, setOpenedAccordions] = useState<string[]>([]);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -125,26 +125,32 @@ export default function ReportPage() {
                       : undefined,
                   };
                 }
-                // Important: Ensure all travelers have a unique ID from the start
-                const found = data.travelers.find((t: any, i: number) => i === newDefaultTravelers.indexOf(defaultTraveler));
-                return found ? { ...defaultTraveler, id: found.id } : defaultTraveler;
+                const foundIndex = newDefaultTravelers.indexOf(defaultTraveler);
+                const found = data.travelers[foundIndex];
+                
+                return found ? { ...defaultTraveler, id: found.id, name: found.name, phone: found.phone, address: found.address, passportNumber: found.passportNumber, emergencyContact: found.emergencyContact, nationality: found.nationality, dateOfBirth: found.dateOfBirth ? new Date(found.dateOfBirth) : undefined, passportExpiryDate: found.passportExpiryDate ? new Date(found.passportExpiryDate) : undefined } : defaultTraveler;
               }
             );
 
-            // Ensure the length matches groupSize, adding new blank travelers if needed
-            while(mergedTravelers.length < groupSize) {
-                mergedTravelers.push({ id: uuidv4(), name: "", phone: "", address: "", passportNumber: "", emergencyContact: "", nationality: "" });
+            while (mergedTravelers.length < groupSize) {
+              mergedTravelers.push({
+                id: uuidv4(),
+                name: "",
+                phone: "",
+                address: "",
+                passportNumber: "",
+                emergencyContact: "",
+                nationality: "",
+              });
             }
             const finalTravelers = mergedTravelers.slice(0, groupSize);
 
             form.reset({ travelers: finalTravelers });
 
-            // Open accordions for travelers who have data
             const prefilledAccordionIds = finalTravelers
-                .filter(t => t.name) // or some other field that indicates data exists
-                .map(t => t.id!);
+              .filter((t) => t.name)
+              .map((t) => t.id!);
             setOpenedAccordions(prefilledAccordionIds);
-
           } else {
             form.reset({ travelers: defaultTravelers });
           }
@@ -158,43 +164,31 @@ export default function ReportPage() {
     fetchTravelerData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId, groupSize, form.reset]);
-
+  
   const handleSaveTraveler = async (travelerIndex: number) => {
     const travelerId = form.getValues(`travelers.${travelerIndex}.id`);
     if (!travelerId) return;
 
-    setIsSubmitting(prev => ({ ...prev, [travelerId]: true }));
+    setIsSubmitting((prev) => ({ ...prev, [travelerId]: true }));
+
+    const isFormValid = await form.trigger(`travelers.${travelerIndex}`);
+    if (!isFormValid) {
+        toast({
+            variant: "destructive",
+            title: "Validation Failed",
+            description: `Please fill all required fields for Traveler ${travelerIndex + 1}.`,
+        });
+        setIsSubmitting((prev) => ({ ...prev, [travelerId]: false }));
+        return;
+    }
     
     const travelerData = form.getValues(`travelers.${travelerIndex}`);
-    const validationResult = travelerSchema.safeParse(travelerData);
-
-    if (!validationResult.success) {
-      validationResult.error.errors.forEach((error) => {
-        form.setError(`travelers.${travelerIndex}.${error.path[0] as keyof Traveler}`, {
-          type: 'manual',
-          message: error.message,
-        });
-      });
-      toast({
-        variant: "destructive",
-        title: "Validation Failed",
-        description: `Please fill all required fields for Traveler ${travelerIndex + 1}.`,
-      });
-      setIsSubmitting(prev => ({ ...prev, [travelerId]: false }));
-      return;
-    }
-
-    const submissionData = {
-      ...validationResult.data,
-      passportPhoto: validationResult.data.passportPhoto?.[0]?.name,
-      visaPhoto: validationResult.data.visaPhoto?.[0]?.name,
-    };
 
     try {
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ traveler: submissionData }), // Send a single traveler object
+        body: JSON.stringify({ traveler: travelerData }),
       });
 
       if (!response.ok) {
@@ -212,10 +206,9 @@ export default function ReportPage() {
         description: "Could not save traveler details. Please try again.",
       });
     } finally {
-      setIsSubmitting(prev => ({ ...prev, [travelerId]: false }));
+      setIsSubmitting((prev) => ({ ...prev, [travelerId]: false }));
     }
   };
-
 
   const handleCopy = () => {
     if (!groupId) return;
@@ -252,25 +245,49 @@ export default function ReportPage() {
                 <CardTitle>Traveler Details Form</CardTitle>
                 <CardDescription>
                   <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                     <span>Please fill out the details for each member of your group. Your Group ID is:</span>
-                     <div className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1">
-                       <span className="font-mono text-sm text-primary">{groupId.substring(0,8)}...</span>
-                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCopy}>
-                         {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                         <span className="sr-only">Copy Group ID</span>
-                       </Button>
+                    <span>
+                      Please fill out the details for each member of your group.
+                      Your Group ID is:
+                    </span>
+                    <div className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1">
+                      <span className="font-mono text-sm text-primary">
+                        {groupId.substring(0, 8)}...
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={handleCopy}
+                      >
+                        {isCopied ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        <span className="sr-only">Copy Group ID</span>
+                      </Button>
                     </div>
                   </div>
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-                    <Accordion type="multiple" onValueChange={setOpenedAccordions} value={openedAccordions} className="w-full">
+                  <form
+                    onSubmit={(e) => e.preventDefault()}
+                    className="space-y-6"
+                  >
+                    <Accordion
+                      type="multiple"
+                      onValueChange={setOpenedAccordions}
+                      value={openedAccordions}
+                      className="w-full"
+                    >
                       {form.watch("travelers").map((field, index) => (
                         <AccordionItem value={field.id!} key={field.id}>
                           <AccordionTrigger>
-                            <span className="font-semibold">Traveler {index + 1}</span>
+                            <span className="font-semibold">
+                              Traveler {index + 1}
+                            </span>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-4 pt-4">
                             <FormField
@@ -294,7 +311,10 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Phone Number</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="+1 123 456 7890" {...field} />
+                                      <Input
+                                        placeholder="+1 123 456 7890"
+                                        {...field}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -307,7 +327,10 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Date of Birth</FormLabel>
                                     <FormControl>
-                                      <DatePicker date={field.value} setDate={field.onChange} />
+                                      <DatePicker
+                                        date={field.value}
+                                        setDate={field.onChange}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -322,7 +345,10 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Passport Number</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="A12345678" {...field} />
+                                      <Input
+                                        placeholder="A12345678"
+                                        {...field}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -335,7 +361,10 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Passport Expiry Date</FormLabel>
                                     <FormControl>
-                                      <DatePicker date={field.value} setDate={field.onChange} />
+                                      <DatePicker
+                                        date={field.value}
+                                        setDate={field.onChange}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -350,7 +379,11 @@ export default function ReportPage() {
                                   <FormItem>
                                     <FormLabel>Nationality</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="American" {...field} value={field.value ?? ""} />
+                                      <Input
+                                        placeholder="American"
+                                        {...field}
+                                        value={field.value ?? ""}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -361,9 +394,14 @@ export default function ReportPage() {
                                 name={`travelers.${index}.emergencyContact`}
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Emergency Contact Number</FormLabel>
+                                    <FormLabel>
+                                      Emergency Contact Number
+                                    </FormLabel>
                                     <FormControl>
-                                      <Input placeholder="+1 987 654 3210" {...field} />
+                                      <Input
+                                        placeholder="+1 987 654 3210"
+                                        {...field}
+                                      />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -390,14 +428,18 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.passportPhoto`}
-                                render={({ field: { onChange, ...fieldProps } }) => (
+                                render={({
+                                  field: { onChange, ...fieldProps },
+                                }) => (
                                   <FormItem>
                                     <FormLabel>Passport Photo</FormLabel>
                                     <FormControl>
                                       <Input
                                         type="file"
                                         {...fieldProps}
-                                        onChange={(e) => onChange(e.target.files)}
+                                        onChange={(e) =>
+                                          onChange(e.target.files)
+                                        }
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -407,14 +449,18 @@ export default function ReportPage() {
                               <FormField
                                 control={form.control}
                                 name={`travelers.${index}.visaPhoto`}
-                                render={({ field: { onChange, ...fieldProps } }) => (
+                                render={({
+                                  field: { onChange, ...fieldProps },
+                                }) => (
                                   <FormItem>
                                     <FormLabel>Visa Photo</FormLabel>
                                     <FormControl>
                                       <Input
                                         type="file"
                                         {...fieldProps}
-                                        onChange={(e) => onChange(e.target.files)}
+                                        onChange={(e) =>
+                                          onChange(e.target.files)
+                                        }
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -423,8 +469,14 @@ export default function ReportPage() {
                               />
                             </div>
                             <CardFooter className="px-0 pt-6">
-                               <Button type="button" onClick={() => handleSaveTraveler(index)} disabled={isSubmitting[field.id!]}>
-                                {isSubmitting[field.id!] && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              <Button
+                                type="button"
+                                onClick={() => handleSaveTraveler(index)}
+                                disabled={isSubmitting[field.id!]}
+                              >
+                                {isSubmitting[field.id!] && (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                )}
                                 <Save className="mr-2 h-4 w-4" /> Save Details
                               </Button>
                             </CardFooter>
