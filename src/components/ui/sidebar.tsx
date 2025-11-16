@@ -3,18 +3,20 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, BarChart3, Users, LogOut, Plus } from "lucide-react"
+import { Mountain, Home, LogOut, Plus, Settings } from "lucide-react"
 import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SidebarProps {
   className?: string;
+  isCollapsed: boolean;
   onAddTrekClick: () => void;
 }
 
-export function Sidebar({ className, onAddTrekClick }: SidebarProps) {
+export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps) {
     const pathname = usePathname();
     const { logout } = useAuth();
     const router = useRouter();
@@ -26,44 +28,79 @@ export function Sidebar({ className, onAddTrekClick }: SidebarProps) {
 
     const navItems = [
         { href: "/", label: "Dashboard", icon: Home },
-        { href: "/reports", label: "Reports", icon: BarChart3 },
-        { href: "/travelers", label: "Travelers", icon: Users },
-    ]
+        { href: "#", label: "Add Trek", icon: Plus, action: onAddTrekClick },
+        { href: "/services", label: "Services", icon: Settings },
+    ];
+
+    const NavLink = ({ item }: { item: typeof navItems[0] }) => {
+        const linkContent = (
+             <span className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:text-sidebar-foreground",
+                pathname === item.href && "bg-primary/20 text-sidebar-foreground",
+                isCollapsed && "justify-center"
+            )}>
+                <item.icon className="h-5 w-5" />
+                {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            </span>
+        );
+
+        const linkElement = item.href === "#" ? (
+            <a onClick={item.action}>{linkContent}</a>
+        ) : (
+            <Link href={item.href}>{linkContent}</Link>
+        );
+
+        return (
+            <div className="cursor-pointer">
+                {isCollapsed ? (
+                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>{linkElement}</TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p>{item.label}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                ) : (
+                    linkElement
+                )}
+            </div>
+        );
+    };
 
     return (
-        <div className={cn("hidden border-r bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className)}>
-            <div className="flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px] lg:px-6">
+        <div className={cn("hidden border-r bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
+            <div className={cn("flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Mountain className="h-6 w-6 text-primary" />
-                    <span className="">Shalom Dashboard</span>
+                    {!isCollapsed && <span className="">Shalom Dashboard</span>}
                 </Link>
             </div>
-            <div className="flex-1">
-                <nav className="grid items-start px-2 text-sm font-medium lg:px-4 py-4">
+            <div className="flex-1 overflow-auto py-2 w-full">
+                <nav className={cn("grid items-start text-sm font-medium", isCollapsed ? "px-2" : "px-4")}>
                     {navItems.map(item => (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:text-sidebar-foreground",
-                                pathname === item.href && "bg-primary/20 text-sidebar-foreground"
-                            )}
-                        >
-                            <item.icon className="h-4 w-4" />
-                            {item.label}
-                        </Link>
+                        <NavLink key={item.label} item={item} />
                     ))}
                 </nav>
             </div>
-            <div className="mt-auto p-4 space-y-2 border-t border-gray-700">
-                <Button variant="secondary" className="w-full" onClick={onAddTrekClick}>
-                    <Plus className="mr-2 h-4 w-4"/>
-                    Add Trek
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-primary/20" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
+            <div className={cn("mt-auto p-4 space-y-2 border-t border-gray-700 w-full", isCollapsed && "p-2")}>
+                 {isCollapsed ? (
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-primary/20" onClick={handleLogout}>
+                                    <LogOut className="h-5 w-5" />
+                                </Button>
+                            </TooltipTrigger>
+                             <TooltipContent side="right"><p>Logout</p></TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                ) : (
+                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-primary/20" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-5 w-5" />
+                        Logout
+                    </Button>
+                )}
             </div>
         </div>
     )

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
+import { PlusSquare, Copy, Check, Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { CostTable } from "@/components/cost-table";
 
 export default function TrekCostingPage() {
   const [isClient, setIsClient] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -276,11 +277,19 @@ export default function TrekCostingPage() {
 
   return (
     <>
-      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr] bg-muted/40">
+      <div className={`grid min-h-screen w-full ${isSidebarCollapsed ? 'md:grid-cols-[5rem_1fr]' : 'md:grid-cols-[280px_1fr]'} bg-muted/40 transition-all duration-300`}>
         <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
-        <Sidebar onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
+        <Sidebar 
+          onAddTrekClick={() => setIsAddTrekModalOpen(true)} 
+          isCollapsed={isSidebarCollapsed}
+        />
         <div className="flex flex-col">
-          <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)} />
+          <DashboardHeader onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
+             <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+              {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+              <span className="sr-only">Toggle sidebar</span>
+            </Button>
+          </DashboardHeader>
           <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
               <div className="flex items-center">
                   <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
