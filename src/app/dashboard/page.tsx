@@ -1,12 +1,11 @@
+
 "use client";
 
-import { Suspense } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, Suspense } from 'react';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { useToast } from '@/hooks/use-toast';
 import { ProtectedRoute } from '@/components/protected-route';
-import { DashboardContent } from '@/components/dashboard-content';
 import { StatsCards } from '@/components/stats-cards';
 import { RecentReports } from '@/components/recent-reports';
 
