@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { Loader2, Plus, MoreHorizontal, Trash2, Edit, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -20,11 +20,14 @@ import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { AddServiceForm, type ServiceFormData } from '@/components/add-service-form';
 import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
+import { Input } from '@/components/ui/input';
 
 
 export default function ServicesPage() {
   const { toast } = useToast();
   const [services, setServices] = useState<Service[]>([]);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
@@ -59,6 +62,14 @@ export default function ServicesPage() {
     fetchServices(1);
   }, [fetchServices]);
 
+  useEffect(() => {
+    const results = services.filter(service =>
+      service.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredServices(results);
+  }, [searchTerm, services]);
+
+
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
@@ -91,7 +102,8 @@ export default function ServicesPage() {
       if (editingService) {
         setServices(prev => prev.map(s => s.id === savedService.id ? savedService : s));
       } else {
-        setServices(prev => [savedService, ...prev]);
+        // Adding new service to the top of the list
+        setServices(prev => [savedService, ...prev.filter(s => s.id !== savedService.id)]);
       }
 
       toast({
@@ -157,14 +169,28 @@ export default function ServicesPage() {
       />
       <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
         <Card className="shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Manage Services</CardTitle>
-                <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
+          <CardHeader>
+             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                    <CardTitle>Manage Services</CardTitle>
+                    <CardDescription>Add, edit, or remove services for cost calculation.</CardDescription>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search by service name..."
+                            className="w-full sm:w-[300px] pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <Button onClick={() => handleOpenServiceModal()} className="shrink-0">
+                        <Plus className="mr-2 h-4 w-4" /> Add Service
+                    </Button>
+                </div>
             </div>
-            <Button onClick={() => handleOpenServiceModal()}>
-                <Plus className="mr-2 h-4 w-4" /> Add Service
-            </Button>
           </CardHeader>
           <CardContent>
             {isLoading && page === 1 ? (
@@ -183,7 +209,7 @@ export default function ServicesPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {services.map((service) => (
+                        {filteredServices.map((service) => (
                         <TableRow key={service.id}>
                             <TableCell className="font-medium">{service.name}</TableCell>
                             <TableCell>{formatCurrency(service.rate)}</TableCell>
@@ -210,10 +236,15 @@ export default function ServicesPage() {
                         ))}
                     </TableBody>
                 </Table>
+                 {filteredServices.length === 0 && !isLoading && (
+                  <div className="text-center p-8 text-muted-foreground">
+                    No services found.
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
-          {hasMore && (
+          {hasMore && !searchTerm && (
             <CardFooter className="justify-center">
               <Button onClick={handleLoadMore} disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
