@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link"
@@ -71,10 +72,10 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
 
     return (
         <div className={cn("flex h-full flex-col", className)}>
-            <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6">
+            <div className="flex h-14 items-center border-b border-sidebar-foreground/20 px-4 lg:h-[60px] lg:px-6">
                 <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
                     <Mountain className="h-6 w-6" />
-                    <span className="">Shalom</span>
+                    {!isCollapsed && <span className="">Shalom</span>}
                 </Link>
             </div>
             <div className="flex-1 overflow-auto py-2">
@@ -84,24 +85,27 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     ))}
                 </nav>
             </div>
-            <div className={cn("mt-auto p-4 border-t border-sidebar-foreground/10", isCollapsed && "p-2")}>
-                 {isCollapsed ? (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground" onClick={handleLogout}>
-                                    <LogOut className="h-5 w-5" />
-                                </Button>
-                            </TooltipTrigger>
-                             <TooltipContent side="right"><p>Logout</p></TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ) : (
-                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground" onClick={handleLogout}>
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Logout
-                    </Button>
-                )}
+            <div className={cn("mt-auto p-4", isCollapsed && "px-2 pt-2")}>
+                 <div className={cn("border-t border-sidebar-foreground/20", isCollapsed ? "mx-auto" : "-mx-4")} />
+                 <div className={cn(isCollapsed ? "pt-2" : "pt-4")}>
+                    {isCollapsed ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
+                                        <LogOut className="h-5 w-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right"><p>Logout</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : (
+                        <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
+                            <LogOut className="mr-2 h-5 w-5" />
+                            Logout
+                        </Button>
+                    )}
+                 </div>
             </div>
         </div>
     )

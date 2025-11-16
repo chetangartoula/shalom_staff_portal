@@ -39,7 +39,7 @@ body {
     /* Sidebar/Header variables */
     --sidebar-background: hsl(var(--primary));
     --sidebar-foreground: hsl(var(--primary-foreground));
-    --sidebar-muted-foreground: 240 5% 65%;
+    --sidebar-muted-foreground: 231 20% 80%;
     --sidebar-active-background: hsl(231 60% 25%);
 
     --header-background: hsl(var(--card));
@@ -71,7 +71,7 @@ body {
     /* Sidebar/Header variables in dark mode */
     --sidebar-background: hsl(var(--primary));
     --sidebar-foreground: hsl(var(--primary-foreground));
-    --sidebar-muted-foreground: 240 5% 65%;
+    --sidebar-muted-foreground: 231 20% 80%;
     --sidebar-active-background: hsl(231 60% 35%);
 
     --header-background: 240 3.7% 15.9%;
@@ -89,12 +89,13 @@ body {
     color: hsl(var(--muted-foreground)) !important;
   }
 
-  .sheet-content .group:hover .text-sidebar-muted-foreground {
-    color: hsl(var(--foreground)) !important;
+  .sheet-content .group:hover .text-sidebar-muted-foreground,
+  .sheet-content .group .text-sidebar-foreground {
+    color: hsl(var(--primary)) !important;
   }
-
-  .sheet-content .text-sidebar-foreground {
-     color: hsl(var(--foreground)) !important;
+  
+  .sheet-content .group .bg-sidebar-active-background {
+      background-color: hsl(var(--primary) / 0.1) !important;
   }
 }
 
