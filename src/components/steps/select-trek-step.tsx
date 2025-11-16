@@ -21,7 +21,7 @@ export const SelectTrekStep = React.memo(function SelectTrekStep({ treks, select
             <Card 
               key={trek.id} 
               className={cn(
-                "cursor-pointer text-left hover:shadow-lg transition-all duration-300",
+                "cursor-pointer text-left hover:shadow-lg transition-all duration-300 hover:scale-105",
                 selectedTrekId === trek.id && "border-primary ring-2 ring-primary"
               )}
               onClick={() => onSelectTrek(trek.id)}
