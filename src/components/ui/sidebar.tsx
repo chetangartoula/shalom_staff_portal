@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Mountain, Home, LogOut, Plus, Settings, MoreVertical } from "lucide-react"
+import { Mountain, Home, LogOut, Plus, Settings, MoreVertical, ClipboardList } from "lucide-react"
 import { useAuth } from "@/context/auth-context";
 
 import { cn } from "@/lib/utils"
@@ -38,6 +38,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
 
     const navItems = [
         { href: "/", label: "Dashboard", icon: Home },
+        { href: "/reports", label: "Reports", icon: ClipboardList },
         { href: "#", label: "Add Trek", icon: Plus, action: onAddTrekClick },
         { href: "/services", label: "Services", icon: Settings },
     ];
@@ -107,7 +108,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, onA
                     ))}
                 </nav>
             </div>
-            <div className="mt-auto border-t border-sidebar-foreground/10">
+            <div className="mt-auto border-t border-sidebar-foreground/10 p-2">
                 {user && (
                   <DropdownMenu>
                       <DropdownMenuTrigger asChild>

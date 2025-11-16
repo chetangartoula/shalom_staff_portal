@@ -22,7 +22,7 @@ const initialSteps = [
   { id: "05", name: "Final" },
 ];
 
-export function useCostMatrix(treks: Trek[]) {
+export function useCostMatrix(treks: Trek[], initialData?: any) {
   const { toast } = useToast();
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
@@ -58,7 +58,18 @@ export function useCostMatrix(treks: Trek[]) {
         const servicesData = await servicesRes.json();
         setServices(servicesData.services);
 
-        if (treks.length > 0 && !selectedTrekId) {
+        if (initialData) {
+          // If there's initial data, we're in "edit" mode.
+          setSelectedTrekId(initialData.trekId);
+          setGroupSize(initialData.groupSize);
+          setStartDate(initialData.startDate ? new Date(initialData.startDate) : undefined);
+          setPermitsState(initialData.permits);
+          setServicesState(initialData.services);
+          setExtraDetailsState(initialData.extraDetails);
+          setCustomSections(initialData.customSections || []);
+          setServiceCharge(initialData.serviceCharge || 10);
+        } else if (treks.length > 0 && !selectedTrekId) {
+          // If new report, select first trek by default.
           setSelectedTrekId(treks[0].id)
         }
       } catch (error) {
@@ -72,7 +83,7 @@ export function useCostMatrix(treks: Trek[]) {
       }
     };
     fetchData();
-  }, [toast, treks, selectedTrekId]);
+  }, [toast, treks, initialData]);
 
 
   const selectedTrek = useMemo(
@@ -97,37 +108,40 @@ export function useCostMatrix(treks: Trek[]) {
   }
 
   useEffect(() => {
-    if (selectedTrek && services.length > 0) {
-      const isPaxEnabled = usePax['permits'] ?? false;
-      const numberValue = isPaxEnabled ? groupSize : 1;
+    // This effect runs when a new trek is selected, to reset the details.
+    // It should NOT run when in "edit" mode (i.e., when initialData is present).
+    if (initialData || !selectedTrek || services.length === 0) return;
 
-      const initialPermits = selectedTrek.permits.map((permit) => ({
-        id: uuidv4(),
-        description: permit.name,
-        rate: permit.rate,
-        no: numberValue,
-        times: 1,
-        total: permit.rate * numberValue,
-      }));
-      setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
+    const isPaxEnabled = usePax['permits'] ?? false;
+    const numberValue = isPaxEnabled ? groupSize : 1;
 
-      const initialServices = services.map((service) => ({
-        id: uuidv4(),
-        description: service.name,
-        rate: service.rate,
-        no: 0, 
-        times: service.times,
-        total: 0,
-      }));
-      setServicesState(prev => ({...prev, rows: initialServices}));
+    const initialPermits = selectedTrek.permits.map((permit) => ({
+      id: uuidv4(),
+      description: permit.name,
+      rate: permit.rate,
+      no: numberValue,
+      times: 1,
+      total: permit.rate * numberValue,
+    }));
+    setPermitsState(prev => ({...prev, name: "Permits & Food", rows: initialPermits}));
 
-       const initialExtraDetails = [
-        { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-        { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
-      ];
-      setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
-    }
-  }, [selectedTrek, groupSize, services, usePax]);
+    const initialServices = services.map((service) => ({
+      id: uuidv4(),
+      description: service.name,
+      rate: service.rate,
+      no: 0, 
+      times: service.times,
+      total: 0,
+    }));
+    setServicesState(prev => ({...prev, rows: initialServices}));
+
+      const initialExtraDetails = [
+      { id: uuidv4(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
+      { id: uuidv4(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
+    ];
+    setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
+    
+  }, [selectedTrek, groupSize, services, usePax, initialData]);
 
   const getSectionState = (sectionId: string): SectionState | undefined => {
     if (sectionId === "permits") return permitsState;
@@ -222,14 +236,13 @@ export function useCostMatrix(treks: Trek[]) {
     };
   }, [permitsState, servicesState, extraDetailsState, customSections, calculateSectionTotals]);
 
-  const handleSave = async () => {
-    if (!selectedTrek) return;
-    
-    const groupId = uuidv4();
-    const url = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
-    
-    const reportData = {
-      groupId,
+  const compileReportData = (groupId?: string) => {
+    if (!selectedTrek) return null;
+    const finalGroupId = groupId || uuidv4();
+    const url = `${window.location.origin}/report/${finalGroupId}?groupSize=${groupSize}`;
+
+    return {
+      groupId: finalGroupId,
       reportUrl: url,
       trekId: selectedTrek.id,
       trekName: selectedTrek.name,
@@ -248,6 +261,11 @@ export function useCostMatrix(treks: Trek[]) {
       },
       serviceCharge,
     };
+  }
+
+  const handleSave = async () => {
+    const reportData = compileReportData();
+    if (!reportData) return;
     
     try {
       const response = await fetch('/api/reports', {
@@ -260,7 +278,7 @@ export function useCostMatrix(treks: Trek[]) {
         throw new Error('Failed to save report');
       }
 
-      setSavedReportUrl(url);
+      setSavedReportUrl(reportData.reportUrl);
 
       toast({
         title: "Data Saved",
@@ -272,6 +290,36 @@ export function useCostMatrix(treks: Trek[]) {
         variant: "destructive",
         title: "Error",
         description: "Could not save the report. Please try again.",
+      });
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!initialData?.groupId) return;
+    const reportData = compileReportData(initialData.groupId);
+    if (!reportData) return;
+
+    try {
+      const response = await fetch(`/api/reports/${initialData.groupId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update report');
+      }
+      
+      toast({
+        title: "Report Updated",
+        description: "Your changes have been saved successfully.",
+      });
+
+    } catch(error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not update the report. Please try again.",
       });
     }
   };
@@ -289,7 +337,7 @@ export function useCostMatrix(treks: Trek[]) {
     if (!selectedTrek) return;
     
     const doc = new (jsPDF as any)();
-    const groupId = uuidv4();
+    const groupId = initialData?.groupId || uuidv4();
     const qrCodeUrl = `${window.location.origin}/report/${groupId}?groupSize=${groupSize}`;
     const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
     
@@ -422,7 +470,7 @@ export function useCostMatrix(treks: Trek[]) {
     toast({ title: "Success", description: "PDF has been exported." });
 
   }, [
-    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals
+    selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, toast, calculateSectionTotals, initialData
   ]);
   
   const handleExportExcel = useCallback(() => {
@@ -504,6 +552,7 @@ export function useCostMatrix(treks: Trek[]) {
     removeRow,
     removeSection,
     handleSave,
+    handleUpdate,
     savedReportUrl,
     isCopied,
     handleCopyToClipboard,

@@ -1,6 +1,13 @@
 
 import { NextResponse } from 'next/server';
-import { addReport } from '../data';
+import { addReport, reports } from '../data';
+
+export async function GET() {
+  // In a real app, you'd fetch this from a database
+  // We reverse to show the latest reports first
+  return NextResponse.json({ reports: [...reports].reverse() });
+}
+
 
 export async function POST(request: Request) {
   try {

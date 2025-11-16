@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { PlusSquare, Copy, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,26 +20,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/hooks/use-toast";
 import { Stepper } from "@/components/ui/stepper";
 import type { Trek } from "@/lib/types";
+import { useAuth } from "@/context/auth-context";
 
 import { useCostMatrix } from "@/hooks/use-cost-matrix";
 import { SelectTrekStep } from "@/components/steps/select-trek-step";
 import { GroupDetailsStep } from "@/components/steps/group-details-step";
 import { FinalStep } from "@/components/steps/final-step";
 import { CostTable } from "@/components/cost-table";
-import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 interface TrekCostingPageProps {
   treks: Trek[];
   setTreks: React.Dispatch<React.SetStateAction<Trek[]>>;
+  initialData?: any;
 }
 
-export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProps) {
+export default function TrekCostingPage({ treks, setTreks, initialData }: TrekCostingPageProps) {
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
   
   const {
     steps,
@@ -63,20 +66,18 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     removeSection,
     setCustomSections,
     handleSave,
+    handleUpdate,
     savedReportUrl,
     isCopied,
     handleCopyToClipboard,
     handleExportPDF,
     handleExportExcel,
-    permitsTotals,
-    servicesTotals,
-    customSectionsTotals,
     totalCost,
     usePax,
     handleSetUsePax,
     serviceCharge,
     setServiceCharge,
-  } = useCostMatrix(treks);
+  } = useCostMatrix(treks, initialData);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any | null>(null);
@@ -147,6 +148,15 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
   const onExportPDF = () => {
     handleExportPDF(user?.name);
   }
+
+  const handleFinish = async () => {
+    if (initialData?.groupId) {
+      await handleUpdate();
+      router.push('/reports');
+    } else {
+      await handleSave();
+    }
+  };
 
   if (!isClient) {
     return null;
@@ -237,8 +247,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             onRowChange={handleRowChange}
             onDiscountChange={handleDiscountChange}
             onAddRow={addRow}
-            onRemoveRow={removeRow}
-            onEditSection={handleOpenEditSectionModal}
+            onRemoveRow={onRemoveRow}
             onExportPDF={onExportPDF}
             onExportExcel={handleExportExcel}
             totalCost={totalCost}
@@ -317,8 +326,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             </div>
           )}
           {currentStep === steps.length - 1 ? (
-            <Button onClick={() => handleSave()}>
-                Finish
+            <Button onClick={handleFinish}>
+                {initialData ? 'Update' : 'Finish'}
             </Button>
           ) : (
             <Button onClick={nextStep}>

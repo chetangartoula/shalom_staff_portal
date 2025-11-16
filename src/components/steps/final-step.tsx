@@ -21,7 +21,6 @@ interface FinalStepProps {
     onDiscountChange: (sectionId: string, value: number) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
-    onEditSection: (section: SectionState) => void;
     onExportPDF: () => void;
     onExportExcel: () => void;
     totalCost: number;
@@ -38,7 +37,6 @@ export function FinalStep({
     onDiscountChange,
     onAddRow,
     onRemoveRow,
-    onEditSection,
     onExportPDF,
     onExportExcel,
     totalCost,
@@ -64,7 +62,6 @@ export function FinalStep({
                 onDiscountChange={onDiscountChange}
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
-                onEditSection={onEditSection}
                 usePax={usePax}
                 onSetUsePax={onSetUsePax}
             />
@@ -123,5 +120,3 @@ export function FinalStep({
         </div>
     );
 }
-
-    
