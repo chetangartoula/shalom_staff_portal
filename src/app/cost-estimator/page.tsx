@@ -2,35 +2,12 @@
 "use client";
 
 import TrekCostingPage from "../cost-matrix-page";
-import { useAuth } from "@/context/auth-context";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
 import { useToast } from "@/hooks/use-toast";
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
-
+import { ProtectedRoute } from "@/components/protected-route";
 
 export default function NewCostReportPage() {
   const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);

@@ -21,6 +21,7 @@ import { AddServiceForm, type ServiceFormData } from '@/components/add-service-f
 import { formatCurrency } from '@/lib/utils';
 import type { Service } from '@/lib/types';
 import { Input } from '@/components/ui/input';
+import { ProtectedRoute } from '@/components/protected-route';
 
 
 export default function ServicesPage() {
@@ -158,7 +159,7 @@ export default function ServicesPage() {
   };
 
   return (
-    <>
+    <ProtectedRoute>
       <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
       <AddServiceForm 
         open={isServiceModalOpen}
@@ -255,6 +256,6 @@ export default function ServicesPage() {
         </Card>
       </DashboardLayout>
       <Toaster />
-    </>
+    </ProtectedRoute>
   );
 }

@@ -9,6 +9,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { AddTrekForm, type AddTrekFormData } from "@/components/add-trek-form";
 import TrekCostingPage from "@/app/cost-matrix-page";
 import type { Trek } from "@/lib/types";
+import { ProtectedRoute } from "@/components/protected-route";
 
 export default function EditCostMatrixPage() {
     const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
@@ -64,7 +65,7 @@ export default function EditCostMatrixPage() {
     };
 
     return (
-       <>
+       <ProtectedRoute>
          <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
          <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
           {isLoading ? (
@@ -75,6 +76,6 @@ export default function EditCostMatrixPage() {
             <TrekCostingPage treks={treks} setTreks={setTreks} initialData={reportData} />
           )}
          </DashboardLayout>
-       </>
+       </ProtectedRoute>
     );
 }

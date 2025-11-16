@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { Input } from '@/components/ui/input';
+import { ProtectedRoute } from '@/components/protected-route';
 
 export default function ReportsPage() {
   const { toast } = useToast();
@@ -91,7 +92,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <>
+    <ProtectedRoute>
       <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
       <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
         <Card className="shadow-sm">
@@ -176,6 +177,6 @@ export default function ReportsPage() {
         </Card>
       </DashboardLayout>
       <Toaster />
-    </>
+    </ProtectedRoute>
   );
 }

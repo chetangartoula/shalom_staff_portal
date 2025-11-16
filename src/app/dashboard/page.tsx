@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from '@/components/ui/button';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { useToast } from '@/hooks/use-toast';
+import { ProtectedRoute } from '@/components/protected-route';
 
 interface DashboardStats {
   reports: number;
@@ -94,7 +95,7 @@ export default function DashboardPage() {
     ];
 
     return (
-        <>
+        <ProtectedRoute>
             <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
             <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
                 {isLoading ? (
@@ -161,6 +162,6 @@ export default function DashboardPage() {
                     </div>
                 )}
             </DashboardLayout>
-        </>
+        </ProtectedRoute>
     );
 }

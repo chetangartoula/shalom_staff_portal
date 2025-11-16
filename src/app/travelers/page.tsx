@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { Loader2, Search, Users } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { AddTrekForm, type AddTrekFormData } from '@/components/add-trek-form';
 import { Input } from '@/components/ui/input';
+import { ProtectedRoute } from '@/components/protected-route';
 
 interface Traveler {
     id: string;
@@ -73,7 +75,7 @@ export default function TravelersPage() {
   };
 
   return (
-    <>
+    <ProtectedRoute>
       <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} />
       <DashboardLayout onAddTrekClick={() => setIsAddTrekModalOpen(true)}>
         <Card className="shadow-sm">
@@ -142,6 +144,6 @@ export default function TravelersPage() {
         </Card>
       </DashboardLayout>
       <Toaster />
-    </>
+    </ProtectedRoute>
   );
 }
