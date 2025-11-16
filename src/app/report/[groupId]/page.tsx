@@ -82,12 +82,11 @@ export default function ReportPage() {
     [groupSize]
   );
   
+  // Define the schema dynamically inside the component
   const formSchema = z.object({
     travelers: z.array(partialTravelerSchema),
   }).refine((data, ctx) => {
-    // This is where the conditional validation happens.
     data.travelers.forEach((traveler, index) => {
-      // Only validate if the accordion for this traveler has been opened.
       if (openedAccordions.includes(traveler.id!)) {
         const result = travelerSchema.safeParse(traveler);
         if (!result.success) {
@@ -110,7 +109,8 @@ export default function ReportPage() {
     defaultValues: {
       travelers: defaultTravelers,
     },
-    mode: 'onChange'
+    // Re-validate on change to provide immediate feedback
+    mode: 'onChange',
   });
 
   const { fields } = useFieldArray({
@@ -133,7 +133,9 @@ export default function ReportPage() {
             const existingTravelersMap = new Map(data.travelers.map((t: any) => [t.id, t]));
 
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-                const existingTraveler = data.travelers[index]; // Simple merge by index
+                // Try to find an existing traveler by ID first, then by index as a fallback
+                let existingTraveler = existingTravelersMap.get(defaultTraveler.id) || data.travelers[index];
+                
                 if (existingTraveler) {
                     return {
                         ...defaultTraveler,
@@ -168,14 +170,9 @@ export default function ReportPage() {
 
   const handleAccordionChange = (value: string[]) => {
     setOpenedAccordions(value);
-    // When an accordion is opened, trigger validation for that specific field array item.
-    // This helps show errors immediately if fields are empty.
-    value.forEach(id => {
-      const index = form.getValues('travelers').findIndex(t => t.id === id);
-      if (index !== -1) {
-        form.trigger(`travelers.${index}`);
-      }
-    })
+    // When an accordion is opened/closed, trigger validation for the whole form
+    // The schema will then correctly apply rules based on the new `openedAccordions` state.
+    form.trigger();
   };
   
   const onSubmit = async (data: FormData) => {
@@ -447,3 +444,5 @@ export default function ReportPage() {
     </>
   );
 }
+
+    
