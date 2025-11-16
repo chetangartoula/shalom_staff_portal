@@ -2,6 +2,7 @@
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Card,
   CardContent,
   CardHeader,
   CardTitle,
@@ -12,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from "@/lib/utils";
 import type { SectionState, CostRow } from "@/lib/types";
 import { CostTable } from "@/components/cost-table";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface FinalStepProps {
     extraDetailsState: SectionState;
@@ -23,12 +26,12 @@ interface FinalStepProps {
     onRemoveSection: (sectionId: string) => void;
     onExportPDF: () => void;
     onExportExcel: () => void;
-    permitsTotal: number;
-    servicesTotal: number;
-    customSectionsTotals: any[];
     totalCost: number;
     usePax: boolean;
     onSetUsePax: (sectionId: string, value: boolean) => void;
+    groupSize: number;
+    serviceCharge: number;
+    setServiceCharge: (value: number) => void;
 }
 
 export function FinalStep({
@@ -41,62 +44,86 @@ export function FinalStep({
     onRemoveSection,
     onExportPDF,
     onExportExcel,
-    permitsTotal,
-    servicesTotal,
-    customSectionsTotals,
     totalCost,
     usePax,
-    onSetUsePax
+    onSetUsePax,
+    groupSize,
+    serviceCharge,
+    setServiceCharge,
 }: FinalStepProps) {
 
+    const totalWithService = totalCost * (1 + serviceCharge / 100);
+    const costPerPersonWithoutService = groupSize > 0 ? totalCost / groupSize : 0;
+    const costPerPersonWithService = groupSize > 0 ? totalWithService / groupSize : 0;
+
     return (
-        <div className="space-y-6">
-            <CardHeader className="px-0">
-                <CardTitle>Cost Summary</CardTitle>
-                <CardDescription>Review your trek costs.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 rounded-lg border p-4">
-                    <div>
-                        <h3 className="font-semibold text-muted-foreground">PERMITS TOTAL</h3>
-                        <p className="text-2xl font-bold">{formatCurrency(permitsTotal)}</p>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-muted-foreground">SERVICES TOTAL</h3>
-                        <p className="text-2xl font-bold">{formatCurrency(servicesTotal)}</p>
-                    </div>
-                    {customSectionsTotals.map(sec => (
-                        <div key={sec.id}>
-                            <h3 className="font-semibold text-muted-foreground uppercase">{sec.name} TOTAL</h3>
-                            <p className="text-2xl font-bold">{formatCurrency(sec.total)}</p>
+        <div className="space-y-8">
+            <CostTable 
+                title="Extra Details"
+                section={extraDetailsState}
+                isCustom
+                isDescriptionEditable
+                onRowChange={onRowChange}
+                onDiscountChange={onDiscountChange}
+                onAddRow={onAddRow}
+                onRemoveRow={onRemoveRow}
+                onEditSection={onEditSection}
+                onRemoveSection={onRemoveSection}
+                usePax={usePax}
+                onSetUsePax={onSetUsePax}
+            />
+
+            <Separator />
+
+            <Card className="shadow-none border-none">
+                 <CardHeader className="px-0">
+                    <CardTitle>Final Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 rounded-lg border p-6">
+                        <div className="space-y-6">
+                             <div>
+                                <Label htmlFor="pax-display">Number of People (Pax)</Label>
+                                <div id="pax-display" className="mt-2 text-lg font-semibold rounded-md border bg-muted px-3 py-2">{groupSize}</div>
+                            </div>
+                            <div>
+                                <Label htmlFor="service-charge">Service Charge (%)</Label>
+                                <Input
+                                    id="service-charge"
+                                    type="number"
+                                    value={serviceCharge}
+                                    onChange={(e) => setServiceCharge(Number(e.target.value))}
+                                    placeholder="e.g., 10"
+                                    className="mt-2"
+                                />
+                            </div>
                         </div>
-                    ))}
-                </div>
-                <Separator />
-                <CostTable 
-                    title="Extra Details"
-                    section={extraDetailsState}
-                    isCustom
-                    isDescriptionEditable
-                    onRowChange={onRowChange}
-                    onDiscountChange={onDiscountChange}
-                    onAddRow={onAddRow}
-                    onRemoveRow={onRemoveRow}
-                    onEditSection={onEditSection}
-                    onRemoveSection={onRemoveSection}
-                    usePax={usePax}
-                    onSetUsePax={onSetUsePax}
-                />
-                <Separator />
-                <div className="flex justify-between items-center text-xl font-bold text-primary p-4 bg-primary/5 rounded-lg">
-                    <span>Final Cost:</span> 
-                    <span>{formatCurrency(totalCost)}</span>
-                </div>
-            </CardContent>
-            <CardFooter className="flex-wrap justify-end gap-2 px-0">
-                <Button onClick={onExportPDF}><FileDown /> Export PDF</Button>
-                <Button onClick={onExportExcel}><FileDown /> Export Excel</Button>
-            </CardFooter>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                                <span className="text-muted-foreground">Group Total without service</span>
+                                <span className="font-bold">{formatCurrency(totalCost)}</span>
+                            </div>
+                             <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                                <span className="text-muted-foreground">Group Total with service ({serviceCharge}%)</span>
+                                <span className="font-bold">{formatCurrency(totalWithService)}</span>
+                            </div>
+                             <div className="flex items-center justify-between rounded-lg bg-orange-100 p-3 text-orange-900">
+                                <span className="font-medium">Total cost for each w/o service</span>
+                                <span className="font-bold">{formatCurrency(costPerPersonWithoutService)}</span>
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg bg-orange-100 p-3 text-orange-900">
+                                <span className="font-medium">Total cost for each with service</span>
+                                <span className="font-bold">{formatCurrency(costPerPersonWithService)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex-wrap justify-end gap-2 px-0 pt-6">
+                    <Button onClick={onExportPDF} variant="outline"><FileDown /> Export PDF</Button>
+                    <Button onClick={onExportExcel} variant="outline"><FileDown /> Export Excel</Button>
+                </CardFooter>
+            </Card>
         </div>
     );
 }

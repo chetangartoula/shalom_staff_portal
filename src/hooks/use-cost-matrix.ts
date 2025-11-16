@@ -43,6 +43,7 @@ export function useCostMatrix(treks: Trek[]) {
 
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [serviceCharge, setServiceCharge] = useState(10);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -244,7 +245,8 @@ export function useCostMatrix(treks: Trek[]) {
         extraDetailsTotal: extraDetailsTotals.total,
         customSectionsTotals: customSectionsTotals.map(s => ({name: s.name, total: s.total})),
         grandTotal: totalCost
-      }
+      },
+      serviceCharge,
     };
     
     try {
@@ -506,5 +508,7 @@ export function useCostMatrix(treks: Trek[]) {
     handleExportExcel,
     usePax,
     handleSetUsePax,
+    serviceCharge,
+    setServiceCharge,
   };
 }

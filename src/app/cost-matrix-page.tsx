@@ -72,6 +72,8 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
     totalCost,
     usePax,
     handleSetUsePax,
+    serviceCharge,
+    setServiceCharge,
   } = useCostMatrix(treks);
   
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
@@ -231,15 +233,15 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onEditSection={handleOpenEditSectionModal}
-            onRemoveSection={removeSection}
+            onRemoveSection={onRemoveSection}
             onExportPDF={handleExportPDF}
             onExportExcel={handleExportExcel}
-            permitsTotal={permitsTotals.total}
-            servicesTotal={servicesTotals.total}
-            customSectionsTotals={customSectionsTotals}
             totalCost={totalCost}
             usePax={usePax[extraDetailsState.id] || false}
             onSetUsePax={handleSetUsePax}
+            groupSize={groupSize}
+            serviceCharge={serviceCharge}
+            setServiceCharge={setServiceCharge}
           />
       );
     }
@@ -311,7 +313,7 @@ export default function TrekCostingPage({ treks, setTreks }: TrekCostingPageProp
           )}
           {currentStep === steps.length - 1 ? (
             <Button onClick={() => handleSave()}>
-                Save
+                Finish
             </Button>
           ) : (
             <Button onClick={nextStep}>
