@@ -35,8 +35,8 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
         const linkContent = (
              <span className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:text-sidebar-foreground",
-                pathname === item.href && "bg-primary/20 text-sidebar-foreground",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-muted-foreground transition-all hover:text-sidebar-foreground hover:bg-sidebar-active-background",
+                pathname === item.href && "bg-sidebar-active-background text-sidebar-foreground",
                 isCollapsed && "justify-center"
             )}>
                 <item.icon className="h-5 w-5" />
@@ -69,7 +69,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
     };
 
     return (
-        <div className={cn("hidden border-r bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
+        <div className={cn("hidden border-r border-gray-700 bg-sidebar-background text-sidebar-foreground md:flex md:flex-col", className, isCollapsed && "items-center")}>
             <div className={cn("flex h-14 items-center border-b border-gray-700 px-4 lg:h-[60px] lg:px-6", isCollapsed && "h-[60px] justify-center px-2")}>
                 <Link href="/" className="flex items-center gap-2 font-semibold">
                     <Mountain className="h-6 w-6 text-primary" />
@@ -88,7 +88,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-primary/20" onClick={handleLogout}>
+                                <Button variant="ghost" className="w-full text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
                                     <LogOut className="h-5 w-5" />
                                 </Button>
                             </TooltipTrigger>
@@ -96,7 +96,7 @@ export function Sidebar({ className, isCollapsed, onAddTrekClick }: SidebarProps
                         </Tooltip>
                     </TooltipProvider>
                 ) : (
-                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-primary/20" onClick={handleLogout}>
+                    <Button variant="ghost" className="w-full justify-start text-sidebar-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-active-background" onClick={handleLogout}>
                         <LogOut className="mr-2 h-5 w-5" />
                         Logout
                     </Button>

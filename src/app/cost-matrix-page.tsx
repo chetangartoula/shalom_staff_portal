@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -113,11 +114,6 @@ export default function TrekCostingPage() {
     setIsSectionModalOpen(false);
     setEditingSection(null);
     setNewSectionName("");
-  };
-  
-  const removeSection = (sectionId: string) => {
-    setCustomSections(prev => prev.filter(s => s.id !== sectionId));
-    setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
   };
 
   const handleAddTrekSubmit = async (data: AddTrekFormData) => {
