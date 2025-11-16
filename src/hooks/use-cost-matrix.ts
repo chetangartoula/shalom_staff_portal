@@ -91,21 +91,9 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     [selectedTrekId, treks]
   );
   
-  const handleSetUsePax = (sectionId: string, value: boolean) => {
+  const handleSetUsePax = useCallback((sectionId: string, value: boolean) => {
     setUsePax(prev => ({...prev, [sectionId]: value}));
-    
-    const isPax = value;
-    const section = getSectionState(sectionId);
-    if (!section) return;
-
-    const updatedRows = section.rows.map((row) => {
-        const newNo = isPax ? groupSize : row.no;
-        const newRow = { ...row, no: newNo };
-        newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
-        return newRow;
-    });
-    setSectionState(sectionId, { rows: updatedRows });
-  }
+  }, []);
 
   useEffect(() => {
     // This effect runs when a new trek is selected, to reset the details.
@@ -142,15 +130,42 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     setExtraDetailsState(prev => ({...prev, rows: initialExtraDetails}));
     
   }, [selectedTrek, groupSize, services, usePax, initialData]);
+  
+  useEffect(() => {
+      // This effect updates the 'no' value when groupSize or usePax changes.
+      const updateNoBasedOnPax = (section: SectionState) => {
+          const isPax = usePax[section.id] ?? false;
+          if (!isPax) return section; // No change if not using pax
 
-  const getSectionState = (sectionId: string): SectionState | undefined => {
+          return {
+              ...section,
+              rows: section.rows.map(row => {
+                  const newNo = groupSize;
+                  return {
+                      ...row,
+                      no: newNo,
+                      total: (row.rate || 0) * newNo * (row.times || 0)
+                  };
+              })
+          };
+      };
+      
+      setPermitsState(updateNoBasedOnPax);
+      setServicesState(updateNoBasedOnPax);
+      setExtraDetailsState(updateNoBasedOnPax);
+      setCustomSections(prev => prev.map(updateNoBasedOnPax));
+
+  }, [groupSize, usePax]);
+
+
+  const getSectionState = useCallback((sectionId: string): SectionState | undefined => {
     if (sectionId === "permits") return permitsState;
     if (sectionId === "services") return servicesState;
     if (sectionId === "extraDetails") return extraDetailsState;
     return customSections.find(s => s.id === sectionId);
-  };
+  }, [permitsState, servicesState, extraDetailsState, customSections]);
 
-  const setSectionState = (sectionId: string, newState: Partial<SectionState> | ((prevState: SectionState) => SectionState)) => {
+  const setSectionState = useCallback((sectionId: string, newState: Partial<SectionState> | ((prevState: SectionState) => SectionState)) => {
     const updater = (prev: SectionState): SectionState => {
         if (typeof newState === 'function') {
             return newState(prev);
@@ -164,9 +179,9 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     else {
         setCustomSections(prev => prev.map(s => s.id === sectionId ? updater(s) : s));
     }
-  };
+  }, []);
 
-  const handleRowChange = (id: string, field: keyof CostRow, value: any, sectionId: string) => {
+  const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
     const section = getSectionState(sectionId);
     if (!section) return;
 
@@ -181,25 +196,25 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
       return row;
     });
     setSectionState(sectionId, { rows: updatedRows });
-  };
+  }, [getSectionState, setSectionState]);
   
-  const handleDiscountChange = (sectionId: string, value: number) => {
+  const handleDiscountChange = useCallback((sectionId: string, value: number) => {
     setSectionState(sectionId, { discount: value });
-  };
+  }, [setSectionState]);
 
-  const addRow = (sectionId: string) => {
+  const addRow = useCallback((sectionId: string) => {
     const newRow: CostRow = { id: uuidv4(), description: "", rate: 0, no: 1, times: 1, total: 0 };
     setSectionState(sectionId, (prev) => ({...prev, rows: [...prev.rows, newRow]}));
-  };
+  }, [setSectionState]);
 
-  const removeRow = (id: string, sectionId: string) => {
+  const removeRow = useCallback((id: string, sectionId: string) => {
     setSectionState(sectionId, (prev) => ({...prev, rows: prev.rows.filter((row) => row.id !== id)}));
-  };
+  }, [setSectionState]);
 
-  const removeSection = (sectionId: string) => {
+  const removeSection = useCallback((sectionId: string) => {
     setCustomSections(prev => prev.filter(s => s.id !== sectionId));
     setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
-  };
+  }, []);
 
   const calculateSectionTotals = useCallback((section: SectionState) => {
     const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
@@ -236,7 +251,7 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     };
   }, [permitsState, servicesState, extraDetailsState, customSections, calculateSectionTotals]);
 
-  const compileReportData = (groupId?: string) => {
+  const compileReportData = useCallback((groupId?: string) => {
     if (!selectedTrek) return null;
     const finalGroupId = groupId || uuidv4();
     const url = `${window.location.origin}/report/${finalGroupId}?groupSize=${groupSize}`;
@@ -261,9 +276,9 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
       },
       serviceCharge,
     };
-  }
+  }, [selectedTrek, groupSize, startDate, permitsState, servicesState, extraDetailsState, customSections, permitsTotals, servicesTotals, extraDetailsTotals, customSectionsTotals, totalCost, serviceCharge]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const reportData = compileReportData();
     if (!reportData) return;
     
@@ -292,9 +307,9 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
         description: "Could not save the report. Please try again.",
       });
     }
-  };
+  }, [compileReportData, toast]);
 
-  const handleUpdate = async () => {
+  const handleUpdate = useCallback(async () => {
     if (!initialData?.groupId) return;
     const reportData = compileReportData(initialData.groupId);
     if (!reportData) return;
@@ -322,16 +337,16 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
         description: "Could not update the report. Please try again.",
       });
     }
-  };
+  }, [compileReportData, initialData, toast]);
 
-  const handleCopyToClipboard = () => {
+  const handleCopyToClipboard = useCallback(() => {
     if (savedReportUrl) {
       navigator.clipboard.writeText(savedReportUrl);
       setIsCopied(true);
       toast({ title: "Copied!", description: "Report link copied to clipboard." });
       setTimeout(() => setIsCopied(false), 2000);
     }
-  };
+  }, [savedReportUrl, toast]);
   
   const handleExportPDF = useCallback(async (userName?: string) => {
     if (!selectedTrek) return;
@@ -564,5 +579,3 @@ export function useCostMatrix(treks: Trek[], initialData?: any) {
     setServiceCharge,
   };
 }
-
-    

@@ -141,7 +141,7 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -344,5 +344,3 @@ function TrekCostingPageComponent({ treks, setTreks, initialData }: TrekCostingP
 const TrekCostingPage = memo(TrekCostingPageComponent);
 
 export default TrekCostingPage;
-
-    

@@ -166,7 +166,7 @@ export default function ReportsPage() {
               </div>
             )}
           </CardContent>
-           {hasMore && (
+           {hasMore && !searchTerm && (
             <CardFooter className="justify-center pt-6">
               <Button onClick={handleLoadMore} disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
