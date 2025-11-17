@@ -1,11 +1,12 @@
 {
-  "name": "Shalom Dashboard",
-  "short_name": "Shalom",
-  "description": "Trek Costing & Management Dashboard",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#151D4F",
   "theme_color": "#151D4F",
+  "background_color": "#F0FFF0",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "name": "Shalom Dashboard",
+  "short_name": "ShalomDash",
+  "description": "Trek Costing & Management Dashboard",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
