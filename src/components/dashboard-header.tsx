@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -34,18 +35,17 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, use
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 border-0 sheet-content">
+        <SheetContent side="left" className="flex flex-col p-0 border-0 w-60">
           <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
-          <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} user={user}/>
+          <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} user={user} className="flex" />
         </SheetContent>
       </Sheet>
       
       <div className="w-full flex-1 flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+        <Button variant="ghost" size="icon" className="hidden md:inline-flex lg:hidden" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
           {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
           <span className="sr-only">Toggle sidebar</span>
         </Button>
-        <div className="flex-1" />
       </div>
     </header>
   );

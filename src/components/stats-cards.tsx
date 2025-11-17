@@ -36,7 +36,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
             {statCards.map((card, index) => {
                 const Icon = icons[card.icon];
                 return (
-                    <Card key={index} className="shadow-sm hover:shadow-lg transition-shadow duration-300">
+                    <Card key={index} className="transition-shadow duration-300">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
                             <Icon className={`h-5 w-5 ${card.color}`} />
@@ -57,10 +57,10 @@ StatsCards.Skeleton = function StatsSkeleton() {
             {Array.from({ length: 5 }).map((_, index) => (
                 <Card key={index}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <div className="h-4 bg-muted rounded-md w-2/3"></div>
+                        <div className="h-4 bg-muted rounded-md w-2/3 animate-pulse"></div>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-8 w-1/2 bg-muted rounded-md"></div>
+                        <div className="h-8 w-1/2 bg-muted rounded-md animate-pulse"></div>
                     </CardContent>
                 </Card>
             ))}

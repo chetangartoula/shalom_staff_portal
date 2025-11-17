@@ -4,7 +4,7 @@
 import { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, PlusSquare, Check, Copy, Edit, Trash2, Plus, FileDown } from "lucide-react";
+import { Loader2, PlusSquare, Check, Copy, Edit, FileDown, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -96,7 +96,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   const [report, setReport] = useState<ReportState>(() => createInitialReportState(initialData?.groupId));
   const [steps, setSteps] = useState(initialSteps);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!initialData);
+  const [isSaving, setIsSaving] = useState(false);
   const [usePax, setUsePax] = useState<{ [key: string]: boolean }>({});
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(initialData?.reportUrl || null);
   const [isCopied, setIsCopied] = useState(false);
@@ -108,7 +109,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   
   useEffect(() => {
     if (initialData) {
-        setIsLoading(true);
         const fullReport = {
             ...createInitialReportState(initialData.groupId),
             ...initialData,
@@ -125,6 +125,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             });
             setSteps(newSteps);
         }
+        
+        if (initialData.trekId) {
+            setCurrentStep(1); // Start at group details if trek is selected
+        }
+        
         setIsLoading(false);
     }
   }, [initialData]);
@@ -389,60 +394,52 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     return { ...report, reportUrl: url };
   }, [report]);
 
-  const handleSave = useCallback(async () => {
-    setIsLoading(true);
+  const handleSaveOrUpdate = useCallback(async () => {
+    setIsSaving(true);
     const payload = getReportPayload();
-    try {
-      const response = await fetch('/api/reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error('Failed to save report');
-      setSavedReportUrl(payload.reportUrl);
-      toast({ title: "Data Saved", description: "Your trek costing details have been saved." });
-    } catch(error) {
-       toast({ variant: "destructive", title: "Error", description: "Could not save the report." });
-    } finally {
-        setIsLoading(false);
-    }
-  }, [getReportPayload, toast]);
+    const isUpdate = !!initialData?.groupId;
+    const url = isUpdate ? `/api/reports/${payload.groupId}` : '/api/reports';
+    const method = isUpdate ? 'PUT' : 'POST';
 
-  const handleUpdate = useCallback(async () => {
-    setIsLoading(true);
-    const payload = getReportPayload();
     try {
-      const response = await fetch(`/api/reports/${payload.groupId}`, {
-        method: 'PUT',
+      const response = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error('Failed to update report');
+
+      if (!response.ok) {
+         const errorData = await response.json();
+         throw new Error(errorData.message || `Failed to ${isUpdate ? 'update' : 'save'} report`);
+      }
+
       setSavedReportUrl(payload.reportUrl);
-      toast({ title: "Report Updated", description: "Your changes have been saved." });
+      toast({ title: "Success!", description: `Report has been ${isUpdate ? 'updated' : 'saved'}.` });
+      
+      return true;
     } catch(error) {
-       toast({ variant: "destructive", title: "Error", description: "Could not update the report." });
+       toast({ variant: "destructive", title: "Error", description: (error as Error).message });
+       return false;
     } finally {
-        setIsLoading(false);
+        setIsSaving(false);
     }
-  }, [getReportPayload, toast]);
+  }, [getReportPayload, initialData, toast]);
+
 
   const handleCopyToClipboard = useCallback(() => {
     if (savedReportUrl) {
       navigator.clipboard.writeText(savedReportUrl);
       setIsCopied(true);
-      toast({ title: "Copied!", description: "Report link copied to clipboard." });
+      toast({ title: "Copied!", description: "Traveler form link copied to clipboard." });
       setTimeout(() => setIsCopied(false), 2000);
     }
   }, [savedReportUrl, toast]);
 
   const handleFinish = async () => {
-    if (initialData?.groupId) {
-      await handleUpdate();
-    } else {
-      await handleSave();
+    const success = await handleSaveOrUpdate();
+    if (success) {
+        router.push('/reports');
     }
-    router.push('/reports');
   };
   
   const renderStepContent = () => {
@@ -553,15 +550,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
 
   return (
     <Suspense fallback={<LoadingStep />}>
-      <Card className="w-full shadow-lg rounded-xl">
+      <Card>
         <CardContent className="p-4 sm:p-6 lg:p-8">
-          <div className="mb-8 md:mb-12">
-            <div className="flex items-center justify-between gap-x-8 gap-y-4 flex-wrap">
-              <div className="flex-grow min-w-[300px]">
+          <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-x-8 gap-y-4">
+              <div className="w-full flex-grow">
                 <Stepper
                   steps={steps.map((s) => ({id: s.id, name: s.name, isCustom: s.id.startsWith('custom_step_')}))}
                   currentStep={currentStep}
                   setCurrentStep={setCurrentStep}
+                  disabled={!!initialData && currentStep === 0}
                 />
               </div>
               <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
@@ -588,10 +585,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </div>
           </div>
           
-          <div className="mt-8">
+          <div>
             <Suspense fallback={<LoadingStep />}>
               {renderStepContent()}
             </Suspense>
@@ -606,18 +602,25 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
         
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
           {savedReportUrl && (
-            <div className="flex items-center gap-1 rounded-md bg-muted p-2 text-sm">
-                <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
-                  {savedReportUrl}
-                </Link>
+            <div className="flex items-center gap-1 rounded-md bg-muted p-1 pr-2 text-sm">
                 <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
                   {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                 </Button>
+                <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                  Traveler Form Link
+                </Link>
             </div>
           )}
+          
+          <Button onClick={handleSaveOrUpdate} disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Save className="mr-2 h-4 w-4" /> Save
+          </Button>
+
           {currentStep === steps.length - 1 ? (
-            <Button onClick={handleFinish} disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (initialData ? 'Update' : 'Finish')}
+            <Button onClick={handleFinish} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Finish & Close
             </Button>
           ) : (
             <Button onClick={nextStep}>

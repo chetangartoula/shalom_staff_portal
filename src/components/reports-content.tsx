@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
 
@@ -112,7 +113,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
           report={selectedReport}
         />
       </Suspense>
-      <Card className="shadow-sm">
+      <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
@@ -143,7 +144,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         <TableRow>
                         <TableHead>Trek Name</TableHead>
                         <TableHead>Group Name</TableHead>
-                        <TableHead>Group ID</TableHead>
+                        <TableHead>Traveler Form</TableHead>
                         <TableHead>Group Size</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Pending</TableHead>
@@ -155,14 +156,16 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         {filteredReports.length > 0 ? filteredReports.map((report) => (
                         <TableRow key={report.groupId}>
                             <TableCell className="font-medium">{report.trekName}</TableCell>
-                            <TableCell>{report.groupName}</TableCell>
+                            <TableCell>
+                                <Badge variant="outline">{report.groupName}</Badge>
+                            </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                  <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
+                                  <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
                                     {report.groupId.substring(0, 8)}...
                                   </Link>
-                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.groupId)}>
-                                      {copiedId === report.groupId ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
+                                      {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                       <span className="sr-only">Copy Group ID</span>
                                     </Button>
                                 </div>
@@ -173,11 +176,11 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
-                                        <BookUser className="mr-2 h-4 w-4" /> Assign Team
-                                    </Button>
                                     <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
-                                        <Users className="mr-2 h-4 w-4" /> View Travelers
+                                        <Users className="mr-2 h-4 w-4" /> View
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
+                                        <BookUser className="mr-2 h-4 w-4" /> Assign
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
                                         <Edit className="mr-2 h-4 w-4" /> Edit
