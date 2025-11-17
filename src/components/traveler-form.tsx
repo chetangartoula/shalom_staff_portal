@@ -352,6 +352,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Input
                                 placeholder="A12345678"
                                 {...field}
+                                value={field.value ?? ""}
                             />
                             </FormControl>
                             <FormMessage />
