@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Loader2, FileDown, User, Backpack, Users as UsersIcon, Ticket, ConciergeBell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import {
     Dialog,
     DialogContent,
@@ -15,10 +16,9 @@ import {
     DialogFooter
 } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Guide, Porter, SectionState } from '@/lib/types';
+import type { Guide, Porter, SectionState, Traveler } from '@/lib/types';
 
 interface Assignment {
     groupId: string;
@@ -36,7 +36,7 @@ interface TripDetails {
         permits: SectionState;
         services: SectionState;
     };
-    travelers: any[];
+    travelers: Traveler[];
     guides: Guide[];
     porters: Porter[];
 }
@@ -86,26 +86,31 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         const pageLeftMargin = 14;
         const pageRightMargin = 14;
         const pageTopMargin = 20;
-        
+        let yPos = pageTopMargin;
+
+        // Header
         doc.setFontSize(20);
         doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-        doc.text(`Shalom Treks - Trip Details`, pageLeftMargin, pageTopMargin);
+        doc.text(`Shalom Treks - Trip Details`, pageLeftMargin, yPos);
+        yPos += 4;
         doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
-        doc.line(pageLeftMargin, pageTopMargin + 4, doc.internal.pageSize.width - pageRightMargin, pageTopMargin + 4);
-        
+        doc.line(pageLeftMargin, yPos, doc.internal.pageSize.width - pageRightMargin, yPos);
+        yPos += 8;
+
+        // Trip Info
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        doc.text(details.report.trekName, pageLeftMargin, pageTopMargin + 12);
+        doc.text(details.report.trekName, pageLeftMargin, yPos);
+        yPos += 6;
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Group: ${details.report.groupName} | Start Date: ${format(new Date(details.report.startDate), 'PPP')}`, pageLeftMargin, pageTopMargin + 18);
-
-        let yPos = pageTopMargin + 30;
+        doc.text(`Group: ${details.report.groupName} | Start Date: ${format(new Date(details.report.startDate), 'PPP')}`, pageLeftMargin, yPos);
+        yPos += 12;
 
         // Team Details
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text("Assigned Team", 14, yPos);
+        doc.text("Assigned Team", pageLeftMargin, yPos);
         yPos += 7;
 
         const guidesText = details.guides.map(g => `${g.name} (${g.phone})`).join('\n');
@@ -127,7 +132,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         if (details.report.permits.rows.length > 0) {
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
-            doc.text("Permits Included", 14, yPos);
+            doc.text("Permits Included", pageLeftMargin, yPos);
             yPos += 7;
             autoTable(doc, {
                 startY: yPos,
@@ -140,10 +145,11 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         }
 
         // Services
+        if (yPos > 240) { doc.addPage(); yPos = pageTopMargin; }
         if (details.report.services.rows.length > 0) {
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
-            doc.text("Services Included", 14, yPos);
+            doc.text("Services Included", pageLeftMargin, yPos);
             yPos += 7;
             autoTable(doc, {
                 startY: yPos,
@@ -155,15 +161,16 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
             yPos = (doc as any).lastAutoTable.finalY + 10;
         }
 
-
         // Traveler Details
+        if (yPos > 240) { doc.addPage(); yPos = pageTopMargin; }
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text(`Traveler Details (${details.travelers.length} / ${details.report.groupSize})`, 14, yPos);
+        doc.text(`Traveler Details (${details.travelers.length} / ${details.report.groupSize})`, pageLeftMargin, yPos);
         yPos += 7;
 
-        const travelerCols = ["Name", "Nationality", "Passport No.", "Phone", "Emergency Contact"];
+        const travelerCols = ["Profile", "Name", "Nationality", "Passport No.", "Phone", "Emergency Contact"];
         const travelerRows = details.travelers.map(t => [
+            '', // Placeholder for image
             t.name,
             t.nationality,
             t.passportNumber,
@@ -177,6 +184,15 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
             body: travelerRows,
             theme: 'striped',
             headStyles: { fillColor: brandColor },
+            didDrawCell: (data) => {
+              if (data.section === 'body' && data.column.index === 0) {
+                const traveler = details.travelers[data.row.index];
+                if (traveler.profilePicture) {
+                  doc.addImage(traveler.profilePicture, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
+                }
+              }
+            },
+            rowPageBreak: 'avoid'
         });
 
         doc.save(`guide-trip-${assignment.groupId.substring(0, 8)}.pdf`);
@@ -270,6 +286,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead>Profile</TableHead>
                                                 <TableHead>Name</TableHead>
                                                 <TableHead>Nationality</TableHead>
                                                 <TableHead>Passport No.</TableHead>
@@ -280,6 +297,15 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                         <TableBody>
                                             {details.travelers.length > 0 ? details.travelers.map((traveler) => (
                                                 <TableRow key={traveler.id}>
+                                                     <TableCell>
+                                                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                                            {traveler.profilePicture ? (
+                                                                <Image src={traveler.profilePicture} alt={traveler.name} width={40} height={40} className="object-cover" />
+                                                            ) : (
+                                                                <User className="h-6 w-6 text-muted-foreground" />
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
                                                     <TableCell className="font-medium">{traveler.name}</TableCell>
                                                     <TableCell>{traveler.nationality || 'N/A'}</TableCell>
                                                     <TableCell>{traveler.passportNumber}</TableCell>
@@ -288,7 +314,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                                 </TableRow>
                                             )) : (
                                                 <TableRow>
-                                                    <TableCell colSpan={5} className="h-24 text-center">
+                                                    <TableCell colSpan={6} className="h-24 text-center">
                                                         No traveler details submitted for this group yet.
                                                     </TableCell>
                                                 </TableRow>

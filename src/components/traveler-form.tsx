@@ -4,7 +4,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Loader2, Save, Camera, Upload, User } from "lucide-react";
 import Image from "next/image";
 
@@ -32,12 +32,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import { CameraCapture } from "@/components/camera-capture";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+
+const fileSchema = z.any()
+  .refine(files => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+  .refine(
+    files => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    "Only .jpg, .jpeg, .png, .webp and .pdf formats are supported."
+  ).optional();
 
 const travelerSchema = z.object({
   id: z.string().optional(),
@@ -66,6 +75,15 @@ interface TravelerFormProps {
     groupId: string;
     groupSize: number;
 }
+
+const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) {
   const { toast } = useToast();
@@ -126,13 +144,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
             }));
              
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-              const existingData = existingTravelers.find((et: Traveler) => {
-                // This logic is a bit brittle. A better approach in a real app would be a stable ID from the backend.
-                // For now, we assume the order is the same or we match by a unique property if possible.
-                // Here, we just match by index for simplicity.
-                return index < existingTravelers.length;
-              });
-
               if (existingTravelers[index]) {
                   const existing = existingTravelers[index];
                   return { 
@@ -142,7 +153,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                       // If a record exists, we can assume a passport photo was uploaded.
                       // We pass a dummy file to satisfy the validation on load.
                       // The user can still upload a new one.
-                      passportPhoto: new File([], "dummy.jpg")
+                      passportPhoto: existing.passportNumber ? new File([], "dummy.jpg") : undefined
                   };
               }
               return defaultTraveler;
@@ -217,10 +228,19 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     }
     
     try {
+        const payload = { ...validationResult.data };
+
+        if (payload.passportPhoto && payload.passportPhoto.length > 0) {
+            payload.passportPhoto = await fileToDataURL(payload.passportPhoto[0]);
+        }
+        if (payload.visaPhoto && payload.visaPhoto.length > 0) {
+            payload.visaPhoto = await fileToDataURL(payload.visaPhoto[0]);
+        }
+
       const response = await fetch(`/api/travelers/${groupId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ traveler: validationResult.data }),
+        body: JSON.stringify({ traveler: payload }),
       });
 
       if (!response.ok) {

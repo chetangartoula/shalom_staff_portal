@@ -392,6 +392,26 @@
           "passportExpiryDate": "2025-11-18T18:15:00.000Z"
         }
       ]
+    },
+    {
+      "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2",
+      "travelers": [
+        {
+          "id": "7ed4da1b813046c9da18090085bfc493a964c97a3858fd68c360b91d7a38a4b4",
+          "name": "nibol pacfut",
+          "phone": "+9779860701958",
+          "address": "Naya thimi",
+          "passportNumber": "fasdf",
+          "emergencyContact": "+9779860701958",
+          "dateOfBirth": "2025-11-17T18:15:00.000Z",
+          "nationality": "Nepali",
+          "passportExpiryDate": "2025-11-19T18:15:00.000Z",
+          "profilePicture": "",
+          "passportPhoto": {
+            "0": {}
+          }
+        }
+      ]
     }
   ],
   "assignments": [

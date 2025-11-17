@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { Loader2, FileDown, User } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -27,6 +26,8 @@ interface TravelerDetailsModalProps {
     onClose: () => void;
     report: Report | null;
 }
+
+const isPDF = (dataUrl: string) => dataUrl.startsWith('data:application/pdf');
 
 export default function TravelerDetailsModal({ isOpen, onClose, report }: TravelerDetailsModalProps) {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -57,37 +58,116 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
     }, [isOpen, report, toast]);
 
     const handlePrintPdf = async () => {
-        if (!report) return;
-        const { default: jsPDF } = await import('jspdf');
-        const { default: autoTable } = await import('jspdf-autotable');
+        if (!report || travelers.length === 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No traveler data to print.' });
+            return;
+        }
 
-        const doc = new jsPDF();
+        const { default: jsPDF } = await import('jspdf');
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const pageLeftMargin = 15;
+        const pageRightMargin = 15;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const contentWidth = pageWidth - pageLeftMargin - pageRightMargin;
+        let yPos = 20;
 
         doc.setFontSize(18);
-        doc.text(`Traveler Details for ${report.trekName}`, 14, 22);
+        doc.text(`Traveler Details for ${report.trekName}`, pageLeftMargin, yPos);
+        yPos += 8;
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Group: ${report.groupName} (ID: ${report.groupId})`, 14, 30);
+        doc.text(`Group: ${report.groupName} (ID: ${report.groupId})`, pageLeftMargin, yPos);
+        yPos += 15;
 
-        const tableColumn = ["Name", "Nationality", "Passport No.", "Phone", "Emergency Contact"];
-        const tableRows: (string | undefined)[][] = [];
+        for (const traveler of travelers) {
+            const pageHeight = doc.internal.pageSize.getHeight();
+            // Check if there's enough space for the next traveler's data
+            if (yPos > pageHeight - 100) { // Estimate space needed
+                doc.addPage();
+                yPos = 20;
+            }
 
-        travelers.forEach(traveler => {
-            const travelerData = [
-                traveler.name,
-                traveler.nationality,
-                traveler.passportNumber,
-                traveler.phone,
-                traveler.emergencyContact,
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text(traveler.name, pageLeftMargin, yPos);
+            yPos += 8;
+
+            const details = [
+                ['Nationality', traveler.nationality || 'N/A'],
+                ['Passport No.', traveler.passportNumber || 'N/A'],
+                ['Phone', traveler.phone || 'N/A'],
+                ['Emergency Contact', traveler.emergencyContact || 'N/A'],
+                ['Address', traveler.address || 'N/A'],
             ];
-            tableRows.push(travelerData);
-        });
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 35,
-        });
+            const startY = yPos;
+            const textX = pageLeftMargin + 40;
+            
+            // Draw details
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            details.forEach(detail => {
+                doc.setFont('helvetica', 'bold');
+                doc.text(detail[0] + ':', pageLeftMargin, yPos);
+                doc.setFont('helvetica', 'normal');
+                doc.text(detail[1], textX, yPos);
+                yPos += 6;
+            });
+            const textBlockHeight = yPos - startY;
+
+            // Draw Profile Picture
+            if (traveler.profilePicture) {
+                doc.addImage(traveler.profilePicture, 'JPEG', pageLeftMargin + 120, startY, 30, 30);
+            }
+            
+            yPos = Math.max(yPos, startY + 35); // Ensure yPos is below image
+
+            // Draw Passport and Visa
+            const images = [
+                { label: 'Passport', data: traveler.passportPhoto },
+                { label: 'Visa', data: traveler.visaPhoto },
+            ];
+
+            let imgX = pageLeftMargin;
+            const imgWidth = contentWidth / 2 - 5;
+            const imgHeight = (imgWidth * 2) / 3;
+
+            for (const img of images) {
+                if (img.data) {
+                    if (yPos > pageHeight - (imgHeight + 15)) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(img.label, imgX, yPos);
+                    yPos += 5;
+                    
+                    if(isPDF(img.data)){
+                        doc.text('PDF uploaded, cannot display.', imgX, yPos);
+                        yPos += 5;
+                    } else {
+                        doc.addImage(img.data, 'JPEG', imgX, yPos, imgWidth, imgHeight);
+                    }
+                    
+                    if (imgX === pageLeftMargin) {
+                        imgX = pageLeftMargin + contentWidth / 2 + 5;
+                    } else {
+                        yPos += imgHeight + 10;
+                        imgX = pageLeftMargin;
+                    }
+                }
+            }
+             if (imgX !== pageLeftMargin) { // If only one image was drawn
+                yPos += imgHeight + 10;
+            }
+
+
+            yPos += 5; // spacing between travelers
+            doc.setDrawColor(200);
+            doc.line(pageLeftMargin, yPos, pageWidth - pageRightMargin, yPos);
+            yPos += 10;
+        }
 
         doc.save(`travelers-${report.groupId.substring(0, 8)}.pdf`);
     };

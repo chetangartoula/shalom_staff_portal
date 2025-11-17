@@ -65,12 +65,14 @@ export interface Traveler {
   name: string;
   phone: string;
   address: string;
-  passportNumber: string;
+  passportNumber?: string;
   emergencyContact: string;
   dateOfBirth?: string;
   nationality?: string;
   passportExpiryDate?: string;
   profilePicture?: string;
+  passportPhoto?: string;
+  visaPhoto?: string;
 }
 
     
