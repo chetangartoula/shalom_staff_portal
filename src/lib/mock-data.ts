@@ -1,5 +1,5 @@
 
-import type { Trek, Service } from './types';
+import type { Trek, Service, Guide } from './types';
 
 // This file contains the initial static data for the application.
 // The API routes will manage the state during runtime, starting with this data.
@@ -50,4 +50,13 @@ export const services: Omit<Service, 'id'>[] = [
     { name: 'Guide insurance', rate: 30, times: 1 },
     { name: 'porter insurance', rate: 20, times: 1 },
     { name: 'Hotel in kathmandu', rate: 0, times: 1 },
+];
+
+export const initialGuides: Omit<Guide, 'id'>[] = [
+  { name: 'Dorje Sherpa', phone: '984-1234567', status: 'Available' },
+  { name: 'Lakpa Tamang', phone: '984-7654321', status: 'On Tour' },
+  { name: 'Nima Lama', phone: '986-1122334', status: 'Available' },
+  { name: 'Pemba Gurung', phone: '984-5566778', status: 'On Leave' },
+  { name: 'Tenzing Rai', phone: '981-8899001', status: 'On Tour' },
+  { name: 'Sonam Bhote', phone: '980-3344556', status: 'Available' },
 ];

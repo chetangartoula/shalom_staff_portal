@@ -33,3 +33,12 @@ export interface SectionState {
     rows: CostRow[];
     discount: number;
 }
+
+export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';
+
+export interface Guide {
+  id: string;
+  name: string;
+  phone: string;
+  status: GuideStatus;
+}

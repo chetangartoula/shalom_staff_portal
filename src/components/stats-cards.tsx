@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardList, Users, Mountain, Settings, LucideProps } from 'lucide-react';
+import { ClipboardList, Users, Mountain, Settings, LucideProps, ClipboardUser } from 'lucide-react';
 
 interface StatsCardsProps {
     stats: {
@@ -7,16 +7,18 @@ interface StatsCardsProps {
         travelers: number;
         treks: number;
         services: number;
+        guides: number;
     } | null;
 }
 
-type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings";
+type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings" | "ClipboardUser";
 
 const icons: { [key in IconName]: React.ElementType<LucideProps> } = {
     ClipboardList,
     Users,
     Mountain,
-    Settings
+    Settings,
+    ClipboardUser,
 };
 
 export function StatsCards({ stats }: StatsCardsProps) {
@@ -24,7 +26,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
         { title: 'Total Reports', value: stats?.reports ?? 0, icon: "ClipboardList" as IconName, color: 'text-blue-500' },
         { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: "Users" as IconName, color: 'text-green-500' },
         { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain" as IconName, color: 'text-purple-500' },
-        { title: 'Available Services', value: stats?.services ?? 0, icon: "Settings" as IconName, color: 'text-orange-500' },
+        { title: 'Total Guides', value: stats?.guides ?? 0, icon: "ClipboardUser" as IconName, color: 'text-yellow-500' },
     ];
 
     return (
