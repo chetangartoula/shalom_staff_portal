@@ -39,11 +39,11 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { CameraCapture } from "@/components/camera-capture";
 
 const travelerSchema = z.object({
-  id: z.string().optional(), // ID is now optional as it's generated on the backend
+  id: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone number is required"),
   address: z.string().min(1, "Address is required"),
-  passportNumber: z.string().min(1, "Passport number is required"),
+  passportNumber: z.string().optional(),
   emergencyContact: z.string().min(1, "Emergency contact is required"),
   dateOfBirth: z.date({ required_error: "Date of birth is required" }),
   nationality: z.string().min(1, "Nationality is required"),
@@ -51,7 +51,21 @@ const travelerSchema = z.object({
   profilePicture: z.string().optional(),
   passportPhoto: z.any().optional(),
   visaPhoto: z.any().optional(),
+}).superRefine((data, ctx) => {
+    if (!data.passportNumber && !data.passportPhoto) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Passport number is required if no photo is uploaded.",
+            path: ["passportNumber"],
+        });
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Passport photo is required if no number is entered.",
+            path: ["passportPhoto"],
+        });
+    }
 });
+
 
 const formSchema = z.object({
   travelers: z.array(travelerSchema),
@@ -183,19 +197,11 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
 
     setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: true }));
 
+    await form.trigger(`travelers.${travelerIndex}`);
     const travelerData = form.getValues(`travelers.${travelerIndex}`);
     const validationResult = travelerSchema.safeParse(travelerData);
 
     if (!validationResult.success) {
-        validationResult.error.errors.forEach((err) => {
-            const path = err.path[0] as keyof Traveler;
-            if (path) {
-                 form.setError(`travelers.${travelerIndex}.${path}`, {
-                    type: "manual",
-                    message: err.message,
-                });
-            }
-        });
         toast({
             variant: "destructive",
             title: "Validation Failed",
@@ -449,6 +455,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
+                                accept="image/*,application/pdf"
                             />
                             </FormControl>
                             <FormMessage />
@@ -462,7 +469,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
-                            <FormLabel>Visa Photo</FormLabel>
+                            <FormLabel>Visa Photo (Optional)</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
@@ -470,6 +477,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
+                                accept="image/*,application/pdf"
                             />
                             </FormControl>
                             <FormMessage />
@@ -504,6 +512,8 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
+
+    
 
     
 
