@@ -16,7 +16,8 @@ import type { SectionState, CostRow } from "@/lib/types";
 import { CostTable } from "@/components/cost-table";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { FileDown } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileDown, Mail, MessageSquare } from 'lucide-react';
 
 interface FinalStepProps {
     extraDetailsState: SectionState;
@@ -72,6 +73,44 @@ function FinalStepComponent({
             />
 
             <Separator />
+            
+            <Card className="shadow-none border-none">
+                <CardHeader className="px-0">
+                    <CardTitle>Send Options (for reference)</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                   <div className="rounded-lg border p-6 space-y-4">
+                        <div className="flex items-center space-x-3">
+                            <Checkbox id="send-email" />
+                            <div className="grid gap-1.5 leading-none">
+                                <label
+                                htmlFor="send-email"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                                >
+                                <Mail className="h-4 w-4" /> Send by Email
+                                </label>
+                                <p className="text-sm text-muted-foreground">
+                                Tick this box as a reminder to email the report.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                            <Checkbox id="send-whatsapp" />
+                            <div className="grid gap-1.5 leading-none">
+                                <label
+                                htmlFor="send-whatsapp"
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                                >
+                                <MessageSquare className="h-4 w-4" /> Send by WhatsApp
+                                </label>
+                                <p className="text-sm text-muted-foreground">
+                                Tick this box as a reminder to send the report via WhatsApp.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="shadow-none border-none">
                  <CardHeader className="px-0">
