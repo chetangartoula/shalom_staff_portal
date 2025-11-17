@@ -301,7 +301,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="John Doe" {...field} />
+                            <Input placeholder="John Doe" {...field} value={field.value ?? ""} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -318,6 +318,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Input
                                 placeholder="+1 123 456 7890"
                                 {...field}
+                                value={field.value ?? ""}
                             />
                             </FormControl>
                             <FormMessage />
@@ -424,6 +425,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Textarea
                             placeholder="123 Main St, Anytown, USA 12345"
                             {...field}
+                            value={field.value ?? ""}
                             />
                         </FormControl>
                         <FormMessage />
