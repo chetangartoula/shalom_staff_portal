@@ -1,12 +1,12 @@
+
 "use client";
 
+import useSWR from 'swr';
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import useSWR from 'swr';
-import { subDays, format } from 'date-fns';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -21,25 +21,8 @@ const chartConfig = {
     },
 };
 
-const generateMockData = () => {
-    const data = [];
-    for (let i = 29; i >= 0; i--) {
-        const date = subDays(new Date(), i);
-        data.push({
-            date: format(date, 'MMM d'),
-            payments: Math.floor(Math.random() * 2000) + 500,
-            refunds: Math.floor(Math.random() * 500),
-        });
-    }
-    return { chartData: data };
-}
-
 export function PaymentChart() {
-    const { data, error } = useSWR('/api/stats/payments', fetcher, {
-        fallbackData: generateMockData()
-    });
-
-    const isLoading = !data && !error;
+    const { data, error, isLoading } = useSWR('/api/stats/payments', fetcher);
 
     if (isLoading) {
         return <PaymentChart.Skeleton />;
@@ -69,7 +52,7 @@ export function PaymentChart() {
                 <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
                     <LineChart
                         accessibilityLayer
-                        data={data.chartData}
+                        data={data?.chartData}
                         margin={{
                             left: 12,
                             right: 12,
@@ -91,8 +74,8 @@ export function PaymentChart() {
                         <ChartTooltip
                             cursor={false}
                             content={<ChartTooltipContent
-                                labelFormatter={(label, payload) => label}
-                                formatter={(value, name) => `${formatCurrency(Number(value))}`}
+                                labelFormatter={(label) => label}
+                                formatter={(value) => `${formatCurrency(Number(value))}`}
                             />}
                         />
                         <Line
@@ -120,8 +103,10 @@ PaymentChart.Skeleton = function PaymentChartSkeleton() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Payment Analytics</CardTitle>
-                <CardDescription>Last 30 Days</CardDescription>
+                <div className="space-y-2">
+                    <div className="h-5 w-40 bg-muted rounded-md animate-pulse"></div>
+                    <div className="h-4 w-24 bg-muted rounded-md animate-pulse"></div>
+                </div>
             </CardHeader>
             <CardContent className="flex justify-center items-center h-[250px]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
