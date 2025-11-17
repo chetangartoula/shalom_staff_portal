@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
@@ -238,7 +239,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
         };
     });
-  }, [treks, usePax, setReport]);
+  }, [treks, usePax]);
 
   const handleSectionUpdate = useCallback((sectionId: string, updater: (s: SectionState) => SectionState) => {
     setReport(prevReport => {
@@ -252,7 +253,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
         }
         return newReport;
     });
-  }, [setReport]);
+  }, []);
 
   const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
     handleSectionUpdate(sectionId, (section) => ({
@@ -293,21 +294,21 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   const removeSection = useCallback((sectionId: string) => {
     setReport(prev => ({...prev, customSections: prev.customSections.filter(s => s.id !== sectionId)}));
     setSteps(prev => prev.filter(s => s.id !== `custom_step_${sectionId}`));
-  }, [setReport, setSteps]);
+  }, []);
 
-  const handleOpenAddSectionModal = () => {
+  const handleOpenAddSectionModal = useCallback(() => {
     setEditingSection(null);
     setNewSectionName("");
     setIsSectionModalOpen(true);
-  };
+  }, []);
   
-  const handleOpenEditSectionModal = (section: any) => {
+  const handleOpenEditSectionModal = useCallback((section: any) => {
     setEditingSection(section);
     setNewSectionName(section.name);
     setIsSectionModalOpen(true);
-  };
+  }, []);
   
-  const handleSaveSection = () => {
+  const handleSaveSection = useCallback(() => {
     if (!newSectionName.trim()) {
       toast({ variant: "destructive", title: "Error", description: "Section name cannot be empty." });
       return;
@@ -337,9 +338,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     setIsSectionModalOpen(false);
     setEditingSection(null);
     setNewSectionName("");
-  };
+  }, [newSectionName, editingSection, steps, toast]);
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     if (currentStep < steps.length - 1) {
       if (currentStep === 0 && !report.trekId) {
         toast({
@@ -351,15 +352,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       }
       setCurrentStep(currentStep + 1);
     }
-  };
+  }, [currentStep, steps.length, report.trekId, toast]);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
-  const onExportPDF = async () => {
+  const onExportPDF = useCallback(async () => {
     if (!selectedTrek) return;
     try {
       await handleExportPDF({
@@ -374,9 +375,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       console.error(err);
       toast({ variant: "destructive", title: "Error", description: "Could not export PDF." });
     }
-  }
+  }, [report, selectedTrek, calculateSectionTotals, user, includeServiceChargeInPdf, toast]);
 
-  const onExportExcel = async () => {
+  const onExportExcel = useCallback(async () => {
     try {
       await handleExportExcel({
         report,
@@ -387,7 +388,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       console.error(err);
       toast({ variant: "destructive", title: "Error", description: "Could not export Excel file." });
     }
-  }
+  }, [report, calculateSectionTotals, toast]);
 
   const getReportPayload = useCallback(() => {
     const url = `${window.location.origin}/report/${report.groupId}`;
@@ -435,12 +436,12 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     }
   }, [savedReportUrl, toast]);
 
-  const handleFinish = async () => {
+  const handleFinish = useCallback(async () => {
     const success = await handleSaveOrUpdate();
     if (success) {
         router.push('/reports');
     }
-  };
+  }, [handleSaveOrUpdate, router]);
   
   const renderStepContent = () => {
     const step = steps[currentStep];

@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, memo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ interface SelectTrekStepProps {
   onSelectTrek: (id: string) => void;
 }
 
-export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
+function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredTreks = useMemo(() => {
@@ -70,4 +71,5 @@ export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTr
   );
 };
 
+export const SelectTrekStep = memo(SelectTrekStepComponent);
     

@@ -1,6 +1,6 @@
 
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -40,7 +40,7 @@ interface CostTableProps {
     onRemoveSection?: (sectionId: string) => void;
 }
 
-export function CostTable({
+function CostTableComponent({
     section,
     usePax,
     onSetUsePax,
@@ -195,3 +195,5 @@ export function CostTable({
         </Card>
     );
 };
+
+export const CostTable = memo(CostTableComponent);
