@@ -56,6 +56,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         },
     });
 
+    const transactionType = form.watch('type');
+
     const onSubmit = async (values: TransactionFormValues) => {
         if (!reportData) return;
         setIsSubmitting(true);
@@ -84,6 +86,9 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const isLoadingTransactions = !transactionData && !swrError;
     const transactions: Transaction[] = transactionData?.transactions || [];
     const paymentDetails: PaymentDetails | undefined = reportData?.paymentDetails;
+
+    const isFullyPaid = paymentDetails?.paymentStatus === 'fully paid' || paymentDetails?.paymentStatus === 'overpaid';
+    const isPaymentDisabled = isFullyPaid && transactionType === 'payment';
 
     return (
         <div className="space-y-6">
@@ -158,7 +163,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                 <FormField control={form.control} name="amount" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Amount</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                                        <FormControl><Input type="number" step="0.01" {...field} disabled={isPaymentDisabled} /></FormControl>
+                                        {isPaymentDisabled && <p className="text-sm text-yellow-600">This trip is fully paid. No more payments can be added.</p>}
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
@@ -176,7 +182,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                <Button type="submit" disabled={isSubmitting} className="w-full">
+                                <Button type="submit" disabled={isSubmitting || isPaymentDisabled} className="w-full">
                                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     <Save className="mr-2 h-4 w-4" /> Save Transaction
                                 </Button>
@@ -225,3 +231,5 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         </div>
     );
 }
+
+    
