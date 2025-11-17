@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import useSWR from 'swr';
-import { Search, Loader2, PlusCircle, MinusCircle, ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
+import { Search, Loader2, PlusCircle, MinusCircle, ArrowDown, ArrowUp, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,7 +16,15 @@ import type { Transaction } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { DateRangePicker } from './ui/date-range-picker';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { DateRange } from 'react-day-picker';
 
 interface TransactionWithContext extends Transaction {
@@ -132,16 +140,23 @@ export function TransactionsContent() {
                     <CardDescription>View and search all financial transactions across all groups.</CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                     <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        value={typeFilter}
-                        onValueChange={(value: 'all' | 'payment' | 'refund') => value && setTypeFilter(value)}
-                    >
-                        <ToggleGroupItem value="all">All</ToggleGroupItem>
-                        <ToggleGroupItem value="payment">Payments</ToggleGroupItem>
-                        <ToggleGroupItem value="refund">Refunds</ToggleGroupItem>
-                    </ToggleGroup>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="gap-2">
+                                <Filter className="h-4 w-4" />
+                                <span>{typeFilter === 'all' ? 'All Types' : typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1) + 's'}</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                            <DropdownMenuLabel>Transaction Type</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuRadioGroup value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+                                <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="payment">Payments</DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="refund">Refunds</DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <DateRangePicker date={dateRange} setDate={setDateRange} />
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
