@@ -50,21 +50,8 @@ const travelerSchema = z.object({
   nationality: z.string().min(1, "Nationality is required"),
   passportExpiryDate: z.date({ required_error: "Passport expiry is required" }),
   profilePicture: z.string().optional(),
-  passportPhoto: z.any().optional(),
+  passportPhoto: z.any().refine((files) => files?.length > 0, "Passport photo is required."),
   visaPhoto: z.any().optional(),
-}).superRefine((data, ctx) => {
-    if (!data.passportNumber && !data.passportPhoto) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Passport number is required if no photo is uploaded.",
-            path: ["passportNumber"],
-        });
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Passport photo is required if no number is entered.",
-            path: ["passportPhoto"],
-        });
-    }
 });
 
 
@@ -107,6 +94,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
         dateOfBirth: undefined,
         passportExpiryDate: undefined,
         profilePicture: "",
+        passportPhoto: undefined,
       })),
     [groupSize, clientSideTravelerIds]
   );
@@ -139,7 +127,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
               const existingData = existingTravelers[index];
               if (existingData) {
-                return { ...defaultTraveler, ...existingData, id: defaultTraveler.id };
+                return { ...defaultTraveler, ...existingData, id: defaultTraveler.id, passportPhoto: existingData.passportNumber ? new File([], "dummy.txt") : undefined };
               }
               return defaultTraveler;
             });
@@ -359,7 +347,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         name={`travelers.${index}.passportNumber`}
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Passport Number (or upload photo)</FormLabel>
+                            <FormLabel>Passport Number (Optional)</FormLabel>
                             <FormControl>
                             <Input
                                 placeholder="A12345678"
@@ -448,7 +436,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
-                            <FormLabel>Passport Photo (or enter number)</FormLabel>
+                            <FormLabel>Passport Photo</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
@@ -460,7 +448,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             />
                             </FormControl>
                              <FormDescription>
-                                Required if no passport number is entered.
+                                A photo or PDF of the passport is required.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -473,7 +461,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
-                            <FormLabel>Visa Photo</FormLabel>
+                            <FormLabel>Visa Photo (Optional)</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
@@ -519,5 +507,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
+
 
     
