@@ -31,7 +31,8 @@ export interface SectionState {
     id: string;
     name: string;
     rows: CostRow[];
-    discount: number;
+    discountType: 'amount' | 'percentage';
+    discountValue: number;
 }
 
 export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';

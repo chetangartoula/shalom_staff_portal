@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, memo, useCallback, useMemo } from "react";
+import { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import dynamic from 'next/dynamic';
 import { Loader2, PlusSquare, Check, Copy, Edit, Trash2, Plus, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,15 +47,23 @@ const initialSteps = [
   { id: "05", name: "Final" },
 ];
 
+const createInitialSectionState = (id: string, name: string): SectionState => ({
+  id,
+  name,
+  rows: [],
+  discountType: 'amount',
+  discountValue: 0,
+});
+
 const createInitialReportState = (groupId?: string): ReportState => ({
   groupId: groupId || crypto.randomUUID(),
   trekId: null,
   trekName: '',
   groupSize: 1,
   startDate: new Date(),
-  permits: { id: 'permits', name: 'Permits & Food', rows: [], discount: 0 },
-  services: { id: 'services', name: 'Services', rows: [], discount: 0 },
-  extraDetails: { id: 'extraDetails', name: 'Extra Details', rows: [], discount: 0 },
+  permits: createInitialSectionState('permits', 'Permits & Food'),
+  services: createInitialSectionState('services', 'Services'),
+  extraDetails: createInitialSectionState('extraDetails', 'Extra Details'),
   customSections: [],
   serviceCharge: 10,
 });
@@ -68,10 +75,10 @@ const LoadingStep = () => (
   </div>
 );
 
-const SelectTrekStep = dynamic(() => import('@/components/steps/select-trek-step').then(mod => mod.SelectTrekStep), { loading: LoadingStep });
-const GroupDetailsStep = dynamic(() => import('@/components/steps/group-details-step').then(mod => mod.GroupDetailsStep), { loading: LoadingStep });
-const FinalStep = dynamic(() => import('@/components/steps/final-step').then(mod => mod.FinalStep), { loading: LoadingStep });
-const CostTable = dynamic(() => import('@/components/cost-table').then(mod => mod.CostTable), { loading: LoadingStep });
+const SelectTrekStep = lazy(() => import('@/components/steps/select-trek-step').then(mod => mod.SelectTrekStep));
+const GroupDetailsStep = lazy(() => import('@/components/steps/group-details-step').then(mod => mod.GroupDetailsStep));
+const FinalStep = lazy(() => import('@/components/steps/final-step').then(mod => mod.FinalStep));
+const CostTable = lazy(() => import('@/components/cost-table').then(mod => mod.CostTable));
 
 
 interface TrekCostingPageProps {
@@ -126,8 +133,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   
   const calculateSectionTotals = useCallback((section: SectionState) => {
     const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
-    const total = subtotal - section.discount;
-    return { subtotal, total };
+    const discountAmount = section.discountType === 'percentage'
+        ? (subtotal * (section.discountValue / 100))
+        : section.discountValue;
+    const total = subtotal - discountAmount;
+    return { subtotal, total, discountAmount };
   }, []);
 
   const totalCost = useMemo(() => {
@@ -252,9 +262,14 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     }));
   }, [handleSectionUpdate]);
   
-  const handleDiscountChange = useCallback((sectionId: string, value: number) => {
-    handleSectionUpdate(sectionId, (section) => ({ ...section, discount: value }));
+  const handleDiscountTypeChange = useCallback((sectionId: string, type: 'amount' | 'percentage') => {
+    handleSectionUpdate(sectionId, (section) => ({ ...section, discountType: type }));
   }, [handleSectionUpdate]);
+
+  const handleDiscountValueChange = useCallback((sectionId: string, value: number) => {
+    handleSectionUpdate(sectionId, (section) => ({ ...section, discountValue: value }));
+  }, [handleSectionUpdate]);
+
 
   const addRow = useCallback((sectionId: string) => {
     const isPax = usePax[sectionId] ?? false;
@@ -296,7 +311,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       setSteps(prev => prev.map(s => s.id === stepId ? { ...s, name: newSectionName } : s));
     } else {
       const newSectionId = crypto.randomUUID();
-      const newSection = { id: newSectionId, name: newSectionName, rows: [], discount: 0 };
+      const newSection: SectionState = { 
+        id: newSectionId, 
+        name: newSectionName, 
+        rows: [], 
+        discountType: 'amount', 
+        discountValue: 0 
+      };
       setReport(prev => ({...prev, customSections: [...prev.customSections, newSection]}));
   
       const newStep = { id: `custom_step_${newSectionId}`, name: newSectionName };
@@ -423,98 +444,105 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   const renderStepContent = () => {
     const step = steps[currentStep];
 
-    if (isLoading) {
-      return <LoadingStep />;
-    }
-    
-    switch (step.id) {
-      case '01':
-        return (
-          <SelectTrekStep
-            treks={treks}
-            selectedTrekId={report.trekId}
-            onSelectTrek={handleTrekSelect}
-          />
-        );
+    const content = () => {
+      if (isLoading) {
+        return <LoadingStep />;
+      }
+      
+      switch (step.id) {
+        case '01':
+          return (
+            <SelectTrekStep
+              treks={treks}
+              selectedTrekId={report.trekId}
+              onSelectTrek={handleTrekSelect}
+            />
+          );
 
-      case '02':
-        return (
-          <GroupDetailsStep
-            groupSize={report.groupSize}
-            onGroupSizeChange={handleGroupSizeChange}
-            startDate={report.startDate}
-            onStartDateChange={(date) => handleDetailChange('startDate', date)}
-          />
-        );
+        case '02':
+          return (
+            <GroupDetailsStep
+              groupSize={report.groupSize}
+              onGroupSizeChange={handleGroupSizeChange}
+              startDate={report.startDate}
+              onStartDateChange={(date) => handleDetailChange('startDate', date)}
+            />
+          );
 
-      case '03':
-        return (
-          <CostTable
-            section={report.permits}
-            usePax={usePax[report.permits.id] || false}
-            onSetUsePax={handleSetUsePax}
-            onRowChange={handleRowChange}
-            onDiscountChange={handleDiscountChange}
-            onAddRow={addRow}
-            onRemoveRow={removeRow}
-          />
-        );
+        case '03':
+          return (
+            <CostTable
+              section={report.permits}
+              usePax={usePax[report.permits.id] || false}
+              onSetUsePax={handleSetUsePax}
+              onRowChange={handleRowChange}
+              onDiscountTypeChange={handleDiscountTypeChange}
+              onDiscountValueChange={handleDiscountValueChange}
+              onAddRow={addRow}
+              onRemoveRow={removeRow}
+            />
+          );
 
-      case '04':
-        return (
-          <CostTable
-            section={report.services}
-            usePax={usePax[report.services.id] || false}
-            onSetUsePax={handleSetUsePax}
-            onRowChange={handleRowChange}
-            onDiscountChange={handleDiscountChange}
-            onAddRow={addRow}
-            onRemoveRow={removeRow}
-          />
-        );
+        case '04':
+          return (
+            <CostTable
+              section={report.services}
+              usePax={usePax[report.services.id] || false}
+              onSetUsePax={handleSetUsePax}
+              onRowChange={handleRowChange}
+              onDiscountTypeChange={handleDiscountTypeChange}
+              onDiscountValueChange={handleDiscountValueChange}
+              onAddRow={addRow}
+              onRemoveRow={removeRow}
+            />
+          );
 
-      case '05':
-        return (
-          <FinalStep
-            extraDetailsState={report.extraDetails}
-            onRowChange={handleRowChange}
-            onDiscountChange={handleDiscountChange}
-            onAddRow={addRow}
-            onRemoveRow={removeRow}
-            onExportPDF={onExportPDF}
-            onExportExcel={onExportExcel}
-            totalCost={totalCost}
-            usePax={usePax[report.extraDetails.id] || false}
-            onSetUsePax={handleSetUsePax}
-            groupSize={report.groupSize}
-            serviceCharge={report.serviceCharge}
-            setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
-          />
-        );
+        case '05':
+          return (
+            <FinalStep
+              extraDetailsState={report.extraDetails}
+              onRowChange={handleRowChange}
+              onDiscountTypeChange={handleDiscountTypeChange}
+              onDiscountValueChange={handleDiscountValueChange}
+              onAddRow={addRow}
+              onRemoveRow={removeRow}
+              onExportPDF={onExportPDF}
+              onExportExcel={onExportExcel}
+              totalCost={totalCost}
+              usePax={usePax[report.extraDetails.id] || false}
+              onSetUsePax={handleSetUsePax}
+              groupSize={report.groupSize}
+              serviceCharge={report.serviceCharge}
+              setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
+            />
+          );
 
-      default:
-        if (step.id.startsWith('custom_step_')) {
-          const customSection = report.customSections.find(cs => `custom_step_${cs.id}` === step.id);
-          if (customSection) {
-            return (
-              <CostTable
-                section={customSection}
-                usePax={usePax[customSection.id] || false}
-                onSetUsePax={handleSetUsePax}
-                isCustom
-                isDescriptionEditable
-                onRowChange={handleRowChange}
-                onDiscountChange={handleDiscountChange}
-                onAddRow={addRow}
-                onRemoveRow={removeRow}
-                onEditSection={handleOpenEditSectionModal}
-                onRemoveSection={removeSection}
-              />
-            );
+        default:
+          if (step.id.startsWith('custom_step_')) {
+            const customSection = report.customSections.find(cs => `custom_step_${cs.id}` === step.id);
+            if (customSection) {
+              return (
+                <CostTable
+                  section={customSection}
+                  usePax={usePax[customSection.id] || false}
+                  onSetUsePax={handleSetUsePax}
+                  isCustom
+                  isDescriptionEditable
+                  onRowChange={handleRowChange}
+                  onDiscountTypeChange={handleDiscountTypeChange}
+                  onDiscountValueChange={handleDiscountValueChange}
+                  onAddRow={addRow}
+                  onRemoveRow={removeRow}
+                  onEditSection={handleOpenEditSectionModal}
+                  onRemoveSection={removeSection}
+                />
+              );
+            }
           }
-        }
-        return null;
-    }
+          return null;
+      }
+    };
+    return <Suspense fallback={<LoadingStep />}>{content()}</Suspense>;
   };
 
   return (

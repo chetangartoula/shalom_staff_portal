@@ -25,7 +25,7 @@ export async function handleExportPDF({
 }: {
   selectedTrek: Trek | undefined,
   report: ReportState,
-  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
+  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number, discountAmount: number },
   userName?: string
 }) {
   if (!selectedTrek) return;
@@ -43,7 +43,7 @@ export async function handleExportPDF({
   const sectionsToExport = allSections.map(section => ({
       ...section,
       rows: section.rows.filter(row => row.total !== 0)
-  })).filter(section => section.rows.length > 0);
+  })).filter(section => section.rows.length > 0 || section.discountValue > 0);
 
   let yPos = 0;
   const pageTopMargin = 15;
@@ -115,11 +115,14 @@ export async function handleExportPDF({
         row.times,
         `$${row.total.toFixed(2)}`
     ]);
-    const {subtotal, total} = calculateSectionTotals(section);
+    const {subtotal, total, discountAmount} = calculateSectionTotals(section);
 
     body.push(['', 'Subtotal', '', '', '', `$${subtotal.toFixed(2)}`]);
-    if (section.discount > 0) {
-      body.push(['', 'Discount', '', '', '', `- $${section.discount.toFixed(2)}`]);
+    if (section.discountValue > 0) {
+      const discountLabel = section.discountType === 'percentage'
+        ? `Discount (${section.discountValue}%)`
+        : 'Discount';
+      body.push(['', discountLabel, '', '', '', `- $${discountAmount.toFixed(2)}`]);
     }
     body.push(['', 'Total', '', '', '', `$${total.toFixed(2)}`]);
 
@@ -171,7 +174,7 @@ export async function handleExportExcel({
   calculateSectionTotals
 }: {
   report: ReportState,
-  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number },
+  calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number, discountAmount: number },
 }) {
   const XLSX = await import("xlsx");
 
@@ -182,11 +185,11 @@ export async function handleExportExcel({
       ...section,
       rows: section.rows.filter(row => row.total !== 0)
    })).filter(section => {
-     return section.rows.length > 0;
+     return section.rows.length > 0 || section.discountValue > 0;
    });
 
    sectionsToExport.forEach(section => {
-     const {subtotal, total} = calculateSectionTotals(section);
+     const {subtotal, total, discountAmount} = calculateSectionTotals(section);
      const wsData = section.rows.map(row => ({
        Description: row.description,
        Rate: row.rate,
@@ -195,8 +198,11 @@ export async function handleExportExcel({
        Total: row.total,
      }));
      wsData.push({Description: 'Subtotal', Rate: '', No: '', Times: '', Total: subtotal});
-     if(section.discount > 0) {
-       wsData.push({Description: 'Discount', Rate: '', No: '', Times: '', Total: -section.discount});
+     if(section.discountValue > 0) {
+        const discountLabel = section.discountType === 'percentage'
+        ? `Discount (${section.discountValue}%)`
+        : 'Discount';
+       wsData.push({Description: discountLabel, Rate: '', No: '', Times: '', Total: -discountAmount});
      }
      wsData.push({Description: 'Total', Rate: '', No: '', Times: '', Total: total});
      const ws = XLSX.utils.json_to_sheet(wsData);

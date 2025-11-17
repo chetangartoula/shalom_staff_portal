@@ -20,7 +20,8 @@ import { FileDown } from 'lucide-react';
 interface FinalStepProps {
     extraDetailsState: SectionState;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
-    onDiscountChange: (sectionId: string, value: number) => void;
+    onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
+    onDiscountValueChange: (sectionId: string, value: number) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     onExportPDF: () => void;
@@ -36,7 +37,8 @@ interface FinalStepProps {
 function FinalStepComponent({
     extraDetailsState,
     onRowChange,
-    onDiscountChange,
+    onDiscountTypeChange,
+    onDiscountValueChange,
     onAddRow,
     onRemoveRow,
     onExportPDF,
@@ -60,7 +62,8 @@ function FinalStepComponent({
                 isCustom
                 isDescriptionEditable
                 onRowChange={onRowChange}
-                onDiscountChange={onDiscountChange}
+                onDiscountTypeChange={onDiscountTypeChange}
+                onDiscountValueChange={onDiscountValueChange}
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
                 usePax={usePax}

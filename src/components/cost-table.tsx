@@ -20,14 +20,16 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
 import type { CostRow, SectionState } from "@/lib/types";
-import { Edit, Trash2, Plus } from 'lucide-react';
+import { Edit, Trash2, Plus, Percent, DollarSign } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface CostTableProps {
     section: SectionState;
     usePax: boolean;
     onSetUsePax: (sectionId: string, value: boolean) => void;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
-    onDiscountChange: (sectionId: string, value: number) => void;
+    onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
+    onDiscountValueChange: (sectionId: string, value: number) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     isCustom?: boolean;
@@ -41,7 +43,8 @@ const CostTableComponent = ({
     usePax,
     onSetUsePax,
     onRowChange,
-    onDiscountChange,
+    onDiscountTypeChange,
+    onDiscountValueChange,
     onAddRow,
     onRemoveRow,
     isCustom = false,
@@ -52,11 +55,14 @@ const CostTableComponent = ({
 
     const calculateSectionTotals = (currentSection: SectionState) => {
         const subtotal = currentSection.rows.reduce((acc, row) => acc + row.total, 0);
-        const total = subtotal - currentSection.discount;
-        return { subtotal, total };
+        const discountAmount = currentSection.discountType === 'percentage'
+            ? (subtotal * (currentSection.discountValue / 100))
+            : currentSection.discountValue;
+        const total = subtotal - discountAmount;
+        return { subtotal, total, discountAmount };
     };
 
-    const { total } = calculateSectionTotals(section);
+    const { subtotal, total, discountAmount } = calculateSectionTotals(section);
 
     return (
         <Card className="shadow-none border-none">
@@ -139,18 +145,43 @@ const CostTableComponent = ({
                     </Button>
                 </div>
                 <div className="mt-6 flex flex-col md:flex-row items-end justify-between gap-6">
-                     <div className="w-full md:w-auto md:min-w-64 space-y-4 ml-auto">
+                     <div className="w-full md:w-auto md:min-w-80 space-y-4 ml-auto">
+                        <div className="flex items-center justify-between gap-4">
+                            <Label className="shrink-0">Subtotal</Label>
+                            <span className="font-medium">{formatCurrency(subtotal)}</span>
+                        </div>
                          <div className="flex items-center justify-between gap-4">
                             <Label htmlFor={`discount-${section.id}`} className="shrink-0">Discount</Label>
-                            <Input 
-                                type="number" 
-                                id={`discount-${section.id}`} 
-                                value={section.discount} 
-                                onChange={e => onDiscountChange(section.id, Number(e.target.value))} 
-                                className="w-full max-w-32"
-                                placeholder="0.00"
-                            />
+                            <div className="flex items-center gap-2">
+                                <ToggleGroup 
+                                    type="single" 
+                                    value={section.discountType}
+                                    onValueChange={(value: 'amount' | 'percentage') => value && onDiscountTypeChange(section.id, value)}
+                                    aria-label="Discount type"
+                                >
+                                    <ToggleGroupItem value="amount" aria-label="Amount" className="h-9 w-9 p-0 data-[state=on]:bg-primary/20">
+                                        <DollarSign className="h-4 w-4" />
+                                    </ToggleGroupItem>
+                                    <ToggleGroupItem value="percentage" aria-label="Percentage" className="h-9 w-9 p-0 data-[state=on]:bg-primary/20">
+                                        <Percent className="h-4 w-4" />
+                                    </ToggleGroupItem>
+                                </ToggleGroup>
+                                <Input 
+                                    type="number" 
+                                    id={`discount-${section.id}`} 
+                                    value={section.discountValue} 
+                                    onChange={e => onDiscountValueChange(section.id, Number(e.target.value))} 
+                                    className="w-full max-w-32"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
+                        {discountAmount > 0 && (
+                            <div className="flex items-center justify-end gap-4 text-sm text-muted-foreground">
+                                <span>Discount Applied:</span>
+                                <span>- {formatCurrency(discountAmount)}</span>
+                            </div>
+                        )}
                         <Separator />
                         <div className="flex justify-between font-bold text-lg">
                             <span>In total</span>
