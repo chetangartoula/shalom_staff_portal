@@ -373,7 +373,13 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/cc91455d-33da-4aac-91d3-6fd6a3fbf8a2",
+      "paymentDetails": {
+        "totalCost": 187.00000000000003,
+        "totalPaid": 187,
+        "balance": 2.842170943040401e-14,
+        "paymentStatus": "partially paid"
+      }
     }
   ],
   "travelers": [
@@ -426,5 +432,30 @@
       ]
     }
   ],
-  "transactions": []
+  "transactions": [
+    {
+      "amount": 200,
+      "type": "payment",
+      "date": "2025-11-17T15:51:07.655Z",
+      "note": "half pay",
+      "id": "f679d775-197e-4876-9260-1a5c2da8ccef",
+      "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
+    },
+    {
+      "amount": 13,
+      "type": "refund",
+      "date": "2025-11-17T15:51:36.673Z",
+      "note": "ok",
+      "id": "6ad06120-27e2-4e10-9aed-f1b484f422f1",
+      "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
+    },
+    {
+      "amount": 187,
+      "type": "payment",
+      "date": "2025-11-17T15:52:05.863Z",
+      "note": "ok",
+      "id": "0430206d-3bd0-4ab5-a74c-322cf60d2eed",
+      "groupId": "4bf62631-68e2-45bd-8a0b-908050098365"
+    }
+  ]
 }

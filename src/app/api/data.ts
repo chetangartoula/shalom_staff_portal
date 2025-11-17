@@ -75,8 +75,10 @@ const getPaymentDetails = (groupId: string, totalCost: number) => {
     const balance = totalCost - totalPaid;
 
     let paymentStatus: PaymentStatus = 'unpaid';
+    const epsilon = 0.01; // Tolerance for floating point inaccuracies (1 cent)
+
     if (totalPaid > 0) {
-        if (balance <= 0) {
+        if (balance <= epsilon) { // If balance is zero or negative (or very close to zero)
             paymentStatus = totalPaid > totalCost ? 'overpaid' : 'fully paid';
         } else {
             paymentStatus = 'partially paid';
