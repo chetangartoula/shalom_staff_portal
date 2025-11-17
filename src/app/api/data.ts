@@ -272,6 +272,11 @@ export const addTransaction = (groupId: string, transactionData: Omit<Transactio
     return newTransaction;
 }
 
+export const getAllTransactions = () => {
+    db = readDB();
+    return db.transactions;
+};
+
 
 // Stats
 export const getStats = () => {
