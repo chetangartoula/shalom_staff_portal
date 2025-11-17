@@ -20,6 +20,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Trek Name</TableHead>
+                            <TableHead>Group Name</TableHead>
                             <TableHead>Group ID</TableHead>
                             <TableHead>Group Size</TableHead>
                             <TableHead>Start Date</TableHead>
@@ -30,6 +31,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
                         {reports.length > 0 ? reports.map((report: any) => (
                             <TableRow key={report.groupId}>
                                 <TableCell className="font-medium">{report.trekName}</TableCell>
+                                <TableCell>{report.groupName}</TableCell>
                                 <TableCell>{report.groupId.substring(0, 8)}...</TableCell>
                                 <TableCell>{report.groupSize}</TableCell>
                                 <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
@@ -43,7 +45,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
+                                <TableCell colSpan={6} className="h-24 text-center">
                                     No recent reports found.
                                 </TableCell>
                             </TableRow>

@@ -89,6 +89,7 @@ export async function getAllTravelers() {
       ...traveler,
       groupId: group.groupId,
       trekName: report ? report.trekName : 'N/A',
+      groupName: report ? report.groupName : 'N/A',
     }));
   });
   return { travelers: allTravelers };

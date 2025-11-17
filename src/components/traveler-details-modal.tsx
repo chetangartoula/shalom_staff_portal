@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 interface Report {
     groupId: string;
     trekName: string;
+    groupName: string;
     groupSize: number;
     joined: number;
     pending: number;
@@ -75,7 +76,7 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
         doc.text(`Traveler Details for ${report.trekName}`, 14, 22);
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Group ID: ${report.groupId}`, 14, 30);
+        doc.text(`Group: ${report.groupName} (ID: ${report.groupId})`, 14, 30);
 
         const tableColumn = ["Name", "Nationality", "Passport No.", "Phone", "Emergency Contact"];
         const tableRows: (string | undefined)[][] = [];
@@ -108,7 +109,7 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                 <DialogHeader>
                     <DialogTitle>Traveler Details</DialogTitle>
                     <DialogDescription>
-                        Details for group: <span className="font-medium text-primary">{report?.trekName}</span> (ID: {report?.groupId.substring(0, 8)}...)
+                        Details for trek: <span className="font-medium text-primary">{report?.trekName}</span>, Group: <span className="font-medium text-primary">{report?.groupName}</span> (ID: {report?.groupId.substring(0, 8)}...)
                     </DialogDescription>
                     <div className="flex items-center gap-4 pt-2">
                         <Badge variant="outline">Group Size: <span className="font-bold ml-1">{report?.groupSize}</span></Badge>

@@ -8,6 +8,7 @@ type ReportState = {
   groupId: string;
   trekId: string | null;
   trekName: string;
+  groupName: string;
   groupSize: number;
   startDate: Date | undefined;
   permits: SectionState;
@@ -87,6 +88,7 @@ export async function handleExportPDF({
       startY: yPos,
       body: [
           ['Trek Name', selectedTrek.name || 'N/A'],
+          ['Group Name', report.groupName || 'N/A'],
           ['Group Size', report.groupSize.toString()],
           ['Start Date', report.startDate ? format(report.startDate, 'PPP') : 'N/A'],
       ],

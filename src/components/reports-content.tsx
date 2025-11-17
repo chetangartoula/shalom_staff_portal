@@ -18,6 +18,7 @@ const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-mo
 interface Report {
     groupId: string;
     trekName: string;
+    groupName: string;
     groupSize: number;
     startDate: string;
     reportUrl: string;
@@ -49,6 +50,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
   useEffect(() => {
     const results = reports.filter(report =>
       (report.trekName && report.trekName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (report.groupName && report.groupName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (report.groupId && report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     setFilteredReports(results);
@@ -117,7 +119,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
-                      placeholder="Search by trek or group ID..."
+                      placeholder="Search by trek, group name, or ID..."
                       className="w-full sm:w-[300px] pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -136,6 +138,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                     <TableHeader>
                         <TableRow>
                         <TableHead>Trek Name</TableHead>
+                        <TableHead>Group Name</TableHead>
                         <TableHead>Group ID</TableHead>
                         <TableHead>Group Size</TableHead>
                         <TableHead>Joined</TableHead>
@@ -148,6 +151,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         {filteredReports.length > 0 ? filteredReports.map((report) => (
                         <TableRow key={report.groupId}>
                             <TableCell className="font-medium">{report.trekName}</TableCell>
+                            <TableCell>{report.groupName}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
@@ -174,7 +178,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center">
+                            <TableCell colSpan={8} className="h-24 text-center">
                               No reports found.
                             </TableCell>
                           </TableRow>

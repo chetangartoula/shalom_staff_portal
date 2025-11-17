@@ -29,6 +29,7 @@ type ReportState = {
   groupId: string;
   trekId: string | null;
   trekName: string;
+  groupName: string;
   groupSize: number;
   startDate: Date | undefined;
   permits: SectionState;
@@ -59,6 +60,7 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   groupId: groupId || crypto.randomUUID(),
   trekId: null,
   trekName: '',
+  groupName: '',
   groupSize: 1,
   startDate: new Date(),
   permits: createInitialSectionState('permits', 'Permits & Food'),
@@ -461,6 +463,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       case '02':
         return (
           <GroupDetailsStep
+            groupName={report.groupName}
+            onGroupNameChange={(name) => handleDetailChange('groupName', name)}
             groupSize={report.groupSize}
             onGroupSizeChange={handleGroupSizeChange}
             startDate={report.startDate}

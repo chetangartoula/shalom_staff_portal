@@ -20,6 +20,7 @@ interface Traveler {
     passportExpiryDate?: string;
     groupId: string;
     trekName: string;
+    groupName: string;
 }
 
 interface TravelersContentProps {
@@ -35,7 +36,8 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
     return travelers.filter(traveler =>
       (traveler.name && traveler.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (traveler.passportNumber && traveler.passportNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (traveler.phone && traveler.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+      (traveler.phone && traveler.phone.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (traveler.groupName && traveler.groupName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, travelers]);
 
@@ -52,7 +54,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
-                      placeholder="Search by name, passport, or phone..."
+                      placeholder="Search by name, group, passport..."
                       className="w-full sm:w-[300px] pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -70,6 +72,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                             <TableHead>Passport No.</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Trek</TableHead>
+                            <TableHead>Group Name</TableHead>
                             <TableHead>Group ID</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -81,6 +84,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                             <TableCell>{traveler.passportNumber}</TableCell>
                             <TableCell>{traveler.phone}</TableCell>
                             <TableCell>{traveler.trekName}</TableCell>
+                            <TableCell>{traveler.groupName}</TableCell>
                             <TableCell>
                                 <Link href={`/cost-matrix/${traveler.groupId}`} className="text-blue-600 hover:underline font-mono text-sm" title={traveler.groupId}>
                                     {traveler.groupId.substring(0, 8)}...
@@ -89,7 +93,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
+                            <TableCell colSpan={7} className="h-24 text-center">
                               {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
                             </TableCell>
                           </TableRow>
