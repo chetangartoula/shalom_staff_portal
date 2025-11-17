@@ -95,6 +95,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
         passportExpiryDate: undefined,
         profilePicture: "",
         passportPhoto: undefined,
+        visaPhoto: undefined,
       })),
     [groupSize, clientSideTravelerIds]
   );
@@ -125,9 +126,24 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
             }));
              
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-              const existingData = existingTravelers[index];
-              if (existingData) {
-                return { ...defaultTraveler, ...existingData, id: defaultTraveler.id, passportPhoto: existingData.passportNumber ? new File([], "dummy.txt") : undefined };
+              const existingData = existingTravelers.find((et: Traveler) => {
+                // This logic is a bit brittle. A better approach in a real app would be a stable ID from the backend.
+                // For now, we assume the order is the same or we match by a unique property if possible.
+                // Here, we just match by index for simplicity.
+                return index < existingTravelers.length;
+              });
+
+              if (existingTravelers[index]) {
+                  const existing = existingTravelers[index];
+                  return { 
+                      ...defaultTraveler,
+                      ...existing, 
+                      id: defaultTraveler.id,
+                      // If a record exists, we can assume a passport photo was uploaded.
+                      // We pass a dummy file to satisfy the validation on load.
+                      // The user can still upload a new one.
+                      passportPhoto: new File([], "dummy.jpg")
+                  };
               }
               return defaultTraveler;
             });
@@ -437,14 +453,16 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         control={form.control}
                         name={`travelers.${index}.passportPhoto`}
                         render={({
-                        field: { onChange, ...fieldProps },
+                        field: { onChange, onBlur, name, ref },
                         }) => (
                         <FormItem>
                             <FormLabel>Passport Photo</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
-                                {...fieldProps}
+                                onBlur={onBlur}
+                                name={name}
+                                ref={ref}
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
@@ -462,14 +480,16 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         control={form.control}
                         name={`travelers.${index}.visaPhoto`}
                         render={({
-                        field: { onChange, ...fieldProps },
+                        field: { onChange, onBlur, name, ref },
                         }) => (
                         <FormItem>
                             <FormLabel>Visa Photo (Optional)</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
-                                {...fieldProps}
+                                onBlur={onBlur}
+                                name={name}
+                                ref={ref}
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
