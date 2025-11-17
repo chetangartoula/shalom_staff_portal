@@ -406,6 +406,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Input
                                 placeholder="+1 987 654 3210"
                                 {...field}
+                                value={field.value ?? ""}
                             />
                             </FormControl>
                             <FormMessage />
@@ -508,6 +509,5 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
-
 
     
