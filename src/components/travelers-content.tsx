@@ -68,7 +68,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                     </TableHeader>
                     <TableBody>
                         {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
-                        <TableRow key={traveler.id}>
+                        <TableRow key={`${traveler.id}-${traveler.groupId}`}>
                             <TableCell>
                                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                                 {traveler.profilePicture ? (

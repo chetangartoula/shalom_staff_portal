@@ -73,6 +73,10 @@ export interface Traveler {
   profilePicture?: string;
   passportPhoto?: string;
   visaPhoto?: string;
+  // Properties added when joining with other data sources
+  groupId?: string;
+  trekName?: string;
+  groupName?: string;
 }
 
     
