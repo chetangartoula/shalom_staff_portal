@@ -138,5 +138,3 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
             </div>
     )
 });
-
-    
