@@ -1,24 +1,23 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardList, Users, Mountain, Settings, LucideProps, Users2, Backpack } from 'lucide-react';
+import { ClipboardList, Users, Mountain, LucideProps, Users2, Backpack } from 'lucide-react';
 
 interface StatsCardsProps {
     stats: {
         reports: number;
         travelers: number;
         treks: number;
-        services: number;
         guides: number;
         porters: number;
     } | null;
 }
 
-type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings" | "Users2" | "Backpack";
+type IconName = "ClipboardList" | "Users" | "Mountain" | "Users2" | "Backpack";
 
 const icons: { [key in IconName]: React.ElementType<LucideProps> } = {
     ClipboardList,
     Users,
     Mountain,
-    Settings,
     Users2,
     Backpack,
 };

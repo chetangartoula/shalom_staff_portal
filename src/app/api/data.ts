@@ -28,41 +28,6 @@ export const addTrek = (newTrek: Omit<Trek, 'id'>) => {
   return trekWithId;
 };
 
-// Services
-export const getPaginatedServices = (page: number, limit: number) => {
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  
-  const paginatedServices = services.slice(startIndex, endIndex);
-  
-  return { 
-    services: paginatedServices,
-    total: services.length,
-    hasMore: endIndex < services.length,
-  };
-}
-export const addService = (serviceData: Omit<Service, 'id'>) => {
-  const newService: Service = { ...serviceData, id: crypto.randomUUID() };
-  services.push(newService);
-  return newService;
-};
-export const updateService = (id: string, updatedData: Partial<Service>) => {
-  const serviceIndex = services.findIndex(s => s.id === id);
-  if (serviceIndex > -1) {
-    services[serviceIndex] = { ...services[serviceIndex], ...updatedData };
-    return services[serviceIndex];
-  }
-  return null;
-};
-export const deleteService = (id: string) => {
-  const serviceIndex = services.findIndex(s => s.id === id);
-  if (serviceIndex > -1) {
-    const deleted = services.splice(serviceIndex, 1);
-    return deleted[0];
-  }
-  return null;
-};
-
 // Guides
 export const getGuides = () => {
   return { guides };

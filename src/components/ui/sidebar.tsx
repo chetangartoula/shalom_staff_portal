@@ -3,7 +3,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Calculator, ClipboardList, Users, Plus, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack } from "lucide-react";
+import { Home, Calculator, ClipboardList, Users, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
@@ -18,10 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
-import type { AddTrekFormData } from '@/components/add-trek-form';
 import type { User } from '@/lib/auth';
-
-const AddTrekForm = lazy(() => import('@/components/add-trek-form').then(mod => ({ default: mod.AddTrekForm })));
 
 interface SidebarProps {
   className?: string;
@@ -33,43 +30,6 @@ interface SidebarProps {
 export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, user, onLinkClick }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const { toast } = useToast();
-
-    const [isAddTrekModalOpen, setIsAddTrekModalOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleAddTrekSubmit = async (data: AddTrekFormData) => {
-        setIsSubmitting(true);
-        try {
-            const response = await fetch('/api/treks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to add trek");
-            }
-            
-            toast({
-              title: "Trek Added",
-              description: `${data.name} has been added.`,
-            });
-            setIsAddTrekModalOpen(false);
-            // Quick refresh to show new trek if on cost-estimator page
-            if (pathname === '/cost-estimator') {
-                router.refresh();
-            }
-        } catch (error) {
-             toast({
-              variant: "destructive",
-              title: "Error",
-              description: (error as Error).message,
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
 
     const handleLogout = () => {
@@ -84,18 +44,12 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
         { href: "/travelers", label: "Travelers", icon: Users },
         { href: "/guides", label: "Guides", icon: Users2 },
         { href: "/porters", label: "Porters", icon: Backpack },
-        { href: "#", label: "Add Trek", icon: Plus, action: () => setIsAddTrekModalOpen(true) },
-        { href: "/services", label: "Services", icon: Settings },
     ];
 
     const NavLink = ({ item }: { item: typeof navItems[0] }) => {
         const isActive = (pathname === "/" && item.href === "/dashboard") || (item.href !== "/" && pathname.startsWith(item.href));
         
         const handleClick = (e: React.MouseEvent) => {
-          if (item.action) {
-            e.preventDefault();
-            item.action();
-          }
           if (onLinkClick) {
             onLinkClick();
           }
@@ -115,9 +69,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
             </span>
         );
         
-        const linkElement = item.href === "#" ? (
-            <a href="#" onClick={handleClick} className="group">{linkContent}</a>
-        ) : (
+        const linkElement = (
             <Link href={item.href} className="group" onClick={handleClick}>{linkContent}</Link>
         );
 
@@ -142,11 +94,6 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
 
     return (
         <>
-            {isAddTrekModalOpen && (
-                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>}>
-                    <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} isSubmitting={isSubmitting} />
-                </Suspense>
-            )}
             <div className={cn("flex h-full flex-col bg-sidebar-background", className)}>
                 <div className="flex h-14 items-center border-b border-sidebar-foreground/10 px-4 lg:h-[60px] lg:px-6 shadow-md">
                     <Link href="/" className="flex items-center gap-2 font-semibold text-sidebar-foreground" onClick={onLinkClick}>
