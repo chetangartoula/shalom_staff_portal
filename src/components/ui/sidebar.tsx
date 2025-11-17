@@ -39,9 +39,9 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
     const navItems = [
         { href: "/dashboard", label: "Dashboard", icon: Home },
         { href: "/cost-estimator", label: "Cost Estimator", icon: Calculator },
-        { href: "/reports", label: "Reports", icon: ClipboardList },
-        { href: "/assignments", label: "Assignments", icon: BookUser },
-        { href: "/travelers", label: "Travelers", icon: Users },
+        { href: "/reports", label: "All Reports", icon: ClipboardList },
+        { href: "/assignments", label: "Team Assignments", icon: BookUser },
+        { href: "/travelers", label: "All Travelers", icon: Users },
         { href: "/guides", label: "Guides", icon: Users2 },
         { href: "/porters", label: "Porters", icon: Backpack },
     ];

@@ -25,7 +25,7 @@ export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTr
 
   return (
     <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight">Choose Your Adventure</h2>
+        <h2 className="text-3xl font-bold tracking-tight">New Cost Report</h2>
         <p className="mt-2 text-muted-foreground">Select a trek to begin calculating your costs.</p>
         
         <div className="mt-8 max-w-2xl mx-auto">

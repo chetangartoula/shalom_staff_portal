@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -47,7 +48,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                  <CardTitle>Traveler Database</CardTitle>
+                  <CardTitle>All Travelers</CardTitle>
                   <CardDescription>View and search for all travelers across all reports.</CardDescription>
               </div>
               <div className="relative">

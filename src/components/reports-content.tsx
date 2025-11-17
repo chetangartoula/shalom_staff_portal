@@ -117,7 +117,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                  <CardTitle>Saved Reports</CardTitle>
+                  <CardTitle>All Reports</CardTitle>
                   <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
               </div>
               <div className="relative">
