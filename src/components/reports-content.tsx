@@ -218,11 +218,11 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                                             <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
                                                 <BookUser className="mr-2 h-4 w-4" /> Assign
                                             </Button>
+                                            <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit Costing
+                                            </Button>
                                         </>
                                     )}
-                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit Costing
-                                    </Button>
                                 </div>
                             </TableCell>
                         </TableRow>
