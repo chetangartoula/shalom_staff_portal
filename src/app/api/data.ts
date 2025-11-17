@@ -1,106 +1,140 @@
 
 import type { Trek, Service, Guide, Porter } from '@/lib/types';
 import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
+import fs from 'fs';
+import path from 'path';
 
-// Add IDs to initial data
-const initialServicesWithIds: Service[] = staticServices.map(s => ({ ...s, id: crypto.randomUUID() }));
-const initialGuidesWithIds: Guide[] = initialGuides.map(g => ({ ...g, id: crypto.randomUUID() }));
-const initialPortersWithIds: Porter[] = initialPorters.map(p => ({ ...p, id: crypto.randomUUID() }));
+const dbPath = path.join(process.cwd(), 'db.json');
 
+const readDB = () => {
+    try {
+        if (fs.existsSync(dbPath)) {
+            const fileContent = fs.readFileSync(dbPath, 'utf-8');
+            return JSON.parse(fileContent);
+        }
+    } catch (error) {
+        console.error("Error reading db.json:", error);
+    }
+    // Return default structure if file doesn't exist or is empty/corrupt
+    return {
+        treks: [...initialTreks],
+        services: staticServices.map(s => ({ ...s, id: crypto.randomUUID() })),
+        guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
+        porters: initialPorters.map(p => ({ ...p, id: crypto.randomUUID() })),
+        reports: [],
+        travelers: []
+    };
+};
 
-// In-memory data stores to simulate a database.
-export let treks: Trek[] = [...initialTreks];
-export let services: Service[] = [...initialServicesWithIds];
-export let guides: Guide[] = [...initialGuidesWithIds];
-export let porters: Porter[] = [...initialPortersWithIds];
-export let reports: any[] = [];
-export let travelers: any[] = [];
+const writeDB = (data: any) => {
+    try {
+        fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+    } catch (error) {
+        console.error("Error writing to db.json:", error);
+    }
+};
+
+let db = readDB();
 
 // Functions to manipulate the data
 
 // Treks
 export const getTreks = () => {
-    return { treks };
+    db = readDB();
+    return { treks: db.treks };
 }
 export const addTrek = (newTrek: Omit<Trek, 'id'>) => {
-  const trekWithId = { ...newTrek, id: crypto.randomUUID() };
-  treks.push(trekWithId);
-  return trekWithId;
+    db = readDB();
+    const trekWithId = { ...newTrek, id: crypto.randomUUID() };
+    db.treks.push(trekWithId);
+    writeDB(db);
+    return trekWithId;
 };
 
 // Guides
 export const getGuides = () => {
-  return { guides };
+    db = readDB();
+    return { guides: db.guides };
 }
 
 // Porters
 export const getPorters = () => {
-    return { porters };
+    db = readDB();
+    return { porters: db.porters };
 }
 
 
 // Reports
 export const getPaginatedReports = (page: number, limit: number) => {
-  const reversedReports = [...reports].reverse();
-  const startIndex = (page - 1) * limit;
-  const endIndex = page * limit;
-  const paginatedReports = reversedReports.slice(startIndex, endIndex);
+    db = readDB();
+    const reversedReports = [...db.reports].reverse();
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedReports = reversedReports.slice(startIndex, endIndex);
 
-  const augmentedReports = paginatedReports.map(report => {
-    const travelerGroup = travelers.find(t => t.groupId === report.groupId);
-    const joinedTravelers = travelerGroup ? travelerGroup.travelers.length : 0;
-    const pendingTravelers = report.groupSize - joinedTravelers;
+    const augmentedReports = paginatedReports.map(report => {
+        const travelerGroup = db.travelers.find((t: any) => t.groupId === report.groupId);
+        const joinedTravelers = travelerGroup ? travelerGroup.travelers.length : 0;
+        const pendingTravelers = report.groupSize - joinedTravelers;
+        return {
+            ...report,
+            joined: joinedTravelers,
+            pending: pendingTravelers,
+        };
+    });
+
     return {
-      ...report,
-      joined: joinedTravelers,
-      pending: pendingTravelers,
+        reports: augmentedReports,
+        total: db.reports.length,
+        hasMore: endIndex < db.reports.length,
     };
-  });
-
-  return { 
-    reports: augmentedReports,
-    total: reports.length,
-    hasMore: endIndex < reports.length,
-  };
 }
 export const getReportByGroupId = (groupId: string) => {
-    const report = reports.find(r => r.groupId === groupId);
+    db = readDB();
+    const report = db.reports.find((r: any) => r.groupId === groupId);
     return report || null;
 }
 export const addReport = (report: any) => {
-    reports.push(report);
+    db = readDB();
+    db.reports.push(report);
+    writeDB(db);
     return report;
 }
 export const updateReport = (groupId: string, body: any) => {
-    const reportIndex = reports.findIndex(r => r.groupId === groupId);
+    db = readDB();
+    const reportIndex = db.reports.findIndex((r: any) => r.groupId === groupId);
     if (reportIndex > -1) {
-        reports[reportIndex] = { ...reports[reportIndex], ...body };
-        return reports[reportIndex];
+        db.reports[reportIndex] = { ...db.reports[reportIndex], ...body };
+        writeDB(db);
+        return db.reports[reportIndex];
     }
     return null;
 }
 
 // Travelers
 export async function getAllTravelers() {
-  const reportMap = new Map(reports.map(r => [r.groupId, r]));
-  const allTravelers = travelers.flatMap(group => {
-    const report = reportMap.get(group.groupId);
-    return group.travelers.map((traveler: any) => ({
-      ...traveler,
-      groupId: group.groupId,
-      trekName: report ? report.trekName : 'N/A',
-      groupName: report ? report.groupName : 'N/A',
-    }));
-  });
-  return { travelers: allTravelers };
+    db = readDB();
+    const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
+    const allTravelers = db.travelers.flatMap((group: any) => {
+        const report = reportMap.get(group.groupId);
+        return group.travelers.map((traveler: any) => ({
+            ...traveler,
+            groupId: group.groupId,
+            trekName: report ? report.trekName : 'N/A',
+            groupName: report ? report.groupName : 'N/A',
+        }));
+    });
+    return { travelers: allTravelers };
 }
 export const getTravelerGroup = (groupId: string) => {
-    return travelers.find(t => t.groupId === groupId);
+    db = readDB();
+    return db.travelers.find((t: any) => t.groupId === groupId);
 }
 export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => {
-    const groupIndex = travelers.findIndex(t => t.groupId === groupId);
+    db = readDB();
+    const groupIndex = db.travelers.findIndex((t: any) => t.groupId === groupId);
     if (groupIndex > -1) {
-        const existingGroup = travelers[groupIndex];
+        const existingGroup = db.travelers[groupIndex];
         const travelerIndex = existingGroup.travelers.findIndex((t: any) => t.id === submittedTraveler.id);
 
         if (travelerIndex > -1) {
@@ -108,23 +142,23 @@ export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => 
         } else {
             existingGroup.travelers.push(submittedTraveler);
         }
-        travelers[groupIndex] = existingGroup;
-        return travelers[groupIndex];
+        db.travelers[groupIndex] = existingGroup;
     } else {
         const newTravelerGroup = { groupId, travelers: [submittedTraveler] };
-        travelers.push(newTravelerGroup);
-        return newTravelerGroup;
+        db.travelers.push(newTravelerGroup);
     }
+    writeDB(db);
+    return db.travelers.find((t: any) => t.groupId === groupId);
 }
 
 // Stats
 export const getStats = () => {
+    db = readDB();
     return {
-        reports: reports.length,
-        travelers: travelers.reduce((acc, group) => acc + group.travelers.length, 0),
-        treks: treks.length,
-        services: services.length,
-        guides: guides.length,
-        porters: porters.length,
+        reports: db.reports.length,
+        travelers: db.travelers.reduce((acc: number, group: any) => acc + group.travelers.length, 0),
+        treks: db.treks.length,
+        guides: db.guides.length,
+        porters: db.porters.length,
     };
 }
