@@ -79,4 +79,26 @@ export interface Traveler {
   groupName?: string;
 }
 
+export type PaymentStatus = 'unpaid' | 'partially paid' | 'fully paid';
+
+export interface Report {
+  groupId: string;
+  trekId: string;
+  trekName: string;
+  groupName: string;
+  groupSize: number;
+  startDate: string;
+  permits: SectionState;
+  services: SectionState;
+  extraDetails: SectionState;
+  customSections: SectionState[];
+  serviceCharge: number;
+  reportUrl: string;
+  paymentStatus: PaymentStatus;
+  
+  // From augmentation
+  joined: number;
+  pending: number;
+}
     
+

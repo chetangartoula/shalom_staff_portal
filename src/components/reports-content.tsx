@@ -5,27 +5,25 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Loader2, Copy, Check, Edit, Users, BookUser } from 'lucide-react';
-
+import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import type { Report, PaymentStatus } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
 
 const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
-
-interface Report {
-    groupId: string;
-    trekName: string;
-    groupName: string;
-    groupSize: number;
-    startDate: string;
-    reportUrl: string;
-    joined: number;
-    pending: number;
-}
 
 interface ReportsContentProps {
     initialData: {
@@ -33,6 +31,12 @@ interface ReportsContentProps {
         hasMore: boolean;
     }
 }
+
+const statusColors: Record<PaymentStatus, string> = {
+    'unpaid': "text-red-600 border-red-600/50 bg-red-500/5",
+    'partially paid': "text-yellow-600 border-yellow-600/50 bg-yellow-500/5",
+    'fully paid': "text-green-600 border-green-600/50 bg-green-500/5",
+};
 
 export function ReportsContent({ initialData }: ReportsContentProps) {
   const { toast } = useToast();
@@ -56,6 +60,36 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
     );
     setFilteredReports(results);
   }, [searchTerm, reports]);
+  
+  const handleUpdatePaymentStatus = async (groupId: string, status: PaymentStatus) => {
+    setReports(currentReports =>
+      currentReports.map(r => r.groupId === groupId ? { ...r, paymentStatus: status } : r)
+    );
+
+    try {
+        const response = await fetch(`/api/reports/${groupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentStatus: status }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update payment status');
+        }
+        toast({ title: 'Success', description: 'Payment status updated.' });
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: (error as Error).message,
+        });
+        // Revert UI change on failure
+         setReports(currentReports =>
+            currentReports.map(r => r.groupId === groupId ? { ...r, paymentStatus: reports.find(rep => rep.groupId === groupId)!.paymentStatus } : r)
+        );
+    }
+  };
+
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -145,6 +179,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         <TableHead>Trek Name</TableHead>
                         <TableHead>Group Name</TableHead>
                         <TableHead>Traveler Form</TableHead>
+                        <TableHead>Payment</TableHead>
                         <TableHead>Group Size</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Pending</TableHead>
@@ -170,6 +205,26 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                                     </Button>
                                 </div>
                             </TableCell>
+                            <TableCell>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                       <Button variant="outline" size="sm" className={cn("capitalize w-32 justify-between", statusColors[report.paymentStatus])}>
+                                            {report.paymentStatus}
+                                            <CircleDollarSign className="h-4 w-4" />
+                                       </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start">
+                                        <DropdownMenuRadioGroup
+                                            value={report.paymentStatus}
+                                            onValueChange={(status) => handleUpdatePaymentStatus(report.groupId, status as PaymentStatus)}
+                                        >
+                                            <DropdownMenuRadioItem value="unpaid">Unpaid</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="partially paid">Partially Paid</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="fully paid">Fully Paid</DropdownMenuRadioItem>
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
                             <TableCell>{report.groupSize}</TableCell>
                             <TableCell className="text-green-600 font-medium">{report.joined}</TableCell>
                             <TableCell className="text-orange-600 font-medium">{report.pending}</TableCell>
@@ -190,7 +245,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
+                            <TableCell colSpan={9} className="h-24 text-center">
                               No reports found.
                             </TableCell>
                           </TableRow>

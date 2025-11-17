@@ -81,6 +81,7 @@ export const getPaginatedReports = (page: number, limit: number) => {
             ...report,
             joined: joinedTravelers,
             pending: pendingTravelers,
+            paymentStatus: report.paymentStatus || 'unpaid',
         };
     });
 
@@ -97,9 +98,10 @@ export const getReportByGroupId = (groupId: string) => {
 }
 export const addReport = (report: any) => {
     db = readDB();
-    db.reports.push(report);
+    const reportWithStatus = { ...report, paymentStatus: 'unpaid' };
+    db.reports.push(reportWithStatus);
     writeDB(db);
-    return report;
+    return reportWithStatus;
 }
 export const updateReport = (groupId: string, body: any) => {
     db = readDB();

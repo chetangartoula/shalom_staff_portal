@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
@@ -21,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Stepper } from "@/components/ui/stepper";
-import type { Trek, CostRow, SectionState } from "@/lib/types";
+import type { Trek, CostRow, SectionState, PaymentStatus } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import type { User } from "@/lib/auth";
@@ -38,6 +37,7 @@ type ReportState = {
   extraDetails: SectionState;
   customSections: SectionState[];
   serviceCharge: number;
+  paymentStatus: PaymentStatus;
   reportUrl?: string;
 };
 
@@ -69,6 +69,7 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   extraDetails: createInitialSectionState('extraDetails', 'Extra Details'),
   customSections: [],
   serviceCharge: 10,
+  paymentStatus: 'unpaid',
 });
 
 
@@ -169,7 +170,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
         });
 
         if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
-            return { ...currentReport, [sectionId]: updateSection(currentReport[sectionId as keyof ReportState] as SectionState) };
+            return { ...currentReport, [sectionId]: updateSection(currentReport[sectionId as 'permits' | 'services' | 'extraDetails'] as SectionState) };
         } else {
             return {
                 ...currentReport,

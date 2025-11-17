@@ -9,17 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import type { Traveler } from '@/lib/types';
+import type { Traveler, Report } from '@/lib/types';
 
-
-interface Report {
-    groupId: string;
-    trekName: string;
-    groupName: string;
-    groupSize: number;
-    joined: number;
-    pending: number;
-}
 
 interface TravelerDetailsModalProps {
     isOpen: boolean;
