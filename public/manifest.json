@@ -1,0 +1,21 @@
+{
+  "name": "Shalom Dashboard",
+  "short_name": "ShalomApp",
+  "description": "Trek Costing & Management Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f7",
+  "theme_color": "#151D4F",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

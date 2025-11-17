@@ -13,6 +13,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Shalom Dashboard',
   description: 'Trek Costing & Management Dashboard',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
@@ -22,6 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable}`}>
+       <head>
+        <meta name="theme-color" content="#151D4F" />
+      </head>
       <body className="antialiased">
         {children}
         <Toaster />
