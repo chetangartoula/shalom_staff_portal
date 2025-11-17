@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React, { useState, useEffect, useMemo } from "react";
-import { useSearchParams, useParams } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -43,18 +42,19 @@ const travelerSchema = z.object({
 });
 
 const formSchema = z.object({
-  travelers: z.array(travelerSchema.partial()),
+  travelers: z.array(travelerSchema),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 type Traveler = z.infer<typeof travelerSchema>;
 
-export default function TravelerForm() {
-  const params = useParams();
-  const groupId = params.groupId as string;
-  const searchParams = useSearchParams();
+interface TravelerFormProps {
+    groupId: string;
+    groupSize: number;
+}
+
+export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) {
   const { toast } = useToast();
-  const groupSize = parseInt(searchParams.get("groupSize") || "1", 10);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
@@ -75,6 +75,8 @@ export default function TravelerForm() {
         passportNumber: "",
         emergencyContact: "",
         nationality: "",
+        dateOfBirth: undefined,
+        passportExpiryDate: undefined,
       })),
     [groupSize, clientSideTravelerIds]
   );
@@ -124,13 +126,17 @@ export default function TravelerForm() {
         }
       } catch (error) {
         console.error("Failed to fetch traveler data", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load existing traveler data."
+        });
       } finally {
         setIsLoading(false);
       }
     };
     fetchTravelerData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupId, groupSize]);
+  }, [groupId, groupSize, form, defaultTravelers, toast]);
   
   const handleSaveTraveler = async (travelerIndex: number) => {
     const travelerClientId = form.getValues(`travelers.${travelerIndex}.id`);

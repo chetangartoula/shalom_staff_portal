@@ -1,7 +1,8 @@
+
 "use client";
 
 import React from "react";
-import { useSearchParams, useParams } from "next/navigation";
+import { useSearchParams, useParams, notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Mountain, Loader2, Check, Copy } from "lucide-react";
 
@@ -12,8 +13,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import useSWR from 'swr';
+
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) {
+        throw new Error('Could not fetch report details');
+    }
+    return res.json();
+});
 
 // Dynamically import the form component with SSR turned off
 const TravelerForm = dynamic(() => import('@/components/traveler-form'), {
@@ -33,6 +41,8 @@ export default function ReportPage() {
   
   const [isCopied, setIsCopied] = React.useState(false);
 
+  const { data: report, error } = useSWR(groupId ? `/api/reports/${groupId}` : null, fetcher);
+
   const handleCopy = () => {
     if (!groupId) return;
     navigator.clipboard.writeText(groupId);
@@ -44,6 +54,21 @@ export default function ReportPage() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  if (error) {
+    // This will be caught by the error boundary
+    if (error.message.includes('404')) {
+      notFound();
+    }
+    throw error;
+  }
+
+  if (!report) {
+     return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+             <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+     )
+  }
 
   return (
     <>
@@ -85,14 +110,12 @@ export default function ReportPage() {
                   </div>
               </CardHeader>
               <CardContent>
-                {/* The heavy form is loaded here dynamically */}
-                <TravelerForm />
+                <TravelerForm groupId={groupId} groupSize={report.groupSize} />
               </CardContent>
             </Card>
           </div>
         </main>
       </div>
-      <Toaster />
     </>
   );
 }
