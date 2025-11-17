@@ -3,7 +3,6 @@
 
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -73,7 +72,7 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
                             <TableCell>{guide.email}</TableCell>
                             <TableCell>{guide.phone}</TableCell>
                             <TableCell>
-                                <Badge className={cn("font-semibold", statusColors[guide.status])} variant="outline">
+                                <Badge className={`${statusColors[guide.status]} font-semibold`} variant="outline">
                                     {guide.status}
                                 </Badge>
                             </TableCell>
