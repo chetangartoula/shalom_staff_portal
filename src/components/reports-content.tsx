@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import useSWR from 'swr';
-import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign } from 'lucide-react';
+import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import type { Report, PaymentStatus } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 
 const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
 
@@ -118,6 +125,186 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
     ? 'View and manage payment status for all reports.'
     : 'View and edit your saved cost estimation reports.';
 
+  const renderMobileCards = () => (
+    <div className="space-y-4 md:hidden">
+      {filteredReports.map((report) => (
+        <Card key={report.groupId}>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">{report.trekName}</CardTitle>
+                <CardDescription>
+                  <Badge variant="outline" className="mt-1">{report.groupName}</Badge>
+                </CardDescription>
+              </div>
+               <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                   {pageType === 'payments' && (
+                    <DropdownMenuItem onClick={() => handleManagePayments(report.groupId)}>
+                        <CircleDollarSign className="mr-2 h-4 w-4" /> Manage Payments
+                    </DropdownMenuItem>
+                   )}
+                   {pageType === 'reports' && (
+                    <>
+                     <DropdownMenuItem onClick={() => handleViewTravelers(report)}>
+                        <Users className="mr-2 h-4 w-4" /> View Travelers
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => handleAssignClick(report.groupId)}>
+                       <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
+                       <Edit className="mr-2 h-4 w-4" /> Edit Costing
+                     </DropdownMenuItem>
+                    </>
+                   )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total Cost</span>
+              <span className="font-medium">{formatCurrency(report.paymentDetails.totalCost)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Balance</span>
+              <span className={cn("font-medium", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
+                {formatCurrency(report.paymentDetails.balance)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Status</span>
+              <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
+                {report.paymentDetails.paymentStatus}
+              </Badge>
+            </div>
+             {pageType === 'reports' && (
+                 <>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Joined / Total</span>
+                        <span>
+                            <span className="text-green-600 font-medium">{report.joined}</span>
+                            <span className="text-muted-foreground"> / {report.groupSize}</span>
+                        </span>
+                    </div>
+                     <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Traveler Form</span>
+                         <div className="flex items-center gap-1">
+                            <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
+                                {report.groupId.substring(0, 8)}...
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
+                                {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                    </div>
+                 </>
+             )}
+             <div className="flex justify-between">
+                <span className="text-muted-foreground">Start Date</span>
+                <span>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</span>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderDesktopTable = () => (
+     <div className="border rounded-lg hidden md:block">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead>Trek Name</TableHead>
+                <TableHead>Group Name</TableHead>
+                {pageType === 'reports' && <TableHead>Traveler Form</TableHead>}
+                <TableHead>Total Cost</TableHead>
+                <TableHead>Payment Status</TableHead>
+                <TableHead>Balance</TableHead>
+                {pageType === 'reports' && <TableHead>Joined/Total</TableHead>}
+                <TableHead>Start Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {filteredReports.length > 0 ? filteredReports.map((report) => (
+                <TableRow key={report.groupId}>
+                    <TableCell className="font-medium">{report.trekName}</TableCell>
+                    <TableCell>
+                        <Badge variant="outline">{report.groupName}</Badge>
+                    </TableCell>
+                    {pageType === 'reports' && (
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                            <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
+                                {report.groupId.substring(0, 8)}...
+                            </Link>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
+                                {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                <span className="sr-only">Copy Report URL</span>
+                                </Button>
+                            </div>
+                        </TableCell>
+                    )}
+                    <TableCell className="font-medium">{formatCurrency(report.paymentDetails.totalCost)}</TableCell>
+                    <TableCell>
+                        <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
+                            {report.paymentDetails.paymentStatus}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className={cn("font-medium", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
+                        {formatCurrency(report.paymentDetails.balance)}
+                    </TableCell>
+                    {pageType === 'reports' && (
+                        <TableCell>
+                            <span className="text-green-600 font-medium">{report.joined}</span>
+                            <span className="text-muted-foreground"> / {report.groupSize}</span>
+                        </TableCell>
+                    )}
+                    <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
+                    <TableCell className="text-right">
+                        <div className="flex justify-end items-center gap-2">
+                            {pageType === 'payments' && (
+                                <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
+                                    <CircleDollarSign className="mr-2 h-4 w-4" /> Manage Payments
+                                </Button>
+                            )}
+                            {pageType === 'reports' && (
+                                <>
+                                    <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
+                                        <Users className="mr-2 h-4 w-4" /> View
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
+                                        <BookUser className="mr-2 h-4 w-4" /> Assign
+                                    </Button>
+                                     {pageType === 'reports' &&
+                                        <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Edit Costing
+                                        </Button>
+                                     }
+                                </>
+                            )}
+                        </div>
+                    </TableCell>
+                </TableRow>
+                )) : (
+                    <TableRow>
+                    <TableCell colSpan={9} className="h-24 text-center">
+                        No reports found.
+                    </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+
   return (
     <>
       <Suspense fallback={null}>
@@ -134,11 +321,11 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                   <CardTitle>{cardTitle}</CardTitle>
                   <CardDescription>{cardDescription}</CardDescription>
               </div>
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
-                      placeholder="Search by trek, group name, or ID..."
+                      placeholder="Search reports..."
                       className="w-full sm:w-[300px] pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -152,90 +339,15 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
-            <div className="border rounded-lg">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Trek Name</TableHead>
-                        <TableHead>Group Name</TableHead>
-                        {pageType === 'reports' && <TableHead>Traveler Form</TableHead>}
-                        <TableHead>Total Cost</TableHead>
-                        <TableHead>Payment Status</TableHead>
-                        <TableHead>Balance</TableHead>
-                        {pageType === 'reports' && <TableHead>Joined/Total</TableHead>}
-                        <TableHead>Start Date</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredReports.length > 0 ? filteredReports.map((report) => (
-                        <TableRow key={report.groupId}>
-                            <TableCell className="font-medium">{report.trekName}</TableCell>
-                            <TableCell>
-                                <Badge variant="outline">{report.groupName}</Badge>
-                            </TableCell>
-                             {pageType === 'reports' && (
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                    <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
-                                        {report.groupId.substring(0, 8)}...
-                                    </Link>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
-                                        {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                        <span className="sr-only">Copy Report URL</span>
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                             )}
-                            <TableCell className="font-medium">{formatCurrency(report.paymentDetails.totalCost)}</TableCell>
-                            <TableCell>
-                                <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
-                                    {report.paymentDetails.paymentStatus}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className={cn("font-medium", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
-                                {formatCurrency(report.paymentDetails.balance)}
-                            </TableCell>
-                            {pageType === 'reports' && (
-                                <TableCell>
-                                    <span className="text-green-600 font-medium">{report.joined}</span>
-                                    <span className="text-muted-foreground"> / {report.groupSize}</span>
-                                </TableCell>
-                            )}
-                            <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
-                            <TableCell className="text-right">
-                                <div className="flex justify-end items-center gap-2">
-                                    {pageType === 'payments' && (
-                                        <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
-                                            <CircleDollarSign className="mr-2 h-4 w-4" /> Manage Payments
-                                        </Button>
-                                    )}
-                                    {pageType === 'reports' && (
-                                        <>
-                                            <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
-                                                <Users className="mr-2 h-4 w-4" /> View
-                                            </Button>
-                                            <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
-                                                <BookUser className="mr-2 h-4 w-4" /> Assign
-                                            </Button>
-                                            <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                                <Edit className="mr-2 h-4 w-4" /> Edit Costing
-                                            </Button>
-                                        </>
-                                    )}
-                                </div>
-                            </TableCell>
-                        </TableRow>
-                        )) : (
-                          <TableRow>
-                            <TableCell colSpan={9} className="h-24 text-center">
-                              No reports found.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+             <>
+                {renderDesktopTable()}
+                {renderMobileCards()}
+                {filteredReports.length === 0 && !isLoading && (
+                    <div className="text-center text-muted-foreground py-12">
+                        <p>No reports found.</p>
+                    </div>
+                )}
+             </>
           )}
         </CardContent>
          {hasMore && !searchTerm && (
@@ -250,3 +362,5 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
     </>
   );
 }
+
+    
