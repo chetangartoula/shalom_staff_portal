@@ -13,7 +13,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Shalom Dashboard',
   description: 'Trek Costing & Management Dashboard',
-  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
