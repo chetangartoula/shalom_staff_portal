@@ -35,7 +35,7 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, use
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="flex flex-col p-0 border-0 w-60 shadow-lg">
+        <SheetContent side="left" className="flex flex-col p-0 border-r-0 w-60 shadow-lg">
           <DialogTitle className="sr-only">Navigation Menu</DialogTitle>
           <Sidebar isCollapsed={false} onLinkClick={handleLinkClick} user={user} className="flex" />
         </SheetContent>

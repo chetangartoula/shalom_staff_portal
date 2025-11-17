@@ -87,7 +87,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
 
     return (
             <div className={cn(
-                "fixed inset-y-0 left-0 z-40 h-full flex-col border-r bg-sidebar-background transition-all duration-300 ease-in-out", 
+                "fixed inset-y-0 left-0 z-40 h-full flex-col bg-sidebar-background transition-all duration-300 ease-in-out", 
                 isCollapsed ? "w-14" : "w-60",
                 className
             )}>
