@@ -159,6 +159,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                         <TableHead>Trek Name</TableHead>
                         <TableHead>Group Name</TableHead>
                         {pageType === 'reports' && <TableHead>Traveler Form</TableHead>}
+                        <TableHead>Total Cost</TableHead>
                         <TableHead>Payment Status</TableHead>
                         <TableHead>Balance</TableHead>
                         {pageType === 'reports' && <TableHead>Joined/Total</TableHead>}
@@ -186,6 +187,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                                     </div>
                                 </TableCell>
                              )}
+                            <TableCell className="font-medium">{formatCurrency(report.paymentDetails.totalCost)}</TableCell>
                             <TableCell>
                                 <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
                                     {report.paymentDetails.paymentStatus}
