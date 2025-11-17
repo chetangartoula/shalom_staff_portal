@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import useSWR from 'swr';
-import { Search, Loader2, PlusCircle, MinusCircle, ArrowRightLeft } from 'lucide-react';
+import { Search, Loader2, PlusCircle, MinusCircle, ArrowDown, ArrowUp, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import type { Transaction } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
+import { DateRangePicker } from './ui/date-range-picker';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import type { DateRange } from 'react-day-picker';
 
 interface TransactionWithContext extends Transaction {
     trekName: string;
@@ -25,23 +28,50 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export function TransactionsContent() {
   const { toast } = useToast();
-  const router = useRouter();
-
+  
   const [transactions, setTransactions] = useState<TransactionWithContext[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [summary, setSummary] = useState({ totalPayments: 0, totalRefunds: 0, netTotal: 0 });
 
-  const { data, error, isLoading } = useSWR(`/api/transactions/all?page=${page}`, fetcher);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'payment' | 'refund'>('all');
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: '10',
+    type: typeFilter,
+  });
+
+  if (dateRange?.from) queryParams.set('from', dateRange.from.toISOString());
+  if (dateRange?.to) queryParams.set('to', dateRange.to.toISOString());
+
+  const { data, error, isLoading, mutate } = useSWR(`/api/transactions/all?${queryParams.toString()}`, fetcher, {
+    keepPreviousData: true,
+  });
+
+  useEffect(() => {
+    // Reset page to 1 whenever filters change
+    setPage(1);
+  }, [dateRange, typeFilter]);
 
   useEffect(() => {
     if (data) {
         if (page === 1) {
             setTransactions(data.transactions);
         } else {
-            setTransactions(prev => [...prev, ...data.transactions]);
+            // Append new transactions if they don't already exist
+            setTransactions(prev => {
+                const existingIds = new Set(prev.map(t => t.id));
+                const newTransactions = data.transactions.filter((t: Transaction) => !existingIds.has(t.id));
+                return [...prev, ...newTransactions];
+            });
         }
         setHasMore(data.hasMore);
+        if (data.summary) {
+            setSummary(data.summary);
+        }
     }
   }, [data, page]);
 
@@ -61,95 +91,140 @@ export function TransactionsContent() {
 
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-            <div>
-                <CardTitle>All Transactions</CardTitle>
-                <CardDescription>View and search all financial transactions across all groups.</CardDescription>
-            </div>
-            <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search by trek, group, or note..."
-                    className="w-full sm:w-[300px] pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
+                    <ArrowUp className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalPayments)}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Refunds</CardTitle>
+                    <ArrowDown className="h-4 w-4 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-red-600">{formatCurrency(summary.totalRefunds)}</div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Net Total</CardTitle>
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className={cn("text-2xl font-bold", summary.netTotal >= 0 ? "text-slate-700" : "text-red-600")}>
+                        {formatCurrency(summary.netTotal)}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading && page === 1 ? (
-           <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-           </div>
-        ) : (
-          <div className="border rounded-lg">
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Trek Name</TableHead>
-                          <TableHead>Group Name</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Note</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {filteredTransactions.length > 0 ? filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id}>
-                          <TableCell>{format(parseISO(transaction.date), 'PPP')}</TableCell>
-                          <TableCell className="font-medium">{transaction.trekName}</TableCell>
-                          <TableCell>
-                             <Link href={`/payments/${transaction.groupId}`} className="hover:underline">
-                                <Badge variant="outline">{transaction.groupName}</Badge>
-                             </Link>
-                          </TableCell>
-                          <TableCell>
-                              <Badge 
-                                variant={transaction.type === 'payment' ? 'default' : 'destructive'} 
-                                className={cn(
-                                    'capitalize', 
-                                    transaction.type === 'payment' 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : 'bg-red-100 text-red-800'
-                                )}
-                              >
-                                {transaction.type === 'payment' ? <PlusCircle className="mr-1 h-3 w-3" /> : <MinusCircle className="mr-1 h-3 w-3"/>}
-                                {transaction.type}
-                              </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground italic">{transaction.note || '–'}</TableCell>
-                          <TableCell className={cn("text-right font-bold", transaction.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
-                               {transaction.type === 'payment' ? '+' : '-'}
-                               {formatCurrency(transaction.amount)}
-                          </TableCell>
-                      </TableRow>
-                      )) : (
+
+        <Card>
+        <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                    <CardTitle>All Transactions</CardTitle>
+                    <CardDescription>View and search all financial transactions across all groups.</CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                     <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        value={typeFilter}
+                        onValueChange={(value: 'all' | 'payment' | 'refund') => value && setTypeFilter(value)}
+                    >
+                        <ToggleGroupItem value="all">All</ToggleGroupItem>
+                        <ToggleGroupItem value="payment">Payments</ToggleGroupItem>
+                        <ToggleGroupItem value="refund">Refunds</ToggleGroupItem>
+                    </ToggleGroup>
+                    <DateRangePicker date={dateRange} setDate={setDateRange} />
+                    <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            placeholder="Search by trek, group, or note..."
+                            className="w-full sm:w-auto pl-8"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent>
+            {isLoading && page === 1 ? (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+            ) : (
+            <div className="border rounded-lg">
+                <Table>
+                    <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center">
-                            No transactions found.
-                          </TableCell>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Trek Name</TableHead>
+                            <TableHead>Group Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Note</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
-                      )}
-                  </TableBody>
-              </Table>
-          </div>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredTransactions.length > 0 ? filteredTransactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                            <TableCell>{format(parseISO(transaction.date), 'PPP')}</TableCell>
+                            <TableCell className="font-medium">{transaction.trekName}</TableCell>
+                            <TableCell>
+                                <Link href={`/payments/${transaction.groupId}`} className="hover:underline">
+                                    <Badge variant="outline">{transaction.groupName}</Badge>
+                                </Link>
+                            </TableCell>
+                            <TableCell>
+                                <Badge 
+                                    variant={transaction.type === 'payment' ? 'default' : 'destructive'} 
+                                    className={cn(
+                                        'capitalize', 
+                                        transaction.type === 'payment' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'
+                                    )}
+                                >
+                                    {transaction.type === 'payment' ? <PlusCircle className="mr-1 h-3 w-3" /> : <MinusCircle className="mr-1 h-3 w-3"/>}
+                                    {transaction.type}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground italic">{transaction.note || '–'}</TableCell>
+                            <TableCell className={cn("text-right font-bold", transaction.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
+                                {transaction.type === 'payment' ? '+' : '-'}
+                                {formatCurrency(transaction.amount)}
+                            </TableCell>
+                        </TableRow>
+                        )) : (
+                            <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center">
+                                No transactions found for the selected filters.
+                            </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+            )}
+        </CardContent>
+        {hasMore && !searchTerm && (
+            <CardFooter className="justify-center pt-6">
+            <Button onClick={handleLoadMore} disabled={isLoading}>
+                {isLoading && page > 1 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Load More
+            </Button>
+            </CardFooter>
         )}
-      </CardContent>
-       {hasMore && !searchTerm && (
-        <CardFooter className="justify-center pt-6">
-          <Button onClick={handleLoadMore} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Load More
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
+        </Card>
+      </div>
   );
 }
-
-    

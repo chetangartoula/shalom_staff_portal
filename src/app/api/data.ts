@@ -3,6 +3,7 @@ import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, P
 import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
+import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 const dbPath = path.join(process.cwd(), 'db.json');
 
@@ -278,17 +279,44 @@ export const getAllTransactions = () => {
 };
 
 
-export const getPaginatedTransactions = (page: number, limit: number) => {
+export const getPaginatedTransactions = (page: number, limit: number, filters: { from?: string, to?: string, type?: 'payment' | 'refund' | 'all' }) => {
     db = readDB();
     const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, { trekName: r.trekName, groupName: r.groupName }]));
     
-    // Sort all transactions by date descending
-    const sortedTransactions = [...db.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Start with all transactions, sorted
+    let allTransactions = [...db.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // Apply filters
+    const { from, to, type } = filters;
+    let filteredTransactions = allTransactions;
+
+    if (type && type !== 'all') {
+        filteredTransactions = filteredTransactions.filter(t => t.type === type);
+    }
+
+    if (from && to) {
+        const interval = { start: startOfDay(parseISO(from)), end: endOfDay(parseISO(to)) };
+        filteredTransactions = filteredTransactions.filter(t => isWithinInterval(parseISO(t.date), interval));
+    }
+    
+    // Calculate totals on the filtered data *before* pagination
+    const totalPayments = filteredTransactions
+        .filter(t => t.type === 'payment')
+        .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalRefunds = filteredTransactions
+        .filter(t => t.type === 'refund')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+    const netTotal = totalPayments - totalRefunds;
+
+    // Apply pagination to the filtered data
+    const total = filteredTransactions.length;
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
-    const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex);
+    const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
+    // Augment the paginated data with report info
     const augmentedTransactions = paginatedTransactions.map((transaction: Transaction) => {
         const reportInfo = reportMap.get(transaction.groupId);
         return {
@@ -300,8 +328,13 @@ export const getPaginatedTransactions = (page: number, limit: number) => {
 
     return {
         transactions: augmentedTransactions,
-        total: db.transactions.length,
-        hasMore: endIndex < db.transactions.length,
+        total,
+        hasMore: endIndex < total,
+        summary: {
+            totalPayments,
+            totalRefunds,
+            netTotal,
+        }
     };
 };
 
@@ -317,5 +350,3 @@ export const getStats = () => {
         porters: db.porters.length,
     };
 }
-
-    
