@@ -7,13 +7,18 @@ import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 const dbPath = path.join(process.cwd(), 'db.json');
 
+let cachedDb: any = null;
+
 const readDB = () => {
+    if (cachedDb && process.env.NODE_ENV !== 'development') {
+        return cachedDb;
+    }
+
     try {
         if (fs.existsSync(dbPath)) {
             const fileContent = fs.readFileSync(dbPath, 'utf-8');
             const data = JSON.parse(fileContent);
-            // Ensure all required top-level keys exist
-            return {
+            cachedDb = {
                 treks: data.treks || [],
                 services: data.services || [],
                 guides: data.guides || [],
@@ -23,12 +28,14 @@ const readDB = () => {
                 assignments: data.assignments || [],
                 transactions: data.transactions || [],
             };
+            return cachedDb;
         }
     } catch (error) {
         console.error("Error reading db.json:", error);
     }
+    
     // Return default structure if file doesn't exist or is empty/corrupt
-    return {
+    const defaultData = {
         treks: [...initialTreks],
         services: staticServices.map(s => ({ ...s, id: crypto.randomUUID() })),
         guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
@@ -38,17 +45,22 @@ const readDB = () => {
         assignments: [],
         transactions: [],
     };
+    cachedDb = defaultData;
+    return cachedDb;
 };
 
 const writeDB = (data: any) => {
     try {
         fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
+        cachedDb = null; // Invalidate cache
     } catch (error) {
         console.error("Error writing to db.json:", error);
     }
 };
 
-let db = readDB();
+const getDB = () => {
+    return readDB();
+}
 
 // --- Helper Functions ---
 
@@ -68,7 +80,7 @@ export const calculateReportTotalCost = (report: Report): number => {
 };
 
 export const getPaymentDetails = (groupId: string, totalCost: number) => {
-    db = readDB();
+    const db = getDB();
     const groupTransactions = db.transactions.filter((t: Transaction) => t.groupId === groupId);
     const totalPaid = groupTransactions.reduce((acc: number, t: Transaction) => {
         return t.type === 'payment' ? acc + t.amount : acc - t.amount;
@@ -93,11 +105,11 @@ export const getPaymentDetails = (groupId: string, totalCost: number) => {
 
 // Treks
 export const getTreks = () => {
-    db = readDB();
+    const db = getDB();
     return { treks: db.treks };
 }
 export const addTrek = (newTrek: Omit<Trek, 'id'>) => {
-    db = readDB();
+    const db = getDB();
     const trekWithId = { ...newTrek, id: crypto.randomUUID() };
     db.treks.push(trekWithId);
     writeDB(db);
@@ -106,20 +118,20 @@ export const addTrek = (newTrek: Omit<Trek, 'id'>) => {
 
 // Guides
 export const getGuides = () => {
-    db = readDB();
+    const db = getDB();
     return { guides: db.guides };
 }
 
 // Porters
 export const getPorters = () => {
-    db = readDB();
+    const db = getDB();
     return { porters: db.porters };
 }
 
 
 // Reports
 export const getPaginatedReports = (page: number, limit: number) => {
-    db = readDB();
+    const db = getDB();
     const reversedReports = [...db.reports].reverse();
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
@@ -148,7 +160,7 @@ export const getPaginatedReports = (page: number, limit: number) => {
     };
 }
 export const getReportByGroupId = (groupId: string) => {
-    db = readDB();
+    const db = getDB();
     const report = db.reports.find((r: any) => r.groupId === groupId);
     if (!report) return null;
 
@@ -158,14 +170,14 @@ export const getReportByGroupId = (groupId: string) => {
     return { ...report, paymentDetails };
 }
 export const addReport = (report: any) => {
-    db = readDB();
+    const db = getDB();
     const reportWithStatus = { ...report };
     db.reports.push(reportWithStatus);
     writeDB(db);
     return reportWithStatus;
 }
 export const updateReport = (groupId: string, body: any) => {
-    db = readDB();
+    const db = getDB();
     const reportIndex = db.reports.findIndex((r: any) => r.groupId === groupId);
     if (reportIndex > -1) {
         db.reports[reportIndex] = { ...db.reports[reportIndex], ...body };
@@ -177,7 +189,7 @@ export const updateReport = (groupId: string, body: any) => {
 
 // Travelers
 export async function getAllTravelers() {
-    db = readDB();
+    const db = getDB();
     const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
     const allTravelers = db.travelers.flatMap((group: any) => {
         const report = reportMap.get(group.groupId);
@@ -191,11 +203,11 @@ export async function getAllTravelers() {
     return { travelers: allTravelers };
 }
 export const getTravelerGroup = (groupId: string) => {
-    db = readDB();
+    const db = getDB();
     return db.travelers.find((t: any) => t.groupId === groupId);
 }
 export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => {
-    db = readDB();
+    const db = getDB();
     const groupIndex = db.travelers.findIndex((t: any) => t.groupId === groupId);
     if (groupIndex > -1) {
         const existingGroup = db.travelers[groupIndex];
@@ -217,12 +229,12 @@ export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => 
 
 // Assignments
 export const getAssignmentsByGroupId = (groupId: string) => {
-    db = readDB();
+    const db = getDB();
     return db.assignments.find((a: any) => a.groupId === groupId) || null;
 }
 
 export const updateAssignments = (groupId: string, guideIds: string[], porterIds: string[]) => {
-    db = readDB();
+    const db = getDB();
     const assignmentIndex = db.assignments.findIndex((a: any) => a.groupId === groupId);
 
     const newAssignment = { groupId, guideIds, porterIds };
@@ -237,7 +249,7 @@ export const updateAssignments = (groupId: string, guideIds: string[], porterIds
 }
 
 export const getAllAssignmentsWithDetails = () => {
-    db = readDB();
+    const db = getDB();
     const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
     const guideMap = new Map(db.guides.map((g: any) => [g.id, g]));
     const porterMap = new Map(db.porters.map((p: any) => [p.id, p]));
@@ -257,12 +269,12 @@ export const getAllAssignmentsWithDetails = () => {
 
 // Transactions
 export const getTransactionsByGroupId = (groupId: string) => {
-    db = readDB();
+    const db = getDB();
     return db.transactions.filter((t: Transaction) => t.groupId === groupId).sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export const addTransaction = (groupId: string, transactionData: Omit<Transaction, 'id' | 'groupId'>) => {
-    db = readDB();
+    const db = getDB();
     const newTransaction: Transaction = {
         ...transactionData,
         id: crypto.randomUUID(),
@@ -274,13 +286,13 @@ export const addTransaction = (groupId: string, transactionData: Omit<Transactio
 }
 
 export const getAllTransactions = () => {
-    db = readDB();
+    const db = getDB();
     return db.transactions;
 };
 
 
 export const getPaginatedTransactions = (page: number, limit: number, filters: { from?: string, to?: string, type?: 'payment' | 'refund' | 'all' }) => {
-    db = readDB();
+    const db = getDB();
     const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, { trekName: r.trekName, groupName: r.groupName }]));
     
     // Start with all transactions, sorted
@@ -341,7 +353,7 @@ export const getPaginatedTransactions = (page: number, limit: number, filters: {
 
 // Stats
 export const getStats = () => {
-    db = readDB();
+    const db = getDB();
     return {
         reports: db.reports.length,
         travelers: db.travelers.reduce((acc: number, group: any) => acc + group.travelers.length, 0),
