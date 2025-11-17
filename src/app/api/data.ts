@@ -1,16 +1,18 @@
 
-import type { Trek, Service, Guide } from '@/lib/types';
-import { initialTreks, services as staticServices, initialGuides } from '@/lib/mock-data';
+import type { Trek, Service, Guide, Porter } from '@/lib/types';
+import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
 
 // Add IDs to initial data
 const initialServicesWithIds: Service[] = staticServices.map(s => ({ ...s, id: crypto.randomUUID() }));
 const initialGuidesWithIds: Guide[] = initialGuides.map(g => ({ ...g, id: crypto.randomUUID() }));
+const initialPortersWithIds: Porter[] = initialPorters.map(p => ({ ...p, id: crypto.randomUUID() }));
 
 
 // In-memory data stores to simulate a database.
 export let treks: Trek[] = [...initialTreks];
 export let services: Service[] = [...initialServicesWithIds];
 export let guides: Guide[] = [...initialGuidesWithIds];
+export let porters: Porter[] = [...initialPortersWithIds];
 export let reports: any[] = [];
 export let travelers: any[] = [];
 
@@ -64,6 +66,11 @@ export const deleteService = (id: string) => {
 // Guides
 export const getGuides = () => {
   return { guides };
+}
+
+// Porters
+export const getPorters = () => {
+    return { porters };
 }
 
 
@@ -152,5 +159,6 @@ export const getStats = () => {
         treks: treks.length,
         services: services.length,
         guides: guides.length,
+        porters: porters.length,
     };
 }

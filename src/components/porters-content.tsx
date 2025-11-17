@@ -9,30 +9,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import type { Guide, GuideStatus } from '@/lib/types';
+import type { Porter, PorterStatus } from '@/lib/types';
 
-interface GuidesContentProps {
-    initialData: Guide[];
+interface PortersContentProps {
+    initialData: Porter[];
 }
 
-const statusColors: Record<GuideStatus, string> = {
+const statusColors: Record<PorterStatus, string> = {
     Available: "bg-green-100 text-green-800 border-green-200",
-    'On Tour': "bg-blue-100 text-blue-800 border-blue-200",
+    'On Trek': "bg-blue-100 text-blue-800 border-blue-200",
     'On Leave': "bg-yellow-100 text-yellow-800 border-yellow-200",
 };
 
-export function GuidesContent({ initialData }: GuidesContentProps) {
-  const [guides] = useState<Guide[]>(initialData);
+export function PortersContent({ initialData }: PortersContentProps) {
+  const [porters] = useState<Porter[]>(initialData);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredGuides = useMemo(() => {
-    if (!searchTerm) return guides;
-    return guides.filter(guide =>
-      (guide.name && guide.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (guide.email && guide.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (guide.phone && guide.phone.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredPorters = useMemo(() => {
+    if (!searchTerm) return porters;
+    return porters.filter(porter =>
+      (porter.name && porter.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (porter.phone && porter.phone.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [searchTerm, guides]);
+  }, [searchTerm, porters]);
 
   return (
     <>
@@ -40,14 +39,14 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                  <CardTitle>Guides</CardTitle>
-                  <CardDescription>View and search for all available guides.</CardDescription>
+                  <CardTitle>Porters</CardTitle>
+                  <CardDescription>View and search for all available porters.</CardDescription>
               </div>
               <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                       type="search"
-                      placeholder="Search by name, email, or phone..."
+                      placeholder="Search by name or phone..."
                       className="w-full sm:w-[300px] pl-8"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
@@ -61,27 +60,25 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
                             <TableHead>Phone Number</TableHead>
                             <TableHead>Status</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredGuides.length > 0 ? filteredGuides.map((guide) => (
-                        <TableRow key={guide.id}>
-                            <TableCell className="font-medium">{guide.name}</TableCell>
-                            <TableCell>{guide.email}</TableCell>
-                            <TableCell>{guide.phone}</TableCell>
+                        {filteredPorters.length > 0 ? filteredPorters.map((porter) => (
+                        <TableRow key={porter.id}>
+                            <TableCell className="font-medium">{porter.name}</TableCell>
+                            <TableCell>{porter.phone}</TableCell>
                             <TableCell>
-                                <Badge className={cn("font-semibold", statusColors[guide.status])} variant="outline">
-                                    {guide.status}
+                                <Badge className={cn("font-semibold", statusColors[porter.status])} variant="outline">
+                                    {porter.status}
                                 </Badge>
                             </TableCell>
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
-                              {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
+                            <TableCell colSpan={3} className="h-24 text-center">
+                              {searchTerm ? `No porters found for "${searchTerm}".` : "No porter data available."}
                             </TableCell>
                           </TableRow>
                         )}

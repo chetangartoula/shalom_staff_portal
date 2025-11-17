@@ -1,5 +1,5 @@
 
-import type { Trek, Service, Guide } from './types';
+import type { Trek, Service, Guide, Porter } from './types';
 
 // This file contains the initial static data for the application.
 // The API routes will manage the state during runtime, starting with this data.
@@ -53,10 +53,19 @@ export const services: Omit<Service, 'id'>[] = [
 ];
 
 export const initialGuides: Omit<Guide, 'id'>[] = [
-  { name: 'Dorje Sherpa', phone: '984-1234567', status: 'Available' },
-  { name: 'Lakpa Tamang', phone: '984-7654321', status: 'On Tour' },
-  { name: 'Nima Lama', phone: '986-1122334', status: 'Available' },
-  { name: 'Pemba Gurung', phone: '984-5566778', status: 'On Leave' },
-  { name: 'Tenzing Rai', phone: '981-8899001', status: 'On Tour' },
-  { name: 'Sonam Bhote', phone: '980-3344556', status: 'Available' },
+  { name: 'Dorje Sherpa', email: 'dorje.sherpa@example.com', phone: '984-1234567', status: 'Available' },
+  { name: 'Lakpa Tamang', email: 'lakpa.tamang@example.com', phone: '984-7654321', status: 'On Tour' },
+  { name: 'Nima Lama', email: 'nima.lama@example.com', phone: '986-1122334', status: 'Available' },
+  { name: 'Pemba Gurung', email: 'pemba.gurung@example.com', phone: '984-5566778', status: 'On Leave' },
+  { name: 'Tenzing Rai', email: 'tenzing.rai@example.com', phone: '981-8899001', status: 'On Tour' },
+  { name: 'Sonam Bhote', email: 'sonam.bhote@example.com', phone: '980-3344556', status: 'Available' },
+];
+
+export const initialPorters: Omit<Porter, 'id'>[] = [
+  { name: 'Kaji Sherpa', phone: '984-2345678', status: 'Available' },
+  { name: 'Mingma Tamang', phone: '984-8765432', status: 'On Trek' },
+  { name: 'Ang Phurba Lama', phone: '986-2233445', status: 'Available' },
+  { name: 'Dawa Gurung', phone: '984-6677889', status: 'On Leave' },
+  { name: 'Pasang Rai', phone: '981-9900112', status: 'On Trek' },
+  { name: 'Karma Bhote', phone: '980-4455667', status: 'Available' },
 ];

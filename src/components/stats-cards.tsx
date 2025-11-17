@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ClipboardList, Users, Mountain, Settings, LucideProps, Users2 } from 'lucide-react';
+import { ClipboardList, Users, Mountain, Settings, LucideProps, Users2, Backpack } from 'lucide-react';
 
 interface StatsCardsProps {
     stats: {
@@ -8,10 +8,11 @@ interface StatsCardsProps {
         treks: number;
         services: number;
         guides: number;
+        porters: number;
     } | null;
 }
 
-type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings" | "Users2";
+type IconName = "ClipboardList" | "Users" | "Mountain" | "Settings" | "Users2" | "Backpack";
 
 const icons: { [key in IconName]: React.ElementType<LucideProps> } = {
     ClipboardList,
@@ -19,6 +20,7 @@ const icons: { [key in IconName]: React.ElementType<LucideProps> } = {
     Mountain,
     Settings,
     Users2,
+    Backpack,
 };
 
 export function StatsCards({ stats }: StatsCardsProps) {
@@ -27,10 +29,11 @@ export function StatsCards({ stats }: StatsCardsProps) {
         { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: "Users" as IconName, color: 'text-green-500' },
         { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain" as IconName, color: 'text-purple-500' },
         { title: 'Total Guides', value: stats?.guides ?? 0, icon: "Users2" as IconName, color: 'text-yellow-500' },
+        { title: 'Total Porters', value: stats?.porters ?? 0, icon: "Backpack" as IconName, color: 'text-orange-500' },
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {statCards.map((card, index) => {
                 const Icon = icons[card.icon];
                 return (
@@ -51,8 +54,8 @@ export function StatsCards({ stats }: StatsCardsProps) {
 
 StatsCards.Skeleton = function StatsSkeleton() {
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, index) => (
                 <Card key={index}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <div className="h-4 bg-muted rounded-md w-2/3"></div>

@@ -39,6 +39,16 @@ export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';
 export interface Guide {
   id: string;
   name: string;
+  email: string;
   phone: string;
   status: GuideStatus;
+}
+
+export type PorterStatus = 'Available' | 'On Trek' | 'On Leave';
+
+export interface Porter {
+  id: string;
+  name: string;
+  phone: string;
+  status: PorterStatus;
 }

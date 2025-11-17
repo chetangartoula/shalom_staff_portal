@@ -3,7 +3,7 @@
 import React, { useState, lazy, Suspense } from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Calculator, ClipboardList, Users, Plus, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2 } from "lucide-react";
+import { Home, Calculator, ClipboardList, Users, Plus, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
@@ -83,6 +83,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
         { href: "/reports", label: "Reports", icon: ClipboardList },
         { href: "/travelers", label: "Travelers", icon: Users },
         { href: "/guides", label: "Guides", icon: Users2 },
+        { href: "/porters", label: "Porters", icon: Backpack },
         { href: "#", label: "Add Trek", icon: Plus, action: () => setIsAddTrekModalOpen(true) },
         { href: "/services", label: "Services", icon: Settings },
     ];
