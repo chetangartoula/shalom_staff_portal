@@ -493,6 +493,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             onDiscountValueChange={handleDiscountValueChange}
             onAddRow={addRow}
             onRemoveRow={removeRow}
+            isDescriptionEditable
           />
         );
 
@@ -543,7 +544,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   };
 
   return (
-    <>
+    <Suspense fallback={<LoadingStep />}>
       <Card className="w-full shadow-lg rounded-xl">
         <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="mb-8 md:mb-12">
@@ -617,10 +618,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
           )}
         </div>
       </div>
-    </>
+    </Suspense>
   );
 }
 
 export const TrekCostingPage = memo(TrekCostingPageComponent);
-
-    

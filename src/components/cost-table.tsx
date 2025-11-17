@@ -30,7 +30,7 @@ interface CostTableProps {
     onSetUsePax: (sectionId: string, value: boolean) => void;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
     onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
-    onDiscountValueChange: (sectionId: string, value: number) => void;
+    onDiscountValueChange: (sectionId string, value: number) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     isCustom?: boolean;
@@ -194,5 +194,3 @@ export function CostTable({
         </Card>
     );
 };
-
-    

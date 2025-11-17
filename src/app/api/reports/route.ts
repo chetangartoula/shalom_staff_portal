@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { reports, getPaginatedReports, addReport } from '../data';
+import { getPaginatedReports, addReport } from '../data';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
