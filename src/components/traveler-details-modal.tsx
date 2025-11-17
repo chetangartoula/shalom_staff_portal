@@ -113,7 +113,6 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                 doc.text(detail[1], textX, yPos);
                 yPos += 6;
             });
-            const textBlockHeight = yPos - startY;
 
             // Draw Profile Picture
             if (traveler.profilePicture) {
@@ -133,7 +132,7 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
             const imgHeight = (imgWidth * 2) / 3;
 
             for (const img of images) {
-                if (img.data) {
+                if (img.data && typeof img.data === 'string') {
                     if (yPos > pageHeight - (imgHeight + 15)) {
                         doc.addPage();
                         yPos = 20;

@@ -42,9 +42,15 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
 
 const fileSchema = z.any()
-  .refine(files => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
+  .refine(files => {
+      if (!files || files.length === 0) return true; // Optional field
+      return files?.[0]?.size <= MAX_FILE_SIZE;
+    }, `Max file size is 5MB.`)
   .refine(
-    files => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    files => {
+      if (!files || files.length === 0) return true; // Optional field
+      return ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type);
+    },
     "Only .jpg, .jpeg, .png, .webp and .pdf formats are supported."
   ).optional();
 
@@ -144,6 +150,12 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
             }));
              
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
+              const existing = existingTravelers.find((et: Traveler) => {
+                // This logic is tricky. Assuming order is preserved for now.
+                // A better approach would be a stable ID.
+                return index < existingTravelers.length;
+              });
+
               if (existingTravelers[index]) {
                   const existing = existingTravelers[index];
                   return { 
@@ -228,13 +240,16 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     }
     
     try {
-        const payload = { ...validationResult.data };
+        const payload: Record<string, any> = { ...validationResult.data };
 
-        if (payload.passportPhoto && payload.passportPhoto.length > 0) {
-            payload.passportPhoto = await fileToDataURL(payload.passportPhoto[0]);
+        const passportFile = payload.passportPhoto?.[0];
+        if (passportFile instanceof File) {
+            payload.passportPhoto = await fileToDataURL(passportFile);
         }
-        if (payload.visaPhoto && payload.visaPhoto.length > 0) {
-            payload.visaPhoto = await fileToDataURL(payload.visaPhoto[0]);
+
+        const visaFile = payload.visaPhoto?.[0];
+        if (visaFile instanceof File) {
+            payload.visaPhoto = await fileToDataURL(visaFile);
         }
 
       const response = await fetch(`/api/travelers/${groupId}`, {
