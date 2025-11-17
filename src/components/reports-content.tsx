@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Loader2, Copy, Check, Edit, Users } from 'lucide-react';
+import { Search, Loader2, Copy, Check, Edit, Users, BookUser } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -94,6 +94,10 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
     router.push(`/cost-matrix/${groupId}`);
   };
 
+  const handleAssignClick = (groupId: string) => {
+    router.push(`/assignment/${groupId}`);
+  };
+
   const handleViewTravelers = (report: Report) => {
     setSelectedReport(report);
     setIsModalOpen(true);
@@ -168,6 +172,9 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell className="text-orange-600 font-medium">{report.pending}</TableCell>
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
+                                    <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                                </Button>
                                 <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
                                     <Users className="mr-2 h-4 w-4" /> View Travelers
                                 </Button>

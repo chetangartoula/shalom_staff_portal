@@ -22,7 +22,8 @@ const readDB = () => {
         guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
         porters: initialPorters.map(p => ({ ...p, id: crypto.randomUUID() })),
         reports: [],
-        travelers: []
+        travelers: [],
+        assignments: [],
     };
 };
 
@@ -150,6 +151,47 @@ export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => 
     writeDB(db);
     return db.travelers.find((t: any) => t.groupId === groupId);
 }
+
+// Assignments
+export const getAssignmentsByGroupId = (groupId: string) => {
+    db = readDB();
+    return db.assignments.find((a: any) => a.groupId === groupId) || null;
+}
+
+export const updateAssignments = (groupId: string, guideIds: string[], porterIds: string[]) => {
+    db = readDB();
+    const assignmentIndex = db.assignments.findIndex((a: any) => a.groupId === groupId);
+
+    const newAssignment = { groupId, guideIds, porterIds };
+
+    if (assignmentIndex > -1) {
+        db.assignments[assignmentIndex] = newAssignment;
+    } else {
+        db.assignments.push(newAssignment);
+    }
+    writeDB(db);
+    return newAssignment;
+}
+
+export const getAllAssignmentsWithDetails = () => {
+    db = readDB();
+    const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
+    const guideMap = new Map(db.guides.map((g: any) => [g.id, g]));
+    const porterMap = new Map(db.porters.map((p: any) => [p.id, p]));
+
+    return db.assignments.map((assignment: any) => {
+        const report = reportMap.get(assignment.groupId);
+        return {
+            ...assignment,
+            trekName: report?.trekName || 'N/A',
+            groupName: report?.groupName || 'N/A',
+            startDate: report?.startDate || null,
+            guides: assignment.guideIds.map((id: string) => guideMap.get(id)).filter(Boolean),
+            porters: assignment.porterIds.map((id: string) => porterMap.get(id)).filter(Boolean),
+        };
+    });
+}
+
 
 // Stats
 export const getStats = () => {

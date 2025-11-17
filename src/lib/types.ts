@@ -53,3 +53,9 @@ export interface Porter {
   phone: string;
   status: PorterStatus;
 }
+
+export interface Assignment {
+  groupId: string;
+  guideIds: string[];
+  porterIds: string[];
+}
