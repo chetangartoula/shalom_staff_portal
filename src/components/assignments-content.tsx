@@ -1,16 +1,18 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Edit, Users, Backpack, Tag } from 'lucide-react';
+import { Search, Edit, Users, Backpack, Tag, UserCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Guide, Porter } from '@/lib/types';
+
+const GuideTripDetailsModal = lazy(() => import('@/components/guide-trip-details-modal'));
 
 interface Assignment {
     groupId: string;
@@ -26,8 +28,10 @@ interface AssignmentsContentProps {
 }
 
 export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
-    const [assignments, setAssignments] = useState<Assignment[]>(initialData);
+    const [assignments] = useState<Assignment[]>(initialData);
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
     const filteredAssignments = useMemo(() => {
@@ -38,7 +42,20 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
         );
     }, [searchTerm, assignments]);
 
+    const handleViewForGuide = (assignment: Assignment) => {
+        setSelectedAssignment(assignment);
+        setIsModalOpen(true);
+    };
+
     return (
+        <>
+        <Suspense fallback={null}>
+            <GuideTripDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                assignment={selectedAssignment}
+            />
+        </Suspense>
         <Card className="shadow-sm">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -92,9 +109,14 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="outline" size="sm" onClick={() => router.push(`/assignment/${assignment.groupId}`)}>
-                                            <Edit className="mr-2 h-4 w-4" /> Manage
-                                        </Button>
+                                        <div className="flex justify-end items-center gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => handleViewForGuide(assignment)}>
+                                                <UserCheck className="mr-2 h-4 w-4" /> View for Guide
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => router.push(`/assignment/${assignment.groupId}`)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Manage
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             )) : (
@@ -109,5 +131,6 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
                 </div>
             </CardContent>
         </Card>
+        </>
     );
 }
