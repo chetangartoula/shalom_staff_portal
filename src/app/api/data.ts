@@ -1,5 +1,5 @@
 
-import type { Trek, Service, Guide, Porter } from '@/lib/types';
+import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus } from '@/lib/types';
 import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
@@ -10,7 +10,18 @@ const readDB = () => {
     try {
         if (fs.existsSync(dbPath)) {
             const fileContent = fs.readFileSync(dbPath, 'utf-8');
-            return JSON.parse(fileContent);
+            const data = JSON.parse(fileContent);
+            // Ensure all required top-level keys exist
+            return {
+                treks: data.treks || [],
+                services: data.services || [],
+                guides: data.guides || [],
+                porters: data.porters || [],
+                reports: data.reports || [],
+                travelers: data.travelers || [],
+                assignments: data.assignments || [],
+                transactions: data.transactions || [],
+            };
         }
     } catch (error) {
         console.error("Error reading db.json:", error);
@@ -24,6 +35,7 @@ const readDB = () => {
         reports: [],
         travelers: [],
         assignments: [],
+        transactions: [],
     };
 };
 
@@ -37,7 +49,44 @@ const writeDB = (data: any) => {
 
 let db = readDB();
 
-// Functions to manipulate the data
+// --- Helper Functions ---
+
+const calculateSectionTotal = (section: SectionState): number => {
+    const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
+    const discountAmount = section.discountType === 'percentage'
+        ? (subtotal * (section.discountValue / 100))
+        : section.discountValue;
+    return subtotal - discountAmount;
+};
+
+const calculateReportTotalCost = (report: Report): number => {
+    const sections = [report.permits, report.services, report.extraDetails, ...report.customSections];
+    const total = sections.reduce((acc, section) => acc + calculateSectionTotal(section), 0);
+    const totalWithService = total * (1 + report.serviceCharge / 100);
+    return totalWithService;
+};
+
+const getPaymentDetails = (groupId: string, totalCost: number) => {
+    db = readDB();
+    const groupTransactions = db.transactions.filter((t: Transaction) => t.groupId === groupId);
+    const totalPaid = groupTransactions.reduce((acc: number, t: Transaction) => {
+        return t.type === 'payment' ? acc + t.amount : acc - t.amount;
+    }, 0);
+    const balance = totalCost - totalPaid;
+
+    let paymentStatus: PaymentStatus = 'unpaid';
+    if (totalPaid > 0) {
+        if (balance <= 0) {
+            paymentStatus = totalPaid > totalCost ? 'overpaid' : 'fully paid';
+        } else {
+            paymentStatus = 'partially paid';
+        }
+    }
+
+    return { totalCost, totalPaid, balance, paymentStatus };
+};
+
+// --- API Functions ---
 
 // Treks
 export const getTreks = () => {
@@ -73,15 +122,19 @@ export const getPaginatedReports = (page: number, limit: number) => {
     const endIndex = page * limit;
     const paginatedReports = reversedReports.slice(startIndex, endIndex);
 
-    const augmentedReports = paginatedReports.map(report => {
+    const augmentedReports = paginatedReports.map((report: Report) => {
         const travelerGroup = db.travelers.find((t: any) => t.groupId === report.groupId);
         const joinedTravelers = travelerGroup ? travelerGroup.travelers.length : 0;
         const pendingTravelers = report.groupSize - joinedTravelers;
+
+        const totalCost = calculateReportTotalCost(report);
+        const paymentDetails = getPaymentDetails(report.groupId, totalCost);
+
         return {
             ...report,
             joined: joinedTravelers,
             pending: pendingTravelers,
-            paymentStatus: report.paymentStatus || 'unpaid',
+            paymentDetails: paymentDetails,
         };
     });
 
@@ -94,11 +147,16 @@ export const getPaginatedReports = (page: number, limit: number) => {
 export const getReportByGroupId = (groupId: string) => {
     db = readDB();
     const report = db.reports.find((r: any) => r.groupId === groupId);
-    return report || null;
+    if (!report) return null;
+
+    const totalCost = calculateReportTotalCost(report);
+    const paymentDetails = getPaymentDetails(report.groupId, totalCost);
+
+    return { ...report, paymentDetails };
 }
 export const addReport = (report: any) => {
     db = readDB();
-    const reportWithStatus = { ...report, paymentStatus: 'unpaid' };
+    const reportWithStatus = { ...report };
     db.reports.push(reportWithStatus);
     writeDB(db);
     return reportWithStatus;
@@ -192,6 +250,24 @@ export const getAllAssignmentsWithDetails = () => {
             porters: assignment.porterIds.map((id: string) => porterMap.get(id)).filter(Boolean),
         };
     });
+}
+
+// Transactions
+export const getTransactionsByGroupId = (groupId: string) => {
+    db = readDB();
+    return db.transactions.filter((t: Transaction) => t.groupId === groupId).sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+export const addTransaction = (groupId: string, transactionData: Omit<Transaction, 'id' | 'groupId'>) => {
+    db = readDB();
+    const newTransaction: Transaction = {
+        ...transactionData,
+        id: crypto.randomUUID(),
+        groupId,
+    };
+    db.transactions.push(newTransaction);
+    writeDB(db);
+    return newTransaction;
 }
 
 

@@ -1,4 +1,3 @@
-
 {
   "treks": [
     {
@@ -292,8 +291,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/4bf62631-68e2-45bd-8a0b-908050098365",
-      "paymentStatus": "unpaid"
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/4bf62631-68e2-45bd-8a0b-908050098365"
     },
     {
       "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2",
@@ -375,8 +373,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/cc91455d-33da-4aac-91d3-6fd6a3fbf8a2",
-      "paymentStatus": "unpaid"
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
     }
   ],
   "travelers": [
@@ -428,5 +425,6 @@
         "52d10be6-44db-4d1d-bec3-a2b190acdecd"
       ]
     }
-  ]
+  ],
+  "transactions": []
 }

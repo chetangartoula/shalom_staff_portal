@@ -28,7 +28,8 @@ export async function PUT(request: Request, { params }: Params) {
     const updated = updateReport(groupId, body);
 
     if (updated) {
-      return NextResponse.json({ message: 'Report updated successfully', report: updated }, { status: 200 });
+       const fullReport = getReportByGroupId(groupId);
+       return NextResponse.json({ message: 'Report updated successfully', report: fullReport }, { status: 200 });
     }
     return NextResponse.json({ message: 'Report not found' }, { status: 404 });
   } catch (error) {

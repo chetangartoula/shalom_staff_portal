@@ -79,7 +79,23 @@ export interface Traveler {
   groupName?: string;
 }
 
-export type PaymentStatus = 'unpaid' | 'partially paid' | 'fully paid';
+export type PaymentStatus = 'unpaid' | 'partially paid' | 'fully paid' | 'overpaid';
+
+export interface Transaction {
+  id: string;
+  groupId: string;
+  amount: number;
+  type: 'payment' | 'refund';
+  date: string;
+  note?: string;
+}
+
+export interface PaymentDetails {
+  totalCost: number;
+  totalPaid: number;
+  balance: number;
+  paymentStatus: PaymentStatus;
+}
 
 export interface Report {
   groupId: string;
@@ -94,11 +110,10 @@ export interface Report {
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl: string;
-  paymentStatus: PaymentStatus;
   
   // From augmentation
   joined: number;
   pending: number;
+  paymentDetails: PaymentDetails;
 }
     
-
