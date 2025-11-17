@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, memo, useCallback, useMemo } from "react";
@@ -359,7 +360,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   }
 
   const getReportPayload = useCallback(() => {
-    const url = `${window.location.origin}/report/${report.groupId}?groupSize=${report.groupSize}`;
+    const url = `${window.location.origin}/report/${report.groupId}`;
     return { ...report, reportUrl: url };
   }, [report]);
 

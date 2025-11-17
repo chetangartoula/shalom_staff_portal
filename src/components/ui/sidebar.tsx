@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, lazy, Suspense } from 'react';
 import Link from "next/link"
@@ -140,7 +141,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
     return (
         <>
             {isAddTrekModalOpen && (
-                <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+                <Suspense fallback={<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>}>
                     <AddTrekForm open={isAddTrekModalOpen} onOpenChange={setIsAddTrekModalOpen} onSubmit={handleAddTrekSubmit} isSubmitting={isSubmitting} />
                 </Suspense>
             )}
