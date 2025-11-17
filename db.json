@@ -1,4 +1,3 @@
-
 {
   "treks": [
     {
@@ -313,5 +312,17 @@
       ]
     }
   ],
-  "assignments": []
+  "assignments": [
+    {
+      "groupId": "4bf62631-68e2-45bd-8a0b-908050098365",
+      "guideIds": [
+        "02aa1929-7a1c-4b83-a729-75b2656eb69e",
+        "5259b5e5-ed44-4f69-962d-e3149175767e"
+      ],
+      "porterIds": [
+        "85510138-9356-44d1-a7ee-8a2a71585867",
+        "52d10be6-44db-4d1d-bec3-a2b190acdecd"
+      ]
+    }
+  ]
 }

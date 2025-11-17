@@ -171,16 +171,18 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell className="text-green-600 font-medium">{report.joined}</TableCell>
                             <TableCell className="text-orange-600 font-medium">{report.pending}</TableCell>
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
-                            <TableCell className="text-right space-x-2">
-                                <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
-                                    <BookUser className="mr-2 h-4 w-4" /> Assign Team
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
-                                    <Users className="mr-2 h-4 w-4" /> View Travelers
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit
-                                </Button>
+                            <TableCell className="text-right">
+                                <div className="flex justify-end items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
+                                        <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
+                                        <Users className="mr-2 h-4 w-4" /> View Travelers
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
+                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                    </Button>
+                                </div>
                             </TableCell>
                         </TableRow>
                         )) : (
