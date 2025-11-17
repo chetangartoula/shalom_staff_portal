@@ -43,7 +43,7 @@ export function DashboardHeader({ isSidebarCollapsed, setIsSidebarCollapsed, use
       
       <div className="w-full flex-1 flex items-center gap-4">
         <Button variant="ghost" size="icon" className="hidden md:flex" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
-          {isSidebarCollapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           <span className="sr-only">Toggle sidebar</span>
         </Button>
       </div>
