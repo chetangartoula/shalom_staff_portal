@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Calculator, ClipboardList, Users, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack, BookUser } from "lucide-react";
+import { Home, Calculator, ClipboardList, Users, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack, BookUser, Wallet } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";

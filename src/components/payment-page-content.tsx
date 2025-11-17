@@ -1,31 +1,29 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Save, PlusCircle, MinusCircle, Wallet } from 'lucide-react';
+import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { Report, Transaction } from '@/lib/types';
+import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
 import { DatePicker } from './ui/date-picker';
 
 
-interface PaymentDetailsModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    report: Report | null;
-    onTransactionSave: (groupId: string) => void;
+interface PaymentPageContentProps {
+    initialReport: Report;
 }
 
 const transactionSchema = z.object({
@@ -39,9 +37,12 @@ type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export default function PaymentDetailsModal({ isOpen, onClose, report, onTransactionSave }: PaymentDetailsModalProps) {
+export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { toast } = useToast();
-    const { data, mutate, error: swrError } = useSWR(report ? `/api/transactions/${report.groupId}` : null, fetcher);
+    const router = useRouter();
+
+    const { data: reportData, mutate: mutateReport } = useSWR(`/api/reports/${initialReport.groupId}`, fetcher, { fallbackData: initialReport });
+    const { data: transactionData, mutate: mutateTransactions, error: swrError } = useSWR(`/api/transactions/${initialReport.groupId}`, fetcher);
     
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,18 +56,12 @@ export default function PaymentDetailsModal({ isOpen, onClose, report, onTransac
         },
     });
 
-    useEffect(() => {
-        if (!isOpen) {
-            form.reset();
-        }
-    }, [isOpen, form]);
-
     const onSubmit = async (values: TransactionFormValues) => {
-        if (!report) return;
+        if (!reportData) return;
         setIsSubmitting(true);
 
         try {
-            const response = await fetch(`/api/transactions/${report.groupId}`, {
+            const response = await fetch(`/api/transactions/${reportData.groupId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values),
@@ -77,8 +72,8 @@ export default function PaymentDetailsModal({ isOpen, onClose, report, onTransac
             }
             toast({ title: 'Success', description: 'Transaction added successfully.' });
             form.reset({ amount: 0, type: 'payment', date: new Date(), note: '' });
-            await mutate(); // Re-fetch transactions
-            onTransactionSave(report.groupId); // Notify parent to refresh report data
+            await mutateTransactions(); // Re-fetch transactions
+            await mutateReport(); // Re-fetch report to update payment details
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
         } finally {
@@ -86,43 +81,56 @@ export default function PaymentDetailsModal({ isOpen, onClose, report, onTransac
         }
     };
     
-    const isLoading = !data && !swrError;
-    const transactions: Transaction[] = data?.transactions || [];
-    const paymentDetails = report?.paymentDetails;
+    const isLoadingTransactions = !transactionData && !swrError;
+    const transactions: Transaction[] = transactionData?.transactions || [];
+    const paymentDetails: PaymentDetails | undefined = reportData?.paymentDetails;
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>Manage Payments</DialogTitle>
-                    <DialogDescription>
-                        For Trek: <span className="font-medium text-primary">{report?.trekName}</span> | Group: <span className="font-medium text-primary">{report?.groupName}</span>
-                    </DialogDescription>
-                </DialogHeader>
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Button variant="outline" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-4 w-4" />
+                            <span className="sr-only">Go back</span>
+                        </Button>
+                        <div>
+                            <CardTitle>Manage Payments</CardTitle>
+                            <CardDescription>
+                                For Trek: <span className="font-medium text-primary">{reportData?.trekName}</span> | Group: <span className="font-medium text-primary">{reportData?.groupName}</span>
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border rounded-lg p-4 my-4">
+                        <div className="text-center">
+                            <p className="text-sm text-muted-foreground">Total Cost</p>
+                            <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm text-muted-foreground">Total Paid</p>
+                            <p className="text-2xl font-bold text-green-600">{formatCurrency(paymentDetails?.totalPaid ?? 0)}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-sm text-muted-foreground">Balance Due</p>
+                            <p className={cn("text-2xl font-bold", (paymentDetails?.balance ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>
+                                {formatCurrency(paymentDetails?.balance ?? 0)}
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border rounded-lg p-4 my-4">
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Total Cost</p>
-                        <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Total Paid</p>
-                        <p className="text-2xl font-bold text-green-600">{formatCurrency(paymentDetails?.totalPaid ?? 0)}</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Balance Due</p>
-                        <p className={cn("text-2xl font-bold", (paymentDetails?.balance ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>
-                            {formatCurrency(paymentDetails?.balance ?? 0)}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Add Transaction Form */}
-                    <div className="space-y-4">
-                        <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Add Transaction Form */}
+                <Card>
+                    <CardHeader>
+                         <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
+                    </CardHeader>
+                    <CardContent>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4 border rounded-lg">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="type"
@@ -174,44 +182,46 @@ export default function PaymentDetailsModal({ isOpen, onClose, report, onTransac
                                 </Button>
                             </form>
                         </Form>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Transaction History */}
-                    <div className="space-y-4">
+                {/* Transaction History */}
+                <Card>
+                     <CardHeader>
                         <h4 className="font-semibold text-lg">Transaction History</h4>
-                        <div className="border rounded-lg max-h-[350px] overflow-y-auto">
+                    </CardHeader>
+                    <CardContent>
+                        <div className="border rounded-lg max-h-[380px] overflow-y-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Type</TableHead>
+                                        <TableHead>Note</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoading ? (
-                                        <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                    {isLoadingTransactions ? (
+                                        <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                     ) : transactions.length > 0 ? (
                                         transactions.map(t => (
                                             <TableRow key={t.id}>
                                                 <TableCell>{format(parseISO(t.date), 'PPP')}</TableCell>
                                                 <TableCell className={cn("capitalize", t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>{t.type}</TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>
                                                 <TableCell className="text-right font-medium">{formatCurrency(t.amount)}</TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
-                                        <TableRow><TableCell colSpan={3} className="text-center h-24">No transactions yet.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={4} className="text-center h-24">No transactions yet.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
-                    </div>
-                </div>
-                
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Close</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
     );
 }

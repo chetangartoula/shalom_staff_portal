@@ -59,14 +59,14 @@ const calculateSectionTotal = (section: SectionState): number => {
     return subtotal - discountAmount;
 };
 
-const calculateReportTotalCost = (report: Report): number => {
+export const calculateReportTotalCost = (report: Report): number => {
     const sections = [report.permits, report.services, report.extraDetails, ...report.customSections];
     const total = sections.reduce((acc, section) => acc + calculateSectionTotal(section), 0);
     const totalWithService = total * (1 + report.serviceCharge / 100);
     return totalWithService;
 };
 
-const getPaymentDetails = (groupId: string, totalCost: number) => {
+export const getPaymentDetails = (groupId: string, totalCost: number) => {
     db = readDB();
     const groupTransactions = db.transactions.filter((t: Transaction) => t.groupId === groupId);
     const totalPaid = groupTransactions.reduce((acc: number, t: Transaction) => {

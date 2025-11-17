@@ -16,7 +16,6 @@ import type { Report, PaymentStatus } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 
 const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
-const PaymentDetailsModal = lazy(() => import('@/components/payment-details-modal'));
 
 interface ReportsContentProps {
     initialData: {
@@ -46,9 +45,6 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
   const [selectedReportForTravelers, setSelectedReportForTravelers] = useState<Report | null>(null);
   const [isTravelerModalOpen, setIsTravelerModalOpen] = useState(false);
   
-  const [selectedReportForPayment, setSelectedReportForPayment] = useState<Report | null>(null);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  
   const filteredReports = useMemo(() => {
     return reports.filter(report =>
       (report.trekName && report.trekName.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -56,25 +52,6 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
       (report.groupId && report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, reports]);
-  
-  const refreshReportData = useCallback(async (groupId: string) => {
-    try {
-        const response = await fetch(`/api/reports/${groupId}`);
-        if (!response.ok) throw new Error('Failed to refresh report data');
-        const updatedReportData = await response.json();
-        
-        setReports(currentReports =>
-            currentReports.map(r => r.groupId === groupId ? { ...r, paymentDetails: updatedReportData.paymentDetails } : r)
-        );
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: (error as Error).message || 'Could not refresh report data.',
-        });
-    }
-  }, [toast]);
-
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
@@ -123,9 +100,8 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
     setIsTravelerModalOpen(true);
   }
 
-  const handleManagePayments = (report: Report) => {
-    setSelectedReportForPayment(report);
-    setIsPaymentModalOpen(true);
+  const handleManagePayments = (groupId: string) => {
+    router.push(`/payments/${groupId}`);
   }
 
   return (
@@ -135,12 +111,6 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
           isOpen={isTravelerModalOpen}
           onClose={() => setIsTravelerModalOpen(false)}
           report={selectedReportForTravelers}
-        />
-        <PaymentDetailsModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => setIsPaymentModalOpen(false)}
-            report={selectedReportForPayment}
-            onTransactionSave={refreshReportData}
         />
       </Suspense>
       <Card>
@@ -215,7 +185,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleManagePayments(report)}>
+                                    <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
                                         <CircleDollarSign className="mr-2 h-4 w-4" /> Payments
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
