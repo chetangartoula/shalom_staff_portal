@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
-import { Loader2, Save, Camera, Upload } from "lucide-react";
+import { Loader2, Save, Camera, Upload, User } from "lucide-react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -504,5 +504,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
+
+    
 
     
