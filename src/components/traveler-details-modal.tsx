@@ -3,12 +3,15 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Loader2, FileDown } from 'lucide-react';
+import { Loader2, FileDown, User } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import type { Traveler } from '@/lib/types';
+
 
 interface Report {
     groupId: string;
@@ -17,18 +20,6 @@ interface Report {
     groupSize: number;
     joined: number;
     pending: number;
-}
-
-interface Traveler {
-  id: string;
-  name: string;
-  phone: string;
-  address: string;
-  passportNumber: string;
-  emergencyContact: string;
-  dateOfBirth?: string;
-  nationality?: string;
-  passportExpiryDate?: string;
 }
 
 interface TravelerDetailsModalProps {
@@ -126,6 +117,7 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>Profile</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Nationality</TableHead>
                                     <TableHead>Passport No.</TableHead>
@@ -136,6 +128,15 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                             <TableBody>
                                 {travelers.length > 0 ? travelers.map((traveler) => (
                                     <TableRow key={traveler.id}>
+                                        <TableCell>
+                                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                                {traveler.profilePicture ? (
+                                                    <Image src={traveler.profilePicture} alt={traveler.name} width={40} height={40} className="object-cover" />
+                                                ) : (
+                                                    <User className="h-6 w-6 text-muted-foreground" />
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="font-medium">{traveler.name}</TableCell>
                                         <TableCell>{traveler.nationality || 'N/A'}</TableCell>
                                         <TableCell>{traveler.passportNumber}</TableCell>
@@ -144,7 +145,7 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             No traveler details submitted for this group yet.
                                         </TableCell>
                                     </TableRow>
@@ -164,3 +165,5 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
         </Dialog>
     );
 }
+
+    

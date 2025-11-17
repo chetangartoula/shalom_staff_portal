@@ -59,3 +59,18 @@ export interface Assignment {
   guideIds: string[];
   porterIds: string[];
 }
+
+export interface Traveler {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  passportNumber: string;
+  emergencyContact: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  passportExpiryDate?: string;
+  profilePicture?: string;
+}
+
+    

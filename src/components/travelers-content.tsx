@@ -3,26 +3,14 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import Image from 'next/image';
+import { Search, User } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from '@/components/ui/input';
+import type { Traveler } from '@/lib/types';
 
-interface Traveler {
-    id: string;
-    name: string;
-    phone: string;
-    address: string;
-    passportNumber: string;
-    emergencyContact: string;
-    dateOfBirth?: string;
-    nationality?: string;
-    passportExpiryDate?: string;
-    groupId: string;
-    trekName: string;
-    groupName: string;
-}
 
 interface TravelersContentProps {
     initialData: Traveler[];
@@ -68,6 +56,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>Profile</TableHead>
                             <TableHead>Name</TableHead>
                             <TableHead>Nationality</TableHead>
                             <TableHead>Passport No.</TableHead>
@@ -80,6 +69,15 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                     <TableBody>
                         {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
                         <TableRow key={traveler.id}>
+                            <TableCell>
+                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                {traveler.profilePicture ? (
+                                    <Image src={traveler.profilePicture} alt={traveler.name} width={40} height={40} className="object-cover" />
+                                ) : (
+                                    <User className="h-6 w-6 text-muted-foreground" />
+                                )}
+                                </div>
+                            </TableCell>
                             <TableCell className="font-medium">{traveler.name}</TableCell>
                             <TableCell>{traveler.nationality || 'N/A'}</TableCell>
                             <TableCell>{traveler.passportNumber}</TableCell>
@@ -94,7 +92,7 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center">
+                            <TableCell colSpan={8} className="h-24 text-center">
                               {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
                             </TableCell>
                           </TableRow>
@@ -107,3 +105,5 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
     </>
   );
 }
+
+    
