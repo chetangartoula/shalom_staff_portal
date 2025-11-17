@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,15 +35,17 @@ const generateMockData = () => {
 }
 
 export function PaymentChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/payments', fetcher, {
+    const { data, error } = useSWR('/api/stats/payments', fetcher, {
         fallbackData: generateMockData()
     });
 
-    if (isLoading && !data) {
+    const isLoading = !data && !error;
+
+    if (isLoading) {
         return <PaymentChart.Skeleton />;
     }
     
-    if (error && !data) {
+    if (error) {
         return (
             <Card>
                 <CardHeader>
