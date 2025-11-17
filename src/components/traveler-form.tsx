@@ -437,7 +437,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         control={form.control}
                         name={`travelers.${index}.passportPhoto`}
                         render={({
-                        field: { onChange, value, ...fieldProps },
+                        field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
                             <FormLabel>Passport Photo</FormLabel>
@@ -445,7 +445,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Input
                                 type="file"
                                 {...fieldProps}
-                                value={null}
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
@@ -463,7 +462,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         control={form.control}
                         name={`travelers.${index}.visaPhoto`}
                         render={({
-                        field: { onChange, value, ...fieldProps },
+                        field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
                             <FormLabel>Visa Photo (Optional)</FormLabel>
@@ -471,7 +470,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                             <Input
                                 type="file"
                                 {...fieldProps}
-                                value={null}
                                 onChange={(e) =>
                                 onChange(e.target.files)
                                 }
@@ -513,7 +511,3 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
-
-    
-
-    
