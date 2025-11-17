@@ -1,16 +1,16 @@
 
 import { ReportsContent } from '@/components/reports-content';
 import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
-import { getPaginatedReports } from '../api/data';
 
 // Force dynamic rendering to ensure fresh data on each load
 export const dynamic = 'force-dynamic';
 
 export default function PaymentsPage() {
-  const initialReports = getPaginatedReports(1, 10);
+  // initialReports are no longer fetched on the server.
+  // The ReportsContent component will now fetch its own data on the client.
   return (
     <DashboardLayoutShell>
-      <ReportsContent initialData={initialReports} pageType="payments" />
+      <ReportsContent pageType="payments" />
     </DashboardLayoutShell>
   );
 }

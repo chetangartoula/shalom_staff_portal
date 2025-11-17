@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import useSWR from 'swr';
 import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
 
 interface ReportsContentProps {
-    initialData: {
+    initialData?: {
         reports: Report[];
         hasMore: boolean;
     },
@@ -32,20 +33,30 @@ const statusColors: Record<PaymentStatus, string> = {
     'overpaid': "text-purple-600 border-purple-600/50 bg-purple-500/5"
 };
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 export function ReportsContent({ initialData, pageType = 'reports' }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>(initialData.reports);
+  const [reports, setReports] = useState<Report[]>(initialData?.reports || []);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMoreLoading, setIsMoreLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(initialData.hasMore);
+  const [hasMore, setHasMore] = useState(initialData?.hasMore ?? true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   const [selectedReportForTravelers, setSelectedReportForTravelers] = useState<Report | null>(null);
   const [isTravelerModalOpen, setIsTravelerModalOpen] = useState(false);
   
+  // Client-side data fetching for payments page
+  const { data, error, isLoading } = useSWR(pageType === 'payments' ? `/api/reports?page=1&limit=10` : null, fetcher);
+
+  useEffect(() => {
+    if (data && pageType === 'payments') {
+      setReports(data.reports);
+      setHasMore(data.hasMore);
+    }
+  }, [data, pageType]);
+
   const filteredReports = useMemo(() => {
     return reports.filter(report =>
       (report.trekName && report.trekName.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -56,15 +67,14 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
 
   const handleLoadMore = async () => {
     const nextPage = page + 1;
-    setIsMoreLoading(true);
-
+    
     try {
       const res = await fetch(`/api/reports?page=${nextPage}&limit=10`);
       if (!res.ok) throw new Error('Failed to fetch reports');
-      const data = await res.json();
+      const newData = await res.json();
       
-      setReports(prev => [...prev, ...data.reports]);
-      setHasMore(data.hasMore);
+      setReports(prev => [...prev, ...newData.reports]);
+      setHasMore(newData.hasMore);
       setPage(nextPage);
 
     } catch (error) {
@@ -73,8 +83,6 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
         title: 'Error',
         description: 'Could not load more reports.',
       });
-    } finally {
-      setIsMoreLoading(false);
     }
   };
 
@@ -230,8 +238,8 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
         </CardContent>
          {hasMore && !searchTerm && (
           <CardFooter className="justify-center pt-6">
-            <Button onClick={handleLoadMore} disabled={isMoreLoading}>
-              {isMoreLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleLoadMore} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Load More
             </Button>
           </CardFooter>
