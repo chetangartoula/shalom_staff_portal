@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import {
@@ -183,7 +184,7 @@ export function CostTable({
                                 <span>- {formatCurrency(discountAmount)}</span>
                             </div>
                         )}
-                        <Separator />
+                        <Separator className="bg-primary/20" />
                         <div className="flex justify-between font-bold text-lg">
                             <span>In total</span>
                             <span>{formatCurrency(total)}</span>

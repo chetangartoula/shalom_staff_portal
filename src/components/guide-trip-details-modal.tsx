@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -81,14 +82,25 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         const { default: autoTable } = await import('jspdf-autotable');
 
         const doc = new jsPDF();
+        const brandColor = [21, 29, 79]; // #151D4F
+        const pageLeftMargin = 14;
+        const pageRightMargin = 14;
+        const pageTopMargin = 20;
         
         doc.setFontSize(20);
-        doc.text(`Trip Details: ${details.report.trekName}`, 14, 22);
+        doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.text(`Shalom Treks - Trip Details`, pageLeftMargin, pageTopMargin);
+        doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.line(pageLeftMargin, pageTopMargin + 4, doc.internal.pageSize.width - pageRightMargin, pageTopMargin + 4);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(details.report.trekName, pageLeftMargin, pageTopMargin + 12);
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Group: ${details.report.groupName} | Start Date: ${format(new Date(details.report.startDate), 'PPP')}`, 14, 30);
+        doc.text(`Group: ${details.report.groupName} | Start Date: ${format(new Date(details.report.startDate), 'PPP')}`, pageLeftMargin, pageTopMargin + 18);
 
-        let yPos = 40;
+        let yPos = pageTopMargin + 30;
 
         // Team Details
         doc.setFontSize(14);
@@ -96,8 +108,8 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         doc.text("Assigned Team", 14, yPos);
         yPos += 7;
 
-        const guidesText = details.guides.map(g => `${g.name} (${g.phone})`).join(', ');
-        const portersText = details.porters.map(p => `${p.name} (${p.phone})`).join(', ');
+        const guidesText = details.guides.map(g => `${g.name} (${g.phone})`).join('\n');
+        const portersText = details.porters.map(p => `${p.name} (${p.phone})`).join('\n');
 
         autoTable(doc, {
             startY: yPos,
@@ -106,7 +118,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 ['Porters', portersText || 'None'],
             ],
             theme: 'grid',
-            styles: { fontSize: 10 },
+            styles: { fontSize: 10, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } },
             columnStyles: { 0: { fontStyle: 'bold', cellWidth: 30 } }
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
@@ -122,7 +134,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 head: [['Permit Name']],
                 body: details.report.permits.rows.map(r => [r.description]),
                 theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] },
+                headStyles: { fillColor: brandColor },
             });
             yPos = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -138,7 +150,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 head: [['Service Name']],
                 body: details.report.services.rows.map(r => [r.description]),
                 theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] },
+                headStyles: { fillColor: brandColor },
             });
             yPos = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -164,7 +176,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
             head: [travelerCols],
             body: travelerRows,
             theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] },
+            headStyles: { fillColor: brandColor },
         });
 
         doc.save(`guide-trip-${assignment.groupId.substring(0, 8)}.pdf`);

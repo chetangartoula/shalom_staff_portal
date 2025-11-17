@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { memo } from 'react';
@@ -76,7 +77,7 @@ function FinalStepComponent({
                 onSetUsePax={onSetUsePax}
             />
 
-            <Separator />
+            <Separator className="bg-primary/20" />
             
             <Card className="shadow-none border-none">
                 <CardHeader className="px-0">

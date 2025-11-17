@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { format } from "date-fns";
@@ -52,6 +53,7 @@ export async function handleExportPDF({
   const pageTopMargin = 15;
   const pageLeftMargin = 14;
   const pageRightMargin = 14;
+  const brandColor = [21, 29, 79]; // #151D4F
 
   const addFooter = () => {
       const pageCount = (doc.internal as any).getNumberOfPages();
@@ -73,10 +75,15 @@ export async function handleExportPDF({
   const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
   
   doc.setFontSize(22);
+  doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
   doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
+  doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+  doc.line(pageLeftMargin, pageTopMargin + 10, doc.internal.pageSize.width - pageRightMargin, pageTopMargin + 10);
+
+
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text(`Group ID: ${report.groupId}`, pageLeftMargin, pageTopMargin + 15);
+  doc.text(`Group ID: ${report.groupId}`, pageLeftMargin, pageTopMargin + 18);
   
   doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
 
@@ -135,7 +142,7 @@ export async function handleExportPDF({
         head: head,
         body: body,
         theme: 'striped',
-        headStyles: { fillColor: [21, 29, 79] }, // #151D4F
+        headStyles: { fillColor: brandColor },
         didDrawPage: (data: any) => {
             yPos = data.cursor?.y || yPos;
         }
