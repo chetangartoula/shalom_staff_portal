@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -358,7 +359,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         name={`travelers.${index}.passportNumber`}
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Passport Number</FormLabel>
+                            <FormLabel>Passport Number (or upload photo)</FormLabel>
                             <FormControl>
                             <Input
                                 placeholder="A12345678"
@@ -447,7 +448,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
-                            <FormLabel>Passport Photo</FormLabel>
+                            <FormLabel>Passport Photo (or enter number)</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
@@ -458,6 +459,9 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                                 accept="image/*,application/pdf"
                             />
                             </FormControl>
+                             <FormDescription>
+                                Required if no passport number is entered.
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -469,7 +473,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         field: { onChange, ...fieldProps },
                         }) => (
                         <FormItem>
-                            <FormLabel>Visa Photo (Optional)</FormLabel>
+                            <FormLabel>Visa Photo</FormLabel>
                             <FormControl>
                             <Input
                                 type="file"
@@ -480,6 +484,9 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                                 accept="image/*,application/pdf"
                             />
                             </FormControl>
+                            <FormDescription>
+                                This field is optional.
+                            </FormDescription>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -512,9 +519,5 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     </Form>
   );
 }
-
-    
-
-    
 
     

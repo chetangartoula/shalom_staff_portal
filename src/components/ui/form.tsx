@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -135,7 +136,7 @@ const FormDescription = React.forwardRef<
     <p
       ref={ref}
       id={formDescriptionId}
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-[0.8rem] text-muted-foreground", className)}
       {...props}
     />
   )
@@ -176,3 +177,5 @@ export {
   FormMessage,
   FormField,
 }
+
+    
