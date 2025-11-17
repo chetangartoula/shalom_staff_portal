@@ -21,25 +21,21 @@ export function Stepper({ steps, currentStep, setCurrentStep, disabled = false }
 
   return (
       <div className="w-full">
-        <ol role="list" className="flex items-center justify-between">
+        <ol role="list" className="flex items-center">
             {steps.map((step, stepIdx) => (
-            <li key={step.id} className="relative flex-1">
-                {stepIdx !== 0 && (
-                <div
-                    className={cn(
-                        "absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-full",
-                        stepIdx <= currentStep ? "bg-primary" : "bg-border"
-                    )}
-                    aria-hidden="true"
-                />
+            <li key={step.id} className={cn("relative flex w-full items-center", { 'justify-start': stepIdx === 0, 'justify-end': stepIdx === steps.length -1 })}>
+                {stepIdx > 0 && (
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className={cn("h-0.5 w-full", stepIdx <= currentStep ? "bg-primary" : "bg-border")} />
+                </div>
                 )}
                 <button
-                onClick={() => !disabled && setCurrentStep(stepIdx)}
-                className={cn(
-                    "relative group flex flex-col items-center gap-y-2 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md w-full",
-                    disabled && "cursor-not-allowed"
-                )}
-                disabled={disabled}
+                    onClick={() => !disabled && setCurrentStep(stepIdx)}
+                    className={cn(
+                        "relative group flex flex-col items-center gap-y-2 p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md w-full bg-background",
+                        disabled && "cursor-not-allowed"
+                    )}
+                    disabled={disabled}
                 >
                 <span className={cn(
                     "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
