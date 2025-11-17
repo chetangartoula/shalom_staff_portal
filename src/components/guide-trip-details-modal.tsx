@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Loader2, FileDown, User, Backpack, Users as UsersIcon } from 'lucide-react';
+import { Loader2, FileDown, User, Backpack, Users as UsersIcon, Ticket, ConciergeBell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Guide, Porter } from '@/lib/types';
+import type { Guide, Porter, SectionState } from '@/lib/types';
 
 interface Assignment {
     groupId: string;
@@ -32,6 +32,8 @@ interface TripDetails {
         groupName: string;
         startDate: string;
         groupSize: number;
+        permits: SectionState;
+        services: SectionState;
     };
     travelers: any[];
     guides: Guide[];
@@ -53,6 +55,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         if (isOpen && assignment) {
             const fetchDetails = async () => {
                 setIsLoading(true);
+                setDetails(null);
                 try {
                     const response = await fetch(`/api/assignments/details/${assignment.groupId}`);
                     if (!response.ok) throw new Error("Failed to fetch trip details.");
@@ -108,6 +111,38 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
         
+        // Permits
+        if (details.report.permits.rows.length > 0) {
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Permits Included", 14, yPos);
+            yPos += 7;
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Permit Name']],
+                body: details.report.permits.rows.map(r => [r.description]),
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+
+        // Services
+        if (details.report.services.rows.length > 0) {
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text("Services Included", 14, yPos);
+            yPos += 7;
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Service Name']],
+                body: details.report.services.rows.map(r => [r.description]),
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] },
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+        }
+
 
         // Traveler Details
         doc.setFontSize(14);
@@ -190,6 +225,28 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Permits & Services */}
+                             <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="rounded-lg border p-4">
+                                        <h5 className="font-medium flex items-center gap-2 mb-2"><Ticket className="h-4 w-4"/> Permits Included</h5>
+                                        <ul className="list-disc list-inside text-sm space-y-1">
+                                           {details.report.permits.rows.length > 0 ? details.report.permits.rows.map(p => (
+                                               <li key={p.id}>{p.description}</li>
+                                           )) : <li className="text-muted-foreground">No specific permits listed.</li>}
+                                        </ul>
+                                    </div>
+                                    <div className="rounded-lg border p-4">
+                                        <h5 className="font-medium flex items-center gap-2 mb-2"><ConciergeBell className="h-4 w-4"/> Services Included</h5>
+                                        <ul className="list-disc list-inside text-sm space-y-1">
+                                            {details.report.services.rows.length > 0 ? details.report.services.rows.map(s => (
+                                               <li key={s.id}>{s.description}</li>
+                                           )) : <li className="text-muted-foreground">No specific services listed.</li>}
+                                        </ul>
                                     </div>
                                 </div>
                             </div>

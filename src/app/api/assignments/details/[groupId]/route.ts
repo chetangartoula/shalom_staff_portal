@@ -31,6 +31,8 @@ export async function GET(request: Request, { params }: Params) {
             groupName: report.groupName,
             startDate: report.startDate,
             groupSize: report.groupSize,
+            permits: report.permits,
+            services: report.services,
         },
         travelers: travelerGroup?.travelers || [],
         guides: assignedGuideDetails || [],
