@@ -12,7 +12,7 @@ interface SelectTrekStepProps {
   onSelectTrek: (id: string) => void;
 }
 
-export const SelectTrekStep = React.memo(function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
+export function SelectTrekStep({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredTreks = useMemo(() => {
@@ -68,4 +68,6 @@ export const SelectTrekStep = React.memo(function SelectTrekStep({ treks, select
         </div>
     </div>
   );
-});
+};
+
+    

@@ -12,7 +12,7 @@ interface GroupDetailsStepProps {
   onStartDateChange: (date: Date | undefined) => void;
 }
 
-export const GroupDetailsStep = React.memo(function GroupDetailsStep({
+export function GroupDetailsStep({
   groupSize,
   onGroupSizeChange,
   startDate,
@@ -42,4 +42,6 @@ export const GroupDetailsStep = React.memo(function GroupDetailsStep({
       </Card>
     </div>
   );
-});
+};
+
+    

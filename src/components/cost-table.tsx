@@ -1,4 +1,5 @@
-import React, { memo } from 'react';
+
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,7 +39,7 @@ interface CostTableProps {
     onRemoveSection?: (sectionId: string) => void;
 }
 
-const CostTableComponent = ({
+export function CostTable({
     section,
     usePax,
     onSetUsePax,
@@ -51,7 +52,7 @@ const CostTableComponent = ({
     isDescriptionEditable = false,
     onEditSection,
     onRemoveSection,
-}: CostTableProps) => {
+}: CostTableProps) {
 
     const calculateSectionTotals = (currentSection: SectionState) => {
         const subtotal = currentSection.rows.reduce((acc, row) => acc + row.total, 0);
@@ -194,4 +195,4 @@ const CostTableComponent = ({
     );
 };
 
-export const CostTable = memo(CostTableComponent);
+    
