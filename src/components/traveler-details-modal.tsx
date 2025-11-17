@@ -27,7 +27,7 @@ interface TravelerDetailsModalProps {
     report: Report | null;
 }
 
-const isPDF = (dataUrl: string) => dataUrl.startsWith('data:application/pdf');
+const isPDF = (dataUrl: string) => typeof dataUrl === 'string' && dataUrl.startsWith('data:application/pdf');
 
 export default function TravelerDetailsModal({ isOpen, onClose, report }: TravelerDetailsModalProps) {
     const [travelers, setTravelers] = useState<Traveler[]>([]);
@@ -245,5 +245,3 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
         </Dialog>
     );
 }
-
-    
