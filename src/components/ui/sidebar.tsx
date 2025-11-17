@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Calculator, ClipboardList, Users, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack, BookUser, Wallet } from "lucide-react";
+import { Home, Calculator, ClipboardList, Users, Settings, Mountain, MoreVertical, LogOut, Loader2, Users2, Backpack, BookUser, Wallet, ArrowRightLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "./button";
@@ -42,6 +42,7 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
         { href: "/reports", label: "All Reports", icon: ClipboardList },
         { href: "/assignments", label: "Team Assignments", icon: BookUser },
         { href: "/payments", label: "Payments", icon: Wallet },
+        { href: "/transactions", label: "Transactions", icon: ArrowRightLeft },
         { href: "/travelers", label: "All Travelers", icon: Users },
         { href: "/guides", label: "Guides", icon: Users2 },
         { href: "/porters", label: "Porters", icon: Backpack },
@@ -137,3 +138,5 @@ export const Sidebar = React.memo(function Sidebar({ className, isCollapsed, use
             </div>
     )
 });
+
+    

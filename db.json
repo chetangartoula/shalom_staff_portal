@@ -464,6 +464,14 @@
       "note": "om",
       "id": "52837d0b-34ff-46db-9204-5563cdd76edf",
       "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
+    },
+    {
+      "amount": 10,
+      "type": "refund",
+      "date": "2025-11-17T16:26:48.337Z",
+      "note": "",
+      "id": "85767046-c9e5-41fc-8857-fc697f2edb71",
+      "groupId": "cc91455d-33da-4aac-91d3-6fd6a3fbf8a2"
     }
   ]
 }

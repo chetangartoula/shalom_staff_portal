@@ -78,7 +78,7 @@ export const getPaymentDetails = (groupId: string, totalCost: number) => {
     const epsilon = 0.01; // Tolerance for floating point inaccuracies (1 cent)
 
     if (totalPaid > 0) {
-        if (balance <= epsilon) { // If balance is zero or negative (or very close to zero)
+        if (Math.abs(balance) <= epsilon || balance < 0) {
             paymentStatus = totalPaid > totalCost ? 'overpaid' : 'fully paid';
         } else {
             paymentStatus = 'partially paid';
@@ -278,6 +278,34 @@ export const getAllTransactions = () => {
 };
 
 
+export const getPaginatedTransactions = (page: number, limit: number) => {
+    db = readDB();
+    const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, { trekName: r.trekName, groupName: r.groupName }]));
+    
+    // Sort all transactions by date descending
+    const sortedTransactions = [...db.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedTransactions = sortedTransactions.slice(startIndex, endIndex);
+
+    const augmentedTransactions = paginatedTransactions.map((transaction: Transaction) => {
+        const reportInfo = reportMap.get(transaction.groupId);
+        return {
+            ...transaction,
+            trekName: reportInfo?.trekName || 'N/A',
+            groupName: reportInfo?.groupName || 'N/A',
+        };
+    });
+
+    return {
+        transactions: augmentedTransactions,
+        total: db.transactions.length,
+        hasMore: endIndex < db.transactions.length,
+    };
+};
+
+
 // Stats
 export const getStats = () => {
     db = readDB();
@@ -289,3 +317,5 @@ export const getStats = () => {
         porters: db.porters.length,
     };
 }
+
+    
