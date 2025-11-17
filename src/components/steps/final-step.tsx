@@ -34,6 +34,8 @@ interface FinalStepProps {
     groupSize: number;
     serviceCharge: number;
     setServiceCharge: (value: number) => void;
+    includeServiceChargeInPdf: boolean;
+    setIncludeServiceChargeInPdf: (value: boolean) => void;
 }
 
 function FinalStepComponent({
@@ -51,6 +53,8 @@ function FinalStepComponent({
     groupSize,
     serviceCharge,
     setServiceCharge,
+    includeServiceChargeInPdf,
+    setIncludeServiceChargeInPdf
 }: FinalStepProps) {
 
     const totalWithService = totalCost * (1 + serviceCharge / 100);
@@ -134,6 +138,14 @@ function FinalStepComponent({
                                     className="mt-2"
                                 />
                             </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id="include-service-charge" 
+                                    checked={includeServiceChargeInPdf}
+                                    onCheckedChange={(checked) => setIncludeServiceChargeInPdf(Boolean(checked))}
+                                />
+                                <Label htmlFor="include-service-charge">Include Service Charge in PDF</Label>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -166,5 +178,3 @@ function FinalStepComponent({
 }
 
 export const FinalStep = memo(FinalStepComponent);
-
-    

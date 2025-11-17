@@ -22,12 +22,14 @@ export async function handleExportPDF({
   selectedTrek,
   report,
   calculateSectionTotals,
-  userName
+  userName,
+  includeServiceCharge
 }: {
   selectedTrek: Trek | undefined,
   report: ReportState,
   calculateSectionTotals: (section: SectionState) => { subtotal: number, total: number, discountAmount: number },
-  userName?: string
+  userName?: string,
+  includeServiceCharge: boolean
 }) {
   if (!selectedTrek) return;
 
@@ -142,6 +144,7 @@ export async function handleExportPDF({
   });
 
   const grandTotal = sectionsToExport.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
+  const totalWithService = grandTotal * (1 + report.serviceCharge / 100);
 
   if (sectionsToExport.length > 0) {
     if (yPos > 250) {
@@ -157,7 +160,18 @@ export async function handleExportPDF({
       const { total } = calculateSectionTotals(section);
       return [`${section.name} Total`, `$${total.toFixed(2)}`];
     });
-    summaryData.push(['Grand Total', `$${grandTotal.toFixed(2)}`]);
+
+    summaryData.push(['Grand Total without Service', `$${grandTotal.toFixed(2)}`]);
+    
+    if (includeServiceCharge) {
+        summaryData.push([`Service Charge (${report.serviceCharge}%)`, `$${(totalWithService - grandTotal).toFixed(2)}`]);
+        summaryData.push(['Grand Total with Service', `$${totalWithService.toFixed(2)}`]);
+    }
+
+    if (report.groupSize > 0) {
+        const finalCost = includeServiceCharge ? totalWithService : grandTotal;
+        summaryData.push(['Cost Per Person', `$${(finalCost / report.groupSize).toFixed(2)}`]);
+    }
     
     autoTable(doc, {
         startY: yPos,

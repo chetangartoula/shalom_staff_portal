@@ -104,6 +104,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
+  const [includeServiceChargeInPdf, setIncludeServiceChargeInPdf] = useState(true);
   
   useEffect(() => {
     if (initialData) {
@@ -361,6 +362,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
         report,
         calculateSectionTotals,
         userName: user?.name,
+        includeServiceCharge: includeServiceChargeInPdf,
       });
       toast({ title: "Success", description: "PDF has been exported." });
     } catch(err) {
@@ -518,6 +520,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             groupSize={report.groupSize}
             serviceCharge={report.serviceCharge}
             setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
+            includeServiceChargeInPdf={includeServiceChargeInPdf}
+            setIncludeServiceChargeInPdf={setIncludeServiceChargeInPdf}
           />
         );
 
