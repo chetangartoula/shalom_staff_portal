@@ -64,8 +64,20 @@ export const getPaginatedReports = (page: number, limit: number) => {
   const startIndex = (page - 1) * limit;
   const endIndex = page * limit;
   const paginatedReports = reversedReports.slice(startIndex, endIndex);
+
+  const augmentedReports = paginatedReports.map(report => {
+    const travelerGroup = travelers.find(t => t.groupId === report.groupId);
+    const joinedTravelers = travelerGroup ? travelerGroup.travelers.length : 0;
+    const pendingTravelers = report.groupSize - joinedTravelers;
+    return {
+      ...report,
+      joined: joinedTravelers,
+      pending: pendingTravelers,
+    };
+  });
+
   return { 
-    reports: paginatedReports,
+    reports: augmentedReports,
     total: reports.length,
     hasMore: endIndex < reports.length,
   };

@@ -1,10 +1,11 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Loader2, Copy, Check, Edit } from 'lucide-react';
+import { Search, Loader2, Copy, Check, Edit, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,12 +13,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
+const TravelerDetailsModal = lazy(() => import('@/components/traveler-details-modal'));
+
 interface Report {
     groupId: string;
     trekName: string;
     groupSize: number;
     startDate: string;
     reportUrl: string;
+    joined: number;
+    pending: number;
 }
 
 interface ReportsContentProps {
@@ -38,6 +43,8 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialData.hasMore);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const results = reports.filter(report =>
@@ -85,8 +92,20 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
     router.push(`/cost-matrix/${groupId}`);
   };
 
+  const handleViewTravelers = (report: Report) => {
+    setSelectedReport(report);
+    setIsModalOpen(true);
+  }
+
   return (
     <>
+      <Suspense fallback={null}>
+        <TravelerDetailsModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          report={selectedReport}
+        />
+      </Suspense>
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -119,6 +138,8 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         <TableHead>Trek Name</TableHead>
                         <TableHead>Group ID</TableHead>
                         <TableHead>Group Size</TableHead>
+                        <TableHead>Joined</TableHead>
+                        <TableHead>Pending</TableHead>
                         <TableHead>Start Date</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -139,8 +160,13 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                                 </div>
                             </TableCell>
                             <TableCell>{report.groupSize}</TableCell>
+                            <TableCell className="text-green-600 font-medium">{report.joined}</TableCell>
+                            <TableCell className="text-orange-600 font-medium">{report.pending}</TableCell>
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right space-x-2">
+                                <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
+                                    <Users className="mr-2 h-4 w-4" /> View Travelers
+                                </Button>
                                 <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
                                     <Edit className="mr-2 h-4 w-4" /> Edit
                                 </Button>
@@ -148,7 +174,7 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         </TableRow>
                         )) : (
                           <TableRow>
-                            <TableCell colSpan={5} className="h-24 text-center">
+                            <TableCell colSpan={7} className="h-24 text-center">
                               No reports found.
                             </TableCell>
                           </TableRow>
