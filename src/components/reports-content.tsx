@@ -21,7 +21,8 @@ interface ReportsContentProps {
     initialData: {
         reports: Report[];
         hasMore: boolean;
-    }
+    },
+    pageType?: 'reports' | 'payments';
 }
 
 const statusColors: Record<PaymentStatus, string> = {
@@ -31,7 +32,7 @@ const statusColors: Record<PaymentStatus, string> = {
     'overpaid': "text-purple-600 border-purple-600/50 bg-purple-500/5"
 };
 
-export function ReportsContent({ initialData }: ReportsContentProps) {
+export function ReportsContent({ initialData, pageType = 'reports' }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>(initialData.reports);
@@ -104,6 +105,11 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
     router.push(`/payments/${groupId}`);
   }
 
+  const cardTitle = pageType === 'payments' ? 'Payment Status' : 'All Reports';
+  const cardDescription = pageType === 'payments' 
+    ? 'View and manage payment status for all reports.'
+    : 'View and edit your saved cost estimation reports.';
+
   return (
     <>
       <Suspense fallback={null}>
@@ -117,8 +123,8 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
               <div>
-                  <CardTitle>All Reports</CardTitle>
-                  <CardDescription>View and edit your saved cost estimation reports.</CardDescription>
+                  <CardTitle>{cardTitle}</CardTitle>
+                  <CardDescription>{cardDescription}</CardDescription>
               </div>
               <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -144,10 +150,10 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                         <TableRow>
                         <TableHead>Trek Name</TableHead>
                         <TableHead>Group Name</TableHead>
-                        <TableHead>Traveler Form</TableHead>
-                        <TableHead>Payment</TableHead>
+                        {pageType === 'reports' && <TableHead>Traveler Form</TableHead>}
+                        <TableHead>Payment Status</TableHead>
                         <TableHead>Balance</TableHead>
-                        <TableHead>Joined/Total</TableHead>
+                        {pageType === 'reports' && <TableHead>Joined/Total</TableHead>}
                         <TableHead>Start Date</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -159,17 +165,19 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell>
                                 <Badge variant="outline">{report.groupName}</Badge>
                             </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
-                                    {report.groupId.substring(0, 8)}...
-                                  </Link>
-                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
-                                      {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                                      <span className="sr-only">Copy Report URL</span>
-                                    </Button>
-                                </div>
-                            </TableCell>
+                             {pageType === 'reports' && (
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                    <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
+                                        {report.groupId.substring(0, 8)}...
+                                    </Link>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
+                                        {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                        <span className="sr-only">Copy Report URL</span>
+                                        </Button>
+                                    </div>
+                                </TableCell>
+                             )}
                             <TableCell>
                                 <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
                                     {report.paymentDetails.paymentStatus}
@@ -178,24 +186,32 @@ export function ReportsContent({ initialData }: ReportsContentProps) {
                             <TableCell className={cn("font-medium", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
                                 {formatCurrency(report.paymentDetails.balance)}
                             </TableCell>
-                            <TableCell>
-                                <span className="text-green-600 font-medium">{report.joined}</span>
-                                <span className="text-muted-foreground"> / {report.groupSize}</span>
-                            </TableCell>
+                            {pageType === 'reports' && (
+                                <TableCell>
+                                    <span className="text-green-600 font-medium">{report.joined}</span>
+                                    <span className="text-muted-foreground"> / {report.groupSize}</span>
+                                </TableCell>
+                            )}
                             <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
-                                        <CircleDollarSign className="mr-2 h-4 w-4" /> Payments
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
-                                        <Users className="mr-2 h-4 w-4" /> View
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
-                                        <BookUser className="mr-2 h-4 w-4" /> Assign
-                                    </Button>
+                                    {pageType === 'payments' && (
+                                        <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
+                                            <CircleDollarSign className="mr-2 h-4 w-4" /> Manage Payments
+                                        </Button>
+                                    )}
+                                    {pageType === 'reports' && (
+                                        <>
+                                            <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
+                                                <Users className="mr-2 h-4 w-4" /> View
+                                            </Button>
+                                            <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)}>
+                                                <BookUser className="mr-2 h-4 w-4" /> Assign
+                                            </Button>
+                                        </>
+                                    )}
                                     <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                        <Edit className="mr-2 h-4 w-4" /> Edit Costing
                                     </Button>
                                 </div>
                             </TableCell>
