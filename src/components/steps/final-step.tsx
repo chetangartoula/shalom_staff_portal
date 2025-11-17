@@ -76,7 +76,7 @@ function FinalStepComponent({
             
             <Card className="shadow-none border-none">
                 <CardHeader className="px-0">
-                    <CardTitle>Send Options (for reference)</CardTitle>
+                    <CardTitle>Quotation Delivery Method</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                    <div className="rounded-lg border p-6 space-y-4">
@@ -87,10 +87,10 @@ function FinalStepComponent({
                                 htmlFor="send-email"
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                                 >
-                                <Mail className="h-4 w-4" /> Send by Email
+                                <Mail className="h-4 w-4" /> Quotation sent via Email
                                 </label>
                                 <p className="text-sm text-muted-foreground">
-                                Tick this box as a reminder to email the report.
+                                Check this box to mark that the client received this quote by email.
                                 </p>
                             </div>
                         </div>
@@ -101,10 +101,10 @@ function FinalStepComponent({
                                 htmlFor="send-whatsapp"
                                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                                 >
-                                <MessageSquare className="h-4 w-4" /> Send by WhatsApp
+                                <MessageSquare className="h-4 w-4" /> Quotation sent via WhatsApp
                                 </label>
                                 <p className="text-sm text-muted-foreground">
-                                Tick this box as a reminder to send the report via WhatsApp.
+                                Check this box to mark that the client received this quote by WhatsApp.
                                 </p>
                             </div>
                         </div>
