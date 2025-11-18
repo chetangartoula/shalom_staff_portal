@@ -245,7 +245,16 @@
       "services": {
         "id": "services",
         "name": "Services",
-        "rows": [],
+        "rows": [
+          {
+            "id": "d1928ccb-d49d-4491-96ab-3a6645e7e415",
+            "description": "New items are loaded",
+            "rate": 120,
+            "no": 1,
+            "times": 1,
+            "total": 120
+          }
+        ],
         "discountType": "amount",
         "discountValue": 0
       },
@@ -275,10 +284,33 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+      "paymentDetails": {
+        "totalCost": 55.00000000000001,
+        "totalPaid": 30,
+        "balance": 25.000000000000007,
+        "paymentStatus": "partially paid"
+      }
     }
   ],
   "travelers": [],
   "assignments": [],
-  "transactions": []
+  "transactions": [
+    {
+      "amount": 30,
+      "type": "payment",
+      "date": "2025-11-18T05:43:54.178Z",
+      "note": "ok",
+      "id": "ab5331d9-12bf-4ce0-9dcc-20cbba69636f",
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    },
+    {
+      "amount": 157,
+      "type": "payment",
+      "date": "2025-11-18T05:45:18.769Z",
+      "note": "paid from the local bank",
+      "id": "231a897c-0d4f-49fd-aaa5-118cd864d272",
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    }
+  ]
 }

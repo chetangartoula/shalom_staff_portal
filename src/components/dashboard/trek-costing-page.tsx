@@ -115,7 +115,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
         setReport(fullReport);
 
         if (initialData.trekId) {
-            setCurrentStep(2); // Start from group details if editing
+            setCurrentStep(1); // Start from group details if editing
         }
         
         setIsLoading(false);
@@ -218,10 +218,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
         ];
 
+        const defaultGroupName = `${newSelectedTrek.name} ${prev.groupId.substring(0, 4)}`;
+
         return {
             ...prev,
             trekId: newSelectedTrek.id,
             trekName: newSelectedTrek.name,
+            groupName: prev.groupName || defaultGroupName,
             permits: { ...prev.permits, rows: initialPermits },
             extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
         };
@@ -598,3 +601,5 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
 }
 
 export const TrekCostingPage = memo(TrekCostingPageComponent);
+
+    
