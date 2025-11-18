@@ -294,7 +294,17 @@
     }
   ],
   "travelers": [],
-  "assignments": [],
+  "assignments": [
+    {
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+      "guideIds": [
+        "77fc4ef4-efc4-40ba-a90b-e88448f27e6d"
+      ],
+      "porterIds": [
+        "6d1a4388-edb5-4ed0-8328-f981e670e170"
+      ]
+    }
+  ],
   "transactions": [
     {
       "amount": 30,

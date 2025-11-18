@@ -42,7 +42,7 @@ const statusColors: Record<PaymentStatus, string> = {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export function ReportsContent({ initialData, pageType = 'reports' }: ReportsContentProps) {
+export function ReportsContent({ initialData, pageType = 'reports' | 'payments' }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>(initialData?.reports || []);
@@ -247,19 +247,31 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                         </TableCell>
                         <TableCell>{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
                         <TableCell className="text-right">
-                            <div className="flex justify-end items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)}>
+                             <div className="flex justify-end items-center gap-2">
+                                <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)} className="hidden lg:flex">
                                     <CircleDollarSign className="mr-2 h-4 w-4" /> Manage
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleViewTravelers(report)}>
-                                    <Users className="mr-2 h-4 w-4" /> View
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleAssignClick(report.groupId)} disabled={isAssignmentDisabled} title={isAssignmentDisabled ? 'Payment required to assign team' : 'Assign guides and porters'}>
-                                    <BookUser className="mr-2 h-4 w-4" /> Assign
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleEditClick(report.groupId)}>
-                                    <Edit className="mr-2 h-4 w-4" /> Edit Costing
-                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleManagePayments(report.groupId)} className="lg:hidden">
+                                            <CircleDollarSign className="mr-2 h-4 w-4" /> Manage Payments
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleViewTravelers(report)}>
+                                            <Users className="mr-2 h-4 w-4" /> View Travelers
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleAssignClick(report.groupId)} disabled={isAssignmentDisabled}>
+                                            <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
+                                            <Edit className="mr-2 h-4 w-4" /> Edit Costing
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </TableCell>
                     </TableRow>
@@ -328,3 +340,5 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
     </>
   );
 }
+
+    
