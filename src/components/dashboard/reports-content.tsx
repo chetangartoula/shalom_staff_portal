@@ -255,6 +255,7 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8">
                                             <MoreVertical className="h-4 w-4" />
+                                            <span className="sr-only">More actions</span>
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
