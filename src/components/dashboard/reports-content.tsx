@@ -123,9 +123,9 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{report.trekName}</CardTitle>
-                  <CardDescription>
+                  <div className="text-sm text-muted-foreground">
                     <Badge variant="outline" className="mt-1">{report.groupName}</Badge>
-                  </CardDescription>
+                  </div>
                 </div>
                  <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -328,4 +328,3 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
     </>
   );
 }
-
