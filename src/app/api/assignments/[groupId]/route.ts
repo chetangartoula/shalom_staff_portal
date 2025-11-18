@@ -8,9 +8,8 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params: { groupId } }: Params) {
   try {
-    const { groupId } = params;
     const assignments = getAssignmentsByGroupId(groupId);
     if (assignments) {
       return NextResponse.json(assignments);
@@ -22,9 +21,8 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(request: Request, { params: { groupId } }: Params) {
   try {
-    const { groupId } = params;
     const body = await request.json();
     const { guideIds, porterIds } = body;
     const updated = updateAssignments(groupId, guideIds, porterIds);
