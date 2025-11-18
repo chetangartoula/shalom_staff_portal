@@ -36,7 +36,46 @@
 						},
 						"description": "Retrieves a paginated list of reports, including payment and traveler join status."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/reports?page=1&limit=10",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"reports"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"reports\": [\n        {\n            \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n            \"trekId\": \"annapurna\",\n            \"trekName\": \"Annapurna Circuit Trek\",\n            \"groupName\": \"general trip\",\n            \"groupSize\": 1,\n            \"startDate\": \"2025-11-18T05:33:06.123Z\",\n            \"permits\": {\n                \"id\": \"permits\",\n                \"name\": \"Permits & Food\",\n                \"rows\": [\n                    {\n                        \"id\": \"d7959210-84ab-4a64-9928-942018aef6b5\",\n                        \"description\": \"ACAP Permit\",\n                        \"rate\": 30,\n                        \"no\": 1,\n                        \"times\": 1,\n                        \"total\": 30\n                    },\n                    {\n                        \"id\": \"47c03d4c-439c-4ec4-bcfb-e95f199eb5dd\",\n                        \"description\": \"TIMS Card\",\n                        \"rate\": 20,\n                        \"no\": 1,\n                        \"times\": 1,\n                        \"total\": 20\n                    }\n                ],\n                \"discountType\": \"amount\",\n                \"discountValue\": 0\n            },\n            \"services\": {\n                \"id\": \"services\",\n                \"name\": \"Services\",\n                \"rows\": [\n                    {\n                        \"id\": \"d1928ccb-d49d-4491-96ab-3a6645e7e415\",\n                        \"description\": \"New items are loaded\",\n                        \"rate\": 120,\n                        \"no\": 1,\n                        \"times\": 1,\n                        \"total\": 120\n                    }\n                ],\n                \"discountType\": \"amount\",\n                \"discountValue\": 0\n            },\n            \"extraDetails\": {\n                \"id\": \"extraDetails\",\n                \"name\": \"Extra Details\",\n                \"rows\": [],\n                \"discountType\": \"amount\",\n                \"discountValue\": 0\n            },\n            \"customSections\": [],\n            \"serviceCharge\": 10,\n            \"reportUrl\": \"http://localhost:3000/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n            \"joined\": 0,\n            \"pending\": 1,\n            \"paymentDetails\": {\n                \"totalCost\": 187,\n                \"totalPaid\": 187,\n                \"balance\": 0,\n                \"paymentStatus\": \"fully paid\"\n            }\n        }\n    ],\n    \"total\": 5,\n    \"hasMore\": false\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Report by Group ID",
@@ -56,7 +95,37 @@
 						},
 						"description": "Fetches a single report by its unique group ID."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/reports/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"reports",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n    \"trekId\": \"annapurna\",\n    \"trekName\": \"Annapurna Circuit Trek\",\n    \"groupName\": \"general trip\",\n    \"groupSize\": 1,\n    \"startDate\": \"2025-11-18T05:33:06.123Z\",\n    \"permits\": {\n        \"id\": \"permits\",\n        \"name\": \"Permits & Food\",\n        \"rows\": [\n            {\n                \"id\": \"d7959210-84ab-4a64-9928-942018aef6b5\",\n                \"description\": \"ACAP Permit\",\n                \"rate\": 30,\n                \"no\": 1,\n                \"times\": 1,\n                \"total\": 30\n            }\n        ],\n        \"discountType\": \"amount\",\n        \"discountValue\": 0\n    },\n    \"services\": {\n        \"id\": \"services\",\n        \"name\": \"Services\",\n        \"rows\": [],\n        \"discountType\": \"amount\",\n        \"discountValue\": 0\n    },\n    \"extraDetails\": {\n        \"id\": \"extraDetails\",\n        \"name\": \"Extra Details\",\n        \"rows\": [],\n        \"discountType\": \"amount\",\n        \"discountValue\": 0\n    },\n    \"customSections\": [],\n    \"serviceCharge\": 10,\n    \"reportUrl\": \"http://localhost:3000/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n    \"paymentDetails\": {\n        \"totalCost\": 33,\n        \"totalPaid\": 187,\n        \"balance\": -154,\n        \"paymentStatus\": \"overpaid\"\n    }\n}"
+						}
+					]
 				},
 				{
 					"name": "Create New Report",
@@ -89,7 +158,45 @@
 						},
 						"description": "Creates a new cost estimation report."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"trekId\": \"annapurna\",\n    \"trekName\": \"Annapurna Circuit Trek\",\n    \"groupName\": \"New Test Group\",\n    \"groupSize\": 4,\n    \"startDate\": \"2025-12-01T00:00:00.000Z\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/reports",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"reports"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Report saved successfully\",\n    \"report\": {\n        \"groupId\": \"generated-uuid\",\n        \"trekId\": \"annapurna\",\n        \"trekName\": \"Annapurna Circuit Trek\",\n        \"groupName\": \"New Test Group\",\n        \"groupSize\": 4,\n        \"startDate\": \"2025-12-01T00:00:00.000Z\",\n        \"reportUrl\": \"http://localhost:3000/report/generated-uuid\"\n    }\n}"
+						}
+					]
 				},
 				{
 					"name": "Update Report",
@@ -123,7 +230,46 @@
 						},
 						"description": "Updates details of an existing report."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"groupName\": \"Updated Group Name\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/reports/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"reports",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Report updated successfully\",\n    \"report\": {\n        \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n        \"trekId\": \"annapurna\",\n        \"trekName\": \"Annapurna Circuit Trek\",\n        \"groupName\": \"Updated Group Name\",\n        \"groupSize\": 1,\n        \"startDate\": \"2025-11-18T05:33:06.123Z\",\n        \"paymentDetails\": {\n             \"totalCost\": 33,\n             \"totalPaid\": 187,\n             \"balance\": -154,\n             \"paymentStatus\": \"overpaid\"\n        }\n    }\n}"
+						}
+					]
 				}
 			]
 		},
@@ -147,7 +293,36 @@
 						},
 						"description": "Retrieves all team assignments with trek, group, guide, and porter details."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/assignments",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"assignments"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"assignments\": [\n        {\n            \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n            \"guideIds\": [\n                \"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"\n            ],\n            \"porterIds\": [\n                \"6d1a4388-edb5-4ed0-8328-f981e670e170\"\n            ],\n            \"trekName\": \"Annapurna Circuit Trek\",\n            \"groupName\": \"general trip\",\n            \"startDate\": \"2025-11-18T05:33:06.123Z\",\n            \"guides\": [\n                {\n                    \"name\": \"Dorje Sherpa\",\n                    \"email\": \"dorje.sherpa@example.com\",\n                    \"phone\": \"984-1234567\",\n                    \"status\": \"Available\",\n                    \"id\": \"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"\n                }\n            ],\n            \"porters\": [\n                {\n                    \"name\": \"Kaji Sherpa\",\n                    \"phone\": \"984-2345678\",\n                    \"status\": \"Available\",\n                    \"id\": \"6d1a4388-edb5-4ed0-8328-f981e670e170\"\n                }\n            ]\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Assignment by Group ID",
@@ -167,7 +342,37 @@
 						},
 						"description": "Fetches the guide and porter assignments for a specific group."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/assignments/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"assignments",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n    \"guideIds\": [\n        \"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"\n    ],\n    \"porterIds\": [\n        \"6d1a4388-edb5-4ed0-8328-f981e670e170\"\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Update Assignment",
@@ -196,7 +401,46 @@
 						},
 						"description": "Updates or creates the guide and porter assignments for a specific group."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"guideIds\": [\"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"],\n    \"porterIds\": [\"6d1a4388-edb5-4ed0-8328-f981e670e170\"]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/assignments/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"assignments",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Assignments updated successfully\",\n    \"assignments\": {\n        \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n        \"guideIds\": [\n            \"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"\n        ],\n        \"porterIds\": [\n            \"6d1a4388-edb5-4ed0-8328-f981e670e170\"\n        ]\n    }\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Assignment Details for Guide",
@@ -217,7 +461,38 @@
 						},
 						"description": "Fetches a simplified report summary for guides, excluding financial information."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/assignments/details/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"assignments",
+										"details",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"report\": {\n        \"trekName\": \"Annapurna Circuit Trek\",\n        \"groupName\": \"general trip\",\n        \"startDate\": \"2025-11-18T05:33:06.123Z\",\n        \"groupSize\": 1,\n        \"permits\": {\n             \"rows\": [\n                {\n                    \"id\": \"d7959210-84ab-4a64-9928-942018aef6b5\",\n                    \"description\": \"ACAP Permit\"\n                }\n            ]\n        },\n        \"services\": {\n            \"rows\": [\n                {\n                    \"id\": \"d1928ccb-d49d-4491-96ab-3a6645e7e415\",\n                    \"description\": \"New items are loaded\"\n                }\n            ]\n        }\n    },\n    \"travelers\": [],\n    \"guides\": [\n        {\n            \"name\": \"Dorje Sherpa\",\n            \"email\": \"dorje.sherpa@example.com\",\n            \"phone\": \"984-1234567\"\n        }\n    ],\n    \"porters\": [\n        {\n            \"name\": \"Kaji Sherpa\",\n            \"phone\": \"984-2345678\"\n        }\n    ]\n}"
+						}
+					]
 				}
 			]
 		},
@@ -265,7 +540,47 @@
 						},
 						"description": "Retrieves a paginated and filterable list of all transactions across all groups."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/transactions/all?page=1&limit=10",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"transactions",
+										"all"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"transactions\": [\n        {\n            \"id\": \"ab5331d9-12bf-4ce0-9dcc-20cbba69636f\",\n            \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n            \"amount\": 30,\n            \"type\": \"payment\",\n            \"date\": \"2025-11-18T05:43:54.178Z\",\n            \"note\": \"ok\",\n            \"trekName\": \"Annapurna Circuit Trek\",\n            \"groupName\": \"general trip\"\n        }\n    ],\n    \"total\": 5,\n    \"hasMore\": false,\n    \"summary\": {\n        \"totalPayments\": 4304,\n        \"totalRefunds\": 300,\n        \"netTotal\": 4004\n    }\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Transactions by Group ID",
@@ -285,7 +600,37 @@
 						},
 						"description": "Fetches all transactions for a specific group."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/transactions/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"transactions",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"transactions\": [\n        {\n            \"id\": \"ab5331d9-12bf-4ce0-9dcc-20cbba69636f\",\n            \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\",\n            \"amount\": 30,\n            \"type\": \"payment\",\n            \"date\": \"2025-11-18T05:43:54.178Z\",\n            \"note\": \"ok\"\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Add Transaction",
@@ -314,7 +659,46 @@
 						},
 						"description": "Adds a new payment or refund transaction to a group."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"amount\": 100,\n    \"type\": \"payment\",\n    \"date\": \"2025-11-20T10:00:00.000Z\",\n    \"note\": \"Initial deposit\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/transactions/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"transactions",
+										"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Transaction added successfully\",\n    \"transaction\": {\n        \"amount\": 100,\n        \"type\": \"payment\",\n        \"date\": \"2025-11-20T10:00:00.000Z\",\n        \"note\": \"Initial deposit\",\n        \"id\": \"generated-uuid\",\n        \"groupId\": \"7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e\"\n    }\n}"
+						}
+					]
 				}
 			]
 		},
@@ -339,7 +723,37 @@
 						},
 						"description": "Gets a flat list of all travelers across all groups."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/travelers/all",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"travelers",
+										"all"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"travelers\": [\n        {\n            \"id\": \"7ed4da1b813046c9da18090085bfc493a964c97a3858fd68c360b91d7a38a4b4\",\n            \"name\": \"nibol pacfut\",\n            \"phone\": \"+9779860701958\",\n            \"address\": \"Naya thimi\",\n            \"passportNumber\": \"fasdf\",\n            \"emergencyContact\": \"+9779860701958\",\n            \"dateOfBirth\": \"2025-11-18T18:15:00.000Z\",\n            \"nationality\": \"Nepali\",\n            \"passportExpiryDate\": \"2025-11-19T18:15:00.000Z\",\n            \"profilePicture\": \"\",\n            \"passportPhoto\": \"data:image/png;base64,...\",\n            \"groupId\": \"146672a2-b70d-4f4c-ac76-7e52ced2adf1\",\n            \"trekName\": \"Manaslu Circuit Trek\",\n            \"groupName\": \"Manaslu Circuit Trek 1466\"\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Travelers by Group ID",
@@ -359,7 +773,37 @@
 						},
 						"description": "Retrieves the list of travelers for a specific group."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/travelers/146672a2-b70d-4f4c-ac76-7e52ced2adf1",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"travelers",
+										"146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"groupId\": \"146672a2-b70d-4f4c-ac76-7e52ced2adf1\",\n    \"travelers\": [\n        {\n            \"id\": \"7ed4da1b813046c9da18090085bfc493a964c97a3858fd68c360b91d7a38a4b4\",\n            \"name\": \"nibol pacfut\",\n            \"phone\": \"+9779860701958\",\n            \"address\": \"Naya thimi\",\n            \"passportNumber\": \"fasdf\",\n            \"emergencyContact\": \"+9779860701958\",\n            \"dateOfBirth\": \"2025-11-18T18:15:00.000Z\",\n            \"nationality\": \"Nepali\",\n            \"passportExpiryDate\": \"2025-11-19T18:15:00.000Z\",\n            \"profilePicture\": \"\",\n            \"passportPhoto\": \"data:image/png;base64,...\"\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Add or Update Traveler",
@@ -388,7 +832,46 @@
 						},
 						"description": "Adds a new traveler to a group or updates an existing one based on a unique ID generated from passport and phone number."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"traveler\": {\n        \"name\": \"John Doe\",\n        \"phone\": \"+15551234567\",\n        \"address\": \"123 Main St, Anytown, USA\",\n        \"passportNumber\": \"A12345678\",\n        \"emergencyContact\": \"+15559876543\",\n        \"dateOfBirth\": \"1990-01-15T00:00:00.000Z\",\n        \"nationality\": \"American\",\n        \"passportExpiryDate\": \"2030-01-15T00:00:00.000Z\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/travelers/146672a2-b70d-4f4c-ac76-7e52ced2adf1",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"travelers",
+										"146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Traveler details updated successfully\",\n    \"data\": {\n        \"groupId\": \"146672a2-b70d-4f4c-ac76-7e52ced2adf1\",\n        \"travelers\": [\n            {\n                \"id\": \"generated-id-from-hash\",\n                \"name\": \"John Doe\",\n                \"phone\": \"+15551234567\",\n                \"address\": \"123 Main St, Anytown, USA\"\n            }\n        ]\n    }\n}"
+						}
+					]
 				}
 			]
 		},
@@ -412,7 +895,36 @@
 						},
 						"description": "Retrieves the list of all available treks."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/treks",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"treks"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"treks\": [\n        {\n            \"id\": \"manaslu\",\n            \"name\": \"Manaslu Circuit Trek\",\n            \"description\": \"A classic trek offering stunning views of Manaslu, remote villages, and diverse landscapes.\",\n            \"permits\": []\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get All Guides",
@@ -431,7 +943,36 @@
 						},
 						"description": "Retrieves the list of all guides."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/guides",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"guides"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"guides\": [\n        {\n            \"name\": \"Dorje Sherpa\",\n            \"email\": \"dorje.sherpa@example.com\",\n            \"phone\": \"984-1234567\",\n            \"status\": \"Available\",\n            \"id\": \"77fc4ef4-efc4-40ba-a90b-e88448f27e6d\"\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get All Porters",
@@ -450,7 +991,36 @@
 						},
 						"description": "Retrieves the list of all porters."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/porters",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"porters"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"porters\": [\n        {\n            \"name\": \"Kaji Sherpa\",\n            \"phone\": \"984-2345678\",\n            \"status\": \"Available\",\n            \"id\": \"6d1a4388-edb5-4ed0-8328-f981e670e170\"\n        }\n    ]\n}"
+						}
+					]
 				}
 			]
 		},
@@ -474,7 +1044,36 @@
 						},
 						"description": "Gets the main statistics for the dashboard cards (total reports, travelers, etc.)."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/stats",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"stats"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"reports\": 5,\n    \"travelers\": 1,\n    \"treks\": 3,\n    \"guides\": 6,\n    \"porters\": 6\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Trek Popularity",
@@ -494,7 +1093,37 @@
 						},
 						"description": "Gets data for the trek popularity pie chart."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/stats/trek-popularity",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"trek-popularity"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"chartData\": [\n        {\n            \"name\": \"Annapurna Circuit Trek\",\n            \"value\": 1\n        },\n        {\n            \"name\": \"Manaslu Circuit Trek\",\n            \"value\": 3\n        },\n        {\n            \"name\": \"Everest Base Camp Trek\",\n            \"value\": 1\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Team Status",
@@ -514,7 +1143,37 @@
 						},
 						"description": "Gets data for the team availability pie chart."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/stats/team-status",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"team-status"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"chartData\": [\n        {\n            \"name\": \"Available\",\n            \"value\": 6\n        },\n        {\n            \"name\": \"On Tour\",\n            \"value\": 4\n        },\n        {\n            \"name\": \"On Leave\",\n            \"value\": 2\n        }\n    ]\n}"
+						}
+					]
 				},
 				{
 					"name": "Get Payment Analytics",
@@ -534,7 +1193,37 @@
 						},
 						"description": "Gets data for the 30-day payment analytics line chart."
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{BASE_URL}}/api/stats/payments",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"stats",
+										"payments"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"chartData\": [\n        {\n            \"date\": \"Oct 20\",\n            \"payments\": 0,\n            \"refunds\": 0\n        },\n        {\n            \"date\": \"Nov 18\",\n            \"payments\": 4304,\n            \"refunds\": 300\n        }\n    ]\n}"
+						}
+					]
 				}
 			]
 		}
