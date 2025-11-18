@@ -19,7 +19,7 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-sans)', 'sans-serif'],
+        sans: ['"TikTok Sans"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
