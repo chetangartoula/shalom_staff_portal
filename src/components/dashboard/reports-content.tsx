@@ -123,8 +123,8 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
               <div className="flex justify-between items-start">
                 <div>
                   <CardTitle className="text-lg">{report.trekName}</CardTitle>
-                  <div className="text-sm text-muted-foreground">
-                    <Badge variant="outline" className="mt-1">{report.groupName}</Badge>
+                  <div className="text-sm text-muted-foreground mt-1">
+                      <Badge variant="outline">{report.groupName}</Badge>
                   </div>
                 </div>
                  <DropdownMenu>
@@ -175,7 +175,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                   </span>
               </div>
                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Traveler Form</span>
+                  <span className="text-muted-foreground">Group ID</span>
                    <div className="flex items-center gap-1">
                       <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
                           {report.groupId.substring(0, 8)}...
@@ -203,7 +203,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                 <TableRow>
                     <TableHead>Trek Name</TableHead>
                     <TableHead>Group Name</TableHead>
-                    <TableHead>Traveler Form</TableHead>
+                    <TableHead>Group ID</TableHead>
                     <TableHead>Total Cost</TableHead>
                     <TableHead>Payment Status</TableHead>
                     <TableHead>Balance</TableHead>
@@ -223,8 +223,8 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                         </TableCell>
                         <TableCell>
                             <div className="flex items-center gap-2">
-                            <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs" title={report.groupId}>
-                                {report.reportUrl}
+                            <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>
+                                {report.groupId.substring(0, 8)}...
                             </Link>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
                                 {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
