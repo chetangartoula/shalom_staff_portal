@@ -11,7 +11,8 @@ import {
   Users2,
   Backpack,
   Wallet,
-  Menu
+  Menu,
+  X
 } from "lucide-react"
 
 import { Button } from "@/components/ui/shadcn/button"
@@ -23,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/shadcn/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/shadcn/sheet"
 import { Logo } from "@/components/logo";
 import type { User } from "@/lib/auth"
 import { usePathname, useRouter } from "next/navigation"
@@ -91,12 +92,15 @@ export function Header({ user }: HeaderProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="md:hidden">
-            <SheetHeader className="border-b pb-4 mb-4">
-                <SheetTitle className="sr-only">Shalom Navigation</SheetTitle>
-                <Link href="/dashboard" className="mr-6 flex items-center gap-2">
-                    <Logo className="h-6 w-6 text-primary" />
-                    <span className="font-bold text-lg">Shalom</span>
-                </Link>
+            <SheetHeader className="border-b pb-4 mb-4 bg-primary text-primary-foreground -m-6 p-6 flex-row items-center justify-between">
+              <Link href="/dashboard" className="mr-6 flex items-center gap-2">
+                  <Logo className="h-6 w-6" />
+                  <span className="font-bold text-lg">Shalom</span>
+              </Link>
+              <SheetClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </SheetClose>
             </SheetHeader>
           <nav className="grid gap-6 text-lg font-medium">
             {navItems.map(item => (
