@@ -109,7 +109,7 @@ export function TransactionsContent() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {filteredTransactions.length > 0 ? filteredTransactions.map((transaction) => (
+                {filteredTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                     <TableCell>{format(parseISO(transaction.date), 'PPP')}</TableCell>
                     <TableCell className="font-medium">{transaction.trekName}</TableCell>
@@ -138,13 +138,7 @@ export function TransactionsContent() {
                         {formatCurrency(transaction.amount)}
                     </TableCell>
                 </TableRow>
-                )) : (
-                    <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                        No transactions found for the selected filters.
-                    </TableCell>
-                    </TableRow>
-                )}
+                ))}
             </TableBody>
         </Table>
     </div>
