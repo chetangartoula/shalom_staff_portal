@@ -523,7 +523,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
                     ))}
                 </BreadcrumbList>
             </Breadcrumb>
-             <div className="flex items-center justify-between">
+             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold">{breadcrumbItems.find(b => b.isCurrent)?.label || 'Cost Estimator'}</h1>
                   <p className="text-muted-foreground">
@@ -532,7 +532,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
                 </div>
                  <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" className="border-dashed" onClick={handleOpenAddSectionModal}>
+                        <Button variant="outline" className="border-dashed self-start sm:self-center" onClick={handleOpenAddSectionModal}>
                             <PlusSquare className="mr-2 h-4 w-4" /> Add Section
                         </Button>
                     </DialogTrigger>
@@ -561,38 +561,40 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       {renderStepContent()}
       
       { (currentStep > 0 || initialData) && (
-        <div className="mt-8 flex justify-between items-center gap-4 flex-wrap">
-            <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" disabled={initialData ? currentStep === 0 : currentStep <= 1}>
+        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" disabled={(initialData && currentStep === 0) || (!initialData && currentStep <= 1)}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             
-            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {savedReportUrl && (
-                <div className="flex items-center gap-1 rounded-md bg-muted p-1 pr-2 text-sm">
+                <div className="flex items-center gap-1 rounded-md bg-muted p-1 pr-2 text-sm order-first sm:order-none w-full sm:w-auto">
                     <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
                       {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
-                    <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate max-w-[120px] sm:max-w-xs" title={savedReportUrl}>
+                    <Link href={savedReportUrl} target="_blank" className="text-blue-600 hover:underline truncate" title={savedReportUrl}>
                       Traveler Form Link
                     </Link>
                 </div>
               )}
               
-              <Button onClick={handleSaveOrUpdate} disabled={isSaving}>
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Save className="mr-2 h-4 w-4" /> Save
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={handleSaveOrUpdate} disabled={isSaving} className="flex-1">
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Save className="mr-2 h-4 w-4" /> Save
+                </Button>
 
-              {currentStep === finalStepIndex ? (
-                <Button onClick={handleFinish} disabled={isSaving}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Finish & Close
-                </Button>
-              ) : (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)}>
-                    Next
-                </Button>
-              )}
+                {currentStep === finalStepIndex ? (
+                  <Button onClick={handleFinish} disabled={isSaving} className="flex-1">
+                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Finish
+                  </Button>
+                ) : (
+                  <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1">
+                      Next
+                  </Button>
+                )}
+              </div>
             </div>
         </div>
       )}

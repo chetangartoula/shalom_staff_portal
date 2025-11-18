@@ -312,7 +312,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Profile Picture</FormLabel>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                             <div className="w-24 h-24 rounded-md border bg-muted flex items-center justify-center">
                             {field.value ? (
                                 <Image src={field.value} alt="Profile" width={96} height={96} className="rounded-md object-cover w-full h-full" />
@@ -320,7 +320,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                                 <User className="h-10 w-10 text-muted-foreground" />
                             )}
                             </div>
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-row sm:flex-col gap-2">
                                 <Button type="button" size="sm" variant="outline" onClick={() => document.getElementById(`profile-upload-${index}`)?.click()}>
                                     <Upload className="mr-2 h-4 w-4" /> Upload
                                 </Button>
@@ -334,7 +334,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
 
                                 <DialogTrigger asChild>
                                     <Button type="button" size="sm" variant="outline" onClick={() => handleOpenCamera(index)}>
-                                        <Camera className="mr-2 h-4 w-4" /> Open Camera
+                                        <Camera className="mr-2 h-4 w-4" /> Camera
                                     </Button>
                                 </DialogTrigger>
                             </div>
@@ -357,7 +357,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         </FormItem>
                     )}
                     />
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.phone`}
@@ -392,7 +392,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         )}
                     />
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.passportNumber`}
@@ -427,7 +427,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         )}
                     />
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.nationality`}
@@ -482,7 +482,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         </FormItem>
                     )}
                     />
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.passportPhoto`}
@@ -554,7 +554,7 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                 </AccordionItem>
             ))}
             </Accordion>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-md w-[90vw]">
                 <DialogHeader>
                     <DialogTitle>Capture Profile Picture</DialogTitle>
                 </DialogHeader>

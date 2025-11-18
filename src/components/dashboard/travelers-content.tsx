@@ -28,13 +28,106 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
     );
   }, [searchTerm, travelers]);
 
+  const renderDesktopTable = () => (
+    <div className="border rounded-lg hidden md:block">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Profile</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Nationality</TableHead>
+                    <TableHead>Passport No.</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Trek</TableHead>
+                    <TableHead>Group Name</TableHead>
+                    <TableHead>Group ID</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
+                <TableRow key={`${traveler.id}-${traveler.groupId}`}>
+                    <TableCell>
+                        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                        {traveler.profilePicture ? (
+                            <Image src={traveler.profilePicture} alt={traveler.name} width={40} height={40} className="object-cover" />
+                        ) : (
+                            <User className="h-6 w-6 text-muted-foreground" />
+                        )}
+                        </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{traveler.name}</TableCell>
+                    <TableCell>{traveler.nationality || 'N/A'}</TableCell>
+                    <TableCell>{traveler.passportNumber}</TableCell>
+                    <TableCell>{traveler.phone}</TableCell>
+                    <TableCell>{traveler.trekName}</TableCell>
+                    <TableCell>{traveler.groupName}</TableCell>
+                    <TableCell>
+                        <Link href={`/cost-matrix/${traveler.groupId}`} className="text-blue-600 hover:underline font-mono text-sm" title={traveler.groupId}>
+                            {traveler.groupId?.substring(0, 8)}...
+                        </Link>
+                    </TableCell>
+                </TableRow>
+                )) : (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                    {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+  const renderMobileCards = () => (
+     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+      {filteredTravelers.map((traveler) => (
+        <Card key={`${traveler.id}-${traveler.groupId}`}>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {traveler.profilePicture ? (
+                    <Image src={traveler.profilePicture} alt={traveler.name} width={48} height={48} className="object-cover" />
+                ) : (
+                    <User className="h-6 w-6 text-muted-foreground" />
+                )}
+                </div>
+                <div>
+                    <CardTitle className="text-lg">{traveler.name}</CardTitle>
+                    <CardDescription>{traveler.nationality || 'N/A'}</CardDescription>
+                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Passport</span>
+              <span className="font-medium">{traveler.passportNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Phone</span>
+              <span className="font-medium">{traveler.phone}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Trek</span>
+              <span className="font-medium truncate">{traveler.trekName}</span>
+            </div>
+             <div className="flex justify-between">
+              <span className="text-muted-foreground">Group</span>
+              <span className="font-medium truncate">{traveler.groupName}</span>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
   return (
     <>
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">All Travelers</h1>
-                <p className="text-muted-foreground">View and search for all travelers across all reports.</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">All Travelers</h1>
+                <p className="text-muted-foreground text-sm md:text-base">View and search for all travelers across all reports.</p>
             </div>
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -49,54 +142,13 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
         </div>
         <Card>
             <CardContent className="pt-6">
-                <div className="border rounded-lg">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Profile</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Nationality</TableHead>
-                                <TableHead>Passport No.</TableHead>
-                                <TableHead>Phone</TableHead>
-                                <TableHead>Trek</TableHead>
-                                <TableHead>Group Name</TableHead>
-                                <TableHead>Group ID</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredTravelers.length > 0 ? filteredTravelers.map((traveler) => (
-                            <TableRow key={`${traveler.id}-${traveler.groupId}`}>
-                                <TableCell>
-                                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                                    {traveler.profilePicture ? (
-                                        <Image src={traveler.profilePicture} alt={traveler.name} width={40} height={40} className="object-cover" />
-                                    ) : (
-                                        <User className="h-6 w-6 text-muted-foreground" />
-                                    )}
-                                    </div>
-                                </TableCell>
-                                <TableCell className="font-medium">{traveler.name}</TableCell>
-                                <TableCell>{traveler.nationality || 'N/A'}</TableCell>
-                                <TableCell>{traveler.passportNumber}</TableCell>
-                                <TableCell>{traveler.phone}</TableCell>
-                                <TableCell>{traveler.trekName}</TableCell>
-                                <TableCell>{traveler.groupName}</TableCell>
-                                <TableCell>
-                                    <Link href={`/cost-matrix/${traveler.groupId}`} className="text-blue-600 hover:underline font-mono text-sm" title={traveler.groupId}>
-                                        {traveler.groupId?.substring(0, 8)}...
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
-                            )) : (
-                            <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center">
-                                {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
-                                </TableCell>
-                            </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                {renderDesktopTable()}
+                {renderMobileCards()}
+                {filteredTravelers.length === 0 && (
+                    <div className="h-24 text-center flex items-center justify-center text-muted-foreground md:hidden">
+                        {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
+                    </div>
+                )}
             </CardContent>
         </Card>
       </div>

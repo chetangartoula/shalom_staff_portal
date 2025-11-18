@@ -30,13 +30,75 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
       (guide.phone && guide.phone.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, guides]);
+  
+  const renderDesktopTable = () => (
+    <div className="border rounded-lg hidden md:block">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone Number</TableHead>
+                    <TableHead>Status</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {filteredGuides.length > 0 ? filteredGuides.map((guide) => (
+                <TableRow key={guide.id}>
+                    <TableCell className="font-medium">{guide.name}</TableCell>
+                    <TableCell>{guide.email}</TableCell>
+                    <TableCell>{guide.phone}</TableCell>
+                    <TableCell>
+                        <Badge className={`${statusColors[guide.status]} font-semibold`} variant="outline">
+                            {guide.status}
+                        </Badge>
+                    </TableCell>
+                </TableRow>
+                )) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                    {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
+                    </TableCell>
+                </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+  const renderMobileCards = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+      {filteredGuides.map((guide) => (
+        <Card key={guide.id}>
+          <CardHeader>
+            <CardTitle className="text-lg">{guide.name}</CardTitle>
+            <CardDescription>
+                <Badge className={`${statusColors[guide.status]} font-semibold mt-1`} variant="outline">
+                    {guide.status}
+                </Badge>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Email</span>
+              <span className="font-medium truncate">{guide.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Phone</span>
+              <span className="font-medium">{guide.phone}</span>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   return (
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Guides</h1>
-                <p className="text-muted-foreground">View and search for all available guides.</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Guides</h1>
+                <p className="text-muted-foreground text-sm md:text-base">View and search for all available guides.</p>
             </div>
             <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -51,38 +113,13 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
         </div>
         <Card>
             <CardContent className="pt-6">
-                <div className="border rounded-lg">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Phone Number</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredGuides.length > 0 ? filteredGuides.map((guide) => (
-                            <TableRow key={guide.id}>
-                                <TableCell className="font-medium">{guide.name}</TableCell>
-                                <TableCell>{guide.email}</TableCell>
-                                <TableCell>{guide.phone}</TableCell>
-                                <TableCell>
-                                    <Badge className={`${statusColors[guide.status]} font-semibold`} variant="outline">
-                                        {guide.status}
-                                    </Badge>
-                                </TableCell>
-                            </TableRow>
-                            )) : (
-                            <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">
-                                {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
-                                </TableCell>
-                            </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                {renderDesktopTable()}
+                {renderMobileCards()}
+                {filteredGuides.length === 0 && (
+                    <div className="h-24 text-center flex items-center justify-center text-muted-foreground md:hidden">
+                        {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
+                    </div>
+                )}
             </CardContent>
         </Card>
     </div>

@@ -97,8 +97,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     <span className="sr-only">Go back</span>
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Manage Payments</h1>
-                    <p className="text-muted-foreground">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Manage Payments</h1>
+                    <p className="text-muted-foreground text-sm md:text-base max-w-full truncate">
                         For Trek: <span className="font-medium text-primary">{reportData?.trekName}</span> | Group: <span className="font-medium text-primary">{reportData?.groupName}</span>
                     </p>
                 </div>
@@ -109,7 +109,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     <CardTitle>Financial Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
                         <div className="text-center">
                             <p className="text-sm text-muted-foreground">Total Cost</p>
                             <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>

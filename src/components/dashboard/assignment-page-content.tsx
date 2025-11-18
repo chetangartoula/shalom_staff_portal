@@ -160,15 +160,15 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Assign Team Members</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Assign Team Members</h1>
+                <p className="text-muted-foreground text-sm md:text-base">
                     Assign guides and porters for trek <span className="font-semibold text-primary">{report.trekName}</span> (Group: {report.groupName}).
                 </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-6">
                 <TeamMemberSelection
                     title="Guides"
                     items={filteredGuides}

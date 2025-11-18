@@ -12,7 +12,7 @@ export function DashboardContent({ initialStats, initialReports }: { initialStat
                 <StatsCards stats={initialStats} />
             </Suspense>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-6 lg:grid-cols-7">
                 <div className="lg:col-span-4">
                     <Suspense fallback={<PaymentChart.Skeleton />}>
                         <PaymentChart />

@@ -79,7 +79,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-       <div className="absolute top-8 left-8 flex items-center gap-2 font-bold text-lg">
+       <div className="absolute top-8 left-4 sm:left-8 flex items-center gap-2 font-bold text-lg">
         <Logo className="h-8 w-auto text-primary" />
         <span className="font-semibold text-xl">Shalom</span>
       </div>

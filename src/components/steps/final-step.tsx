@@ -144,26 +144,26 @@ function FinalStepComponent({
 
                     <div className="space-y-4">
                         <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-                            <span className="text-muted-foreground">Group Total without service</span>
+                            <span className="text-sm text-muted-foreground">Group Total w/o service</span>
                             <span className="font-bold">{formatCurrency(totalCost)}</span>
                         </div>
                          <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-                            <span className="text-muted-foreground">Group Total with service ({serviceCharge}%)</span>
+                            <span className="text-sm text-muted-foreground">Group Total w/ service ({serviceCharge}%)</span>
                             <span className="font-bold">{formatCurrency(totalWithService)}</span>
                         </div>
                          <div className="flex items-center justify-between rounded-lg bg-primary/10 p-3 text-primary">
-                            <span className="font-medium">Total cost for each w/o service</span>
+                            <span className="text-sm font-medium">Cost per person w/o service</span>
                             <span className="font-bold">{formatCurrency(costPerPersonWithoutService)}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-lg bg-primary/10 p-3 text-primary">
-                            <span className="font-medium">Total cost for each with service</span>
+                            <span className="text-sm font-medium">Cost per person w/ service</span>
                             <span className="font-bold">{formatCurrency(costPerPersonWithService)}</span>
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex-wrap justify-end gap-2 pt-6">
-                    <Button onClick={onExportPDF} variant="outline"><FileDown className="mr-2 h-4 w-4"/> Export PDF</Button>
-                    <Button onClick={onExportExcel} variant="outline"><FileDown className="mr-2 h-4 w-4"/> Export Excel</Button>
+                <CardFooter className="flex-col sm:flex-row sm:flex-wrap justify-end gap-2 pt-6">
+                    <Button onClick={onExportPDF} variant="outline" className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4"/> Export PDF</Button>
+                    <Button onClick={onExportExcel} variant="outline" className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4"/> Export Excel</Button>
                 </CardFooter>
             </Card>
         </div>
