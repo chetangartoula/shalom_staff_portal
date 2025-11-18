@@ -122,9 +122,9 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle className="text-lg">{report.trekName}</CardTitle>
+                  <CardTitle>{report.trekName}</CardTitle>
                   <div className="text-sm text-muted-foreground mt-1">
-                      <Badge variant="outline">{report.groupName}</Badge>
+                      {report.groupName}
                   </div>
                 </div>
                  <DropdownMenu>
@@ -294,8 +294,8 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">{cardTitle}</h1>
-                <p className="text-muted-foreground">{cardDescription}</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{cardTitle}</h1>
+                <p className="text-muted-foreground text-sm md:text-base">{cardDescription}</p>
             </div>
             <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />

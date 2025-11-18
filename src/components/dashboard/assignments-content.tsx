@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, lazy, Suspense } from 'react';
@@ -118,7 +119,7 @@ export function AssignmentsContent() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
-                                <CardTitle className="text-lg">{assignment.trekName}</CardTitle>
+                                <CardTitle>{assignment.trekName}</CardTitle>
                                 <CardDescription>{assignment.groupName}</CardDescription>
                             </div>
                             <DropdownMenu>

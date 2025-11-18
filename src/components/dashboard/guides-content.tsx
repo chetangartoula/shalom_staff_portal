@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -80,8 +81,8 @@ export function GuidesContent() {
       {filteredGuides.map((guide) => (
         <Card key={guide.id}>
           <CardHeader>
-            <CardTitle className="text-lg">{guide.name}</CardTitle>
-            <div className="text-sm text-muted-foreground pt-1">
+            <CardTitle>{guide.name}</CardTitle>
+            <div>
                 <Badge className={`${statusColors[guide.status]} font-semibold`} variant="outline">
                     {guide.status}
                 </Badge>

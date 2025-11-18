@@ -26,26 +26,16 @@ export function DashboardContent() {
     
     return (
         <div className="space-y-6">
-            <Suspense fallback={<StatsCards.Skeleton />}>
-                <StatsCards stats={statsData} />
-            </Suspense>
+            <StatsCards stats={statsData} />
             
              <div className="grid gap-6 md:grid-cols-2">
-                <Suspense fallback={<TrekPopularityChart.Skeleton />}>
-                    <TrekPopularityChart />
-                </Suspense>
-                <Suspense fallback={<TeamAvailabilityChart.Skeleton />}>
-                    <TeamAvailabilityChart />
-                </Suspense>
+                <TrekPopularityChart />
+                <TeamAvailabilityChart />
             </div>
             
-            <Suspense fallback={<RecentReports.Skeleton />}>
-                <RecentReports reports={reportsData?.reports || []} />
-            </Suspense>
+            <RecentReports reports={reportsData?.reports || []} />
             
-            <Suspense fallback={<PaymentChart.Skeleton />}>
-                <PaymentChart />
-            </Suspense>
+            <PaymentChart />
         </div>
     );
 }

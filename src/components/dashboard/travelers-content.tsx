@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -101,7 +102,7 @@ export function TravelersContent() {
                 )}
                 </div>
                 <div>
-                    <CardTitle className="text-lg">{traveler.name}</CardTitle>
+                    <CardTitle>{traveler.name}</CardTitle>
                     <CardDescription>{traveler.nationality || 'N/A'}</CardDescription>
                 </div>
             </div>

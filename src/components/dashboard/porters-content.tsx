@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -77,8 +78,8 @@ export function PortersContent() {
       {filteredPorters.map((porter) => (
         <Card key={porter.id}>
           <CardHeader>
-            <CardTitle className="text-lg">{porter.name}</CardTitle>
-            <div className="text-sm text-muted-foreground pt-1">
+            <CardTitle>{porter.name}</CardTitle>
+            <div>
                 <Badge className={`${statusColors[porter.status]} font-semibold`} variant="outline">
                     {porter.status}
                 </Badge>
