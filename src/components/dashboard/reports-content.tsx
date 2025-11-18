@@ -212,7 +212,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {filteredReports.length > 0 ? filteredReports.map((report) => {
+                {filteredReports.map((report) => {
                   const isAssignmentDisabled = report.paymentDetails.paymentStatus === 'unpaid';
                   return (
                     <TableRow key={report.groupId}>
@@ -263,13 +263,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                         </TableCell>
                     </TableRow>
                   )
-                }) : (
-                    <TableRow>
-                    <TableCell colSpan={9} className="h-24 text-center">
-                        No reports found.
-                    </TableCell>
-                    </TableRow>
-                )}
+                })}
             </TableBody>
         </Table>
     </div>
@@ -313,7 +307,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                     {renderDesktopTable()}
                     {renderMobileCards()}
                     {filteredReports.length === 0 && !isLoading && (
-                        <div className="text-center text-muted-foreground py-12">
+                        <div className="text-center text-muted-foreground py-12 md:py-24">
                             <p>No reports found.</p>
                         </div>
                     )}
