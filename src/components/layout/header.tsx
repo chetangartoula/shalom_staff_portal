@@ -13,7 +13,9 @@ import {
   Backpack,
   Wallet,
   Menu,
-  X
+  X,
+  Settings,
+  LifeBuoy
 } from "lucide-react"
 
 import { Button } from "@/components/ui/shadcn/button"
@@ -134,8 +136,14 @@ export function Header({ user }: HeaderProps) {
                 <DropdownMenuSeparator />
                 </>
             )}
-            <DropdownMenuItem onClick={() => router.push('/settings')}>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/support')}>
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                <span>Support</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
