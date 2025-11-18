@@ -218,9 +218,7 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
                   return (
                     <TableRow key={report.groupId}>
                         <TableCell className="font-medium">{report.trekName}</TableCell>
-                        <TableCell>
-                            <Badge variant="outline">{report.groupName}</Badge>
-                        </TableCell>
+                        <TableCell>{report.groupName}</TableCell>
                         <TableCell>
                             <div className="flex items-center gap-2">
                             <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm" title={report.groupId}>

@@ -382,6 +382,81 @@
       "customSections": [],
       "serviceCharge": 10,
       "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/0aac067c-b2d7-449c-b21d-06b00578d8dd"
+    },
+    {
+      "groupId": "98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0",
+      "trekId": "everest",
+      "trekName": "Everest Base Camp Trek",
+      "groupName": "Everest Base Camp Trek 98c9",
+      "groupSize": 2,
+      "startDate": "2025-11-18T07:15:44.018Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "802fa56b-9716-47e6-8bd7-d18db6ee6618",
+            "description": "Sagarmatha National Park Permit",
+            "rate": 30,
+            "no": 2,
+            "times": 1,
+            "total": 60
+          },
+          {
+            "id": "9cb2e3d2-8473-4fda-b92b-08d5c32bc96a",
+            "description": "Khumbu Pasang Lhamu Rural Municipality Fee",
+            "rate": 20,
+            "no": 2,
+            "times": 1,
+            "total": 40
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [
+          {
+            "id": "09f6fe7d-27fd-46f2-a99e-b9fcc5ee6ac5",
+            "description": "bus fare",
+            "rate": 300,
+            "no": 2,
+            "times": 1,
+            "total": 600
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 100
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "84ddc644-b269-48fb-8f3e-9b611edb3e3b",
+            "description": "Satellite device",
+            "rate": 50,
+            "no": 2,
+            "times": 12,
+            "total": 1200
+          },
+          {
+            "id": "d7dea397-409f-499a-b250-e85046e06bc3",
+            "description": "Adv less",
+            "rate": 40,
+            "no": 2,
+            "times": 0,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0"
     }
   ],
   "travelers": [],
