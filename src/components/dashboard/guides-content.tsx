@@ -2,13 +2,23 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, GuideStatus } from '@/lib/types';
 import useSWR from 'swr';
+import { Button } from '../ui/shadcn/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/shadcn/dropdown-menu";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -21,17 +31,21 @@ const statusColors: Record<GuideStatus, string> = {
 export function GuidesContent() {
   const { data, error } = useSWR('/api/guides', fetcher);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | GuideStatus>('all');
   
   const guides: Guide[] = data?.guides || [];
 
   const filteredGuides = useMemo(() => {
-    if (!searchTerm) return guides;
-    return guides.filter(guide =>
-      (guide.name && guide.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (guide.email && guide.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (guide.phone && guide.phone.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, guides]);
+    return guides.filter(guide => {
+      const searchMatch = (guide.name && guide.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (guide.email && guide.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (guide.phone && guide.phone.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const statusMatch = statusFilter === 'all' || guide.status === statusFilter;
+
+      return searchMatch && statusMatch;
+    });
+  }, [searchTerm, guides, statusFilter]);
   
   if (!data && !error) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -67,7 +81,7 @@ export function GuidesContent() {
                 )) : (
                 <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center">
-                    {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
+                    {searchTerm || statusFilter !== 'all' ? `No guides found for the current filters.` : "No guide data available."}
                     </TableCell>
                 </TableRow>
                 )}
@@ -110,15 +124,35 @@ export function GuidesContent() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Guides</h1>
                 <p className="text-muted-foreground text-sm md:text-base">View and search for all available guides.</p>
             </div>
-            <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search by name, email, or phone..."
-                    className="w-full sm:w-[300px] pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col sm:flex-row gap-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="gap-2 w-full sm:w-auto justify-start">
+                            <Filter className="h-4 w-4" />
+                            <span>{statusFilter === 'all' ? 'All Statuses' : statusFilter}</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                        <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                            <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="Available">Available</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="On Tour">On Tour</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="On Leave">On Leave</DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by name, email, or phone..."
+                        className="w-full sm:w-[300px] pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
         </div>
         <Card>
@@ -127,7 +161,7 @@ export function GuidesContent() {
                 {renderMobileCards()}
                 {filteredGuides.length === 0 && (
                     <div className="h-24 text-center flex items-center justify-center text-muted-foreground md:hidden">
-                        {searchTerm ? `No guides found for "${searchTerm}".` : "No guide data available."}
+                        {searchTerm || statusFilter !== 'all' ? `No guides found for the current filters.` : "No guide data available."}
                     </div>
                 )}
             </CardContent>

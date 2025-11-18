@@ -2,13 +2,23 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Porter, PorterStatus } from '@/lib/types';
 import useSWR from 'swr';
+import { Button } from '../ui/shadcn/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/shadcn/dropdown-menu";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -21,16 +31,20 @@ const statusColors: Record<PorterStatus, string> = {
 export function PortersContent() {
   const { data, error } = useSWR('/api/porters', fetcher);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | PorterStatus>('all');
 
   const porters: Porter[] = data?.porters || [];
 
   const filteredPorters = useMemo(() => {
-    if (!searchTerm) return porters;
-    return porters.filter(porter =>
-      (porter.name && porter.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (porter.phone && porter.phone.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, porters]);
+    return porters.filter(porter => {
+        const searchMatch = (porter.name && porter.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (porter.phone && porter.phone.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const statusMatch = statusFilter === 'all' || porter.status === statusFilter;
+
+        return searchMatch && statusMatch;
+    });
+  }, [searchTerm, porters, statusFilter]);
 
   if (!data && !error) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -64,7 +78,7 @@ export function PortersContent() {
                 )) : (
                 <TableRow>
                     <TableCell colSpan={3} className="h-24 text-center">
-                    {searchTerm ? `No porters found for "${searchTerm}".` : "No porter data available."}
+                        {searchTerm || statusFilter !== 'all' ? `No porters found for the current filters.` : "No porter data available."}
                     </TableCell>
                 </TableRow>
                 )}
@@ -103,15 +117,35 @@ export function PortersContent() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Porters</h1>
                 <p className="text-muted-foreground text-sm md:text-base">View and search for all available porters.</p>
             </div>
-            <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Search by name or phone..."
-                    className="w-full sm:w-[300px] pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col sm:flex-row gap-2">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="gap-2 w-full sm:w-auto justify-start">
+                            <Filter className="h-4 w-4" />
+                            <span>{statusFilter === 'all' ? 'All Statuses' : statusFilter}</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                        <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
+                            <DropdownMenuRadioItem value="all">All</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="Available">Available</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="On Trek">On Trek</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="On Leave">On Leave</DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by name or phone..."
+                        className="w-full sm:w-[300px] pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
         </div>
         <Card>
@@ -120,7 +154,7 @@ export function PortersContent() {
                 {renderMobileCards()}
                 {filteredPorters.length === 0 && (
                     <div className="h-24 text-center flex items-center justify-center text-muted-foreground md:hidden">
-                        {searchTerm ? `No porters found for "${searchTerm}".` : "No porter data available."}
+                        {searchTerm || statusFilter !== 'all' ? `No porters found for the current filters.` : "No porter data available."}
                     </div>
                 )}
             </CardContent>
