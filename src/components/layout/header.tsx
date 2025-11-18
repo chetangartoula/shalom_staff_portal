@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/shadcn/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/shadcn/sheet"
 import { Logo } from "@/components/logo";
 import type { User } from "@/lib/auth"
 import { usePathname, useRouter } from "next/navigation"
@@ -91,11 +91,14 @@ export function Header({ user }: HeaderProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="md:hidden">
-          <Link href="/dashboard" className="mr-6 flex items-center gap-2">
-            <Logo className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">Shalom</span>
-          </Link>
-          <nav className="grid gap-6 text-lg font-medium mt-6">
+            <SheetHeader className="border-b pb-4 mb-4">
+                <SheetTitle className="sr-only">Shalom Navigation</SheetTitle>
+                <Link href="/dashboard" className="mr-6 flex items-center gap-2">
+                    <Logo className="h-6 w-6 text-primary" />
+                    <span className="font-bold text-lg">Shalom</span>
+                </Link>
+            </SheetHeader>
+          <nav className="grid gap-6 text-lg font-medium">
             {navItems.map(item => (
                 <MobileNavItem key={item.href} {...item} />
             ))}
