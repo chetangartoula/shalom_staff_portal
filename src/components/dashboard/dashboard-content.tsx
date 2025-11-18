@@ -30,19 +30,18 @@ export function DashboardContent() {
                 <StatsCards stats={statsData} />
             </Suspense>
             
-             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+             <div className="grid gap-6 md:grid-cols-2">
                 <Suspense fallback={<TrekPopularityChart.Skeleton />}>
                     <TrekPopularityChart />
                 </Suspense>
                 <Suspense fallback={<TeamAvailabilityChart.Skeleton />}>
                     <TeamAvailabilityChart />
                 </Suspense>
-                 <div className="lg:col-span-1 md:col-span-2">
-                    <Suspense fallback={<RecentReports.Skeleton />}>
-                        <RecentReports reports={reportsData?.reports || []} />
-                    </Suspense>
-                </div>
             </div>
+            
+            <Suspense fallback={<RecentReports.Skeleton />}>
+                <RecentReports reports={reportsData?.reports || []} />
+            </Suspense>
             
             <Suspense fallback={<PaymentChart.Skeleton />}>
                 <PaymentChart />

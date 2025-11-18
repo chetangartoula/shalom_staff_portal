@@ -29,7 +29,7 @@ export function TeamAvailabilityChart() {
 
     if (error || chartData.length === 0) {
         return (
-            <Card>
+            <Card className="h-full">
                 <CardHeader>
                     <CardTitle>Team Availability</CardTitle>
                     <CardDescription>Current status of all guides and porters.</CardDescription>
@@ -42,14 +42,14 @@ export function TeamAvailabilityChart() {
     }
     
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader>
                 <CardTitle>Team Availability</CardTitle>
                 <CardDescription>Current status of all guides and porters.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-2 gap-4 items-center">
-                    <ResponsiveContainer width="100%" height={240}>
+                    <ResponsiveContainer width="100%" height={180}>
                         <PieChart>
                             <Pie
                                 data={chartData}
@@ -97,7 +97,7 @@ TeamAvailabilityChart.Skeleton = function TeamAvailabilityChartSkeleton() {
                     <div className="h-4 w-48 bg-muted rounded-md animate-pulse"></div>
                 </div>
             </CardHeader>
-            <CardContent className="flex justify-center items-center h-[240px]">
+            <CardContent className="flex justify-center items-center h-[180px]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </CardContent>
         </Card>

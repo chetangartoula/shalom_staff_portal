@@ -12,7 +12,7 @@ interface RecentReportsProps {
 
 export function RecentReports({ reports }: RecentReportsProps) {
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <CardTitle>Recent Reports</CardTitle>
                 <CardDescription>A quick look at the most recently created cost reports.</CardDescription>
@@ -22,7 +22,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Group Name</TableHead>
+                                <TableHead>Trek & Group Name</TableHead>
                                 <TableHead>Group Size</TableHead>
                                 <TableHead>Start Date</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -62,7 +62,7 @@ export function RecentReports({ reports }: RecentReportsProps) {
 
 RecentReports.Skeleton = function RecentReportsSkeleton() {
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <CardTitle>Recent Reports</CardTitle>
                 <CardDescription>A quick look at the most recently created cost reports.</CardDescription>

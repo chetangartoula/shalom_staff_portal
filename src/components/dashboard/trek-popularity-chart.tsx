@@ -2,12 +2,10 @@
 "use client";
 
 import useSWR from 'swr';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { Loader2 } from 'lucide-react';
-import { Badge } from '../ui/shadcn/badge';
-import { cn } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -30,7 +28,7 @@ export function TrekPopularityChart() {
 
     if (error || chartData.length === 0) {
         return (
-            <Card>
+            <Card className="h-full">
                 <CardHeader>
                     <CardTitle>Trek Popularity</CardTitle>
                     <CardDescription>Distribution of trips across different treks.</CardDescription>
@@ -45,14 +43,14 @@ export function TrekPopularityChart() {
     const totalValue = chartData.reduce((acc: number, entry: any) => acc + entry.value, 0);
     
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader>
                 <CardTitle>Trek Popularity</CardTitle>
                 <CardDescription>Distribution of trips across different treks.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-2 gap-4 items-center">
-                    <ResponsiveContainer width="100%" height={240}>
+                    <ResponsiveContainer width="100%" height={180}>
                         <PieChart>
                             <Pie
                                 data={chartData}
@@ -81,7 +79,7 @@ export function TrekPopularityChart() {
                                 <div key={entry.name} className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                                        <span>{entry.name}</span>
+                                        <span className="truncate max-w-[120px]">{entry.name}</span>
                                     </div>
                                     <span className="font-semibold">{percentage}%</span>
                                 </div>
@@ -103,7 +101,7 @@ TrekPopularityChart.Skeleton = function TrekPopularityChartSkeleton() {
                     <div className="h-4 w-48 bg-muted rounded-md animate-pulse"></div>
                 </div>
             </CardHeader>
-            <CardContent className="flex justify-center items-center h-[240px]">
+            <CardContent className="flex justify-center items-center h-[180px]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </CardContent>
         </Card>
