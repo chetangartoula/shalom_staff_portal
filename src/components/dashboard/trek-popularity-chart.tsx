@@ -23,7 +23,7 @@ export function TrekPopularityChart() {
     const chartData = data?.chartData || [];
     
     if (isLoading) {
-        return <TrekPopularityChart.Skeleton />;
+        return <TrekPopularityChartSkeleton />;
     }
 
     if (error || chartData.length === 0) {
@@ -92,7 +92,7 @@ export function TrekPopularityChart() {
     );
 }
 
-TrekPopularityChart.Skeleton = function TrekPopularityChartSkeleton() {
+export function TrekPopularityChartSkeleton() {
     return (
         <Card>
             <CardHeader>

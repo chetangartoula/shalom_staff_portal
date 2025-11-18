@@ -24,7 +24,7 @@ export function TeamAvailabilityChart() {
     const chartData = data?.chartData || [];
 
     if (isLoading) {
-        return <TeamAvailabilityChart.Skeleton />;
+        return <TeamAvailabilityChartSkeleton />;
     }
 
     if (error || chartData.length === 0) {
@@ -88,7 +88,7 @@ export function TeamAvailabilityChart() {
     );
 }
 
-TeamAvailabilityChart.Skeleton = function TeamAvailabilityChartSkeleton() {
+export function TeamAvailabilityChartSkeleton() {
     return (
         <Card>
             <CardHeader>

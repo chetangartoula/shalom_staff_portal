@@ -25,7 +25,7 @@ export function PaymentChart() {
     const { data, error, isLoading } = useSWR('/api/stats/payments', fetcher);
 
     if (isLoading) {
-        return <PaymentChart.Skeleton />;
+        return <PaymentChartSkeleton />;
     }
     
     if (error) {
@@ -109,7 +109,7 @@ export function PaymentChart() {
     );
 }
 
-PaymentChart.Skeleton = function PaymentChartSkeleton() {
+export function PaymentChartSkeleton() {
     return (
         <Card>
             <CardHeader>
