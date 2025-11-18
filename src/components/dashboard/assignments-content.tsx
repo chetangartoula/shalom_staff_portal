@@ -66,7 +66,7 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {filteredAssignments.length > 0 ? filteredAssignments.map((assignment) => (
+                    {filteredAssignments.map((assignment) => (
                         <TableRow key={assignment.groupId}>
                             <TableCell className="font-medium">{assignment.trekName}</TableCell>
                             <TableCell>{assignment.groupName}</TableCell>
@@ -96,13 +96,7 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
                                 </div>
                             </TableCell>
                         </TableRow>
-                    )) : (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-24 text-center">
-                                No assignments found.
-                            </TableCell>
-                        </TableRow>
-                    )}
+                    ))}
                 </TableBody>
             </Table>
         </div>

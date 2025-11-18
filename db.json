@@ -319,6 +319,14 @@
       "note": "ok",
       "id": "b013a41d-b2f9-473e-bc51-689cb8521ef7",
       "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    },
+    {
+      "amount": 100,
+      "type": "payment",
+      "date": "2025-11-18T06:26:00.708Z",
+      "note": "ok",
+      "id": "c7ca5525-130d-45e3-9ad7-15ac41ea947b",
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
     }
   ]
 }
