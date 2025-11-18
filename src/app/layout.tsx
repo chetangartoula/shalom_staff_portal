@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className='font-sans'>
+    <html lang="en">
        <head>
           <meta name="theme-color" content="#151d4f" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />

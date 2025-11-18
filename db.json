@@ -311,6 +311,14 @@
       "note": "paid from the local bank",
       "id": "231a897c-0d4f-49fd-aaa5-118cd864d272",
       "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    },
+    {
+      "amount": 100,
+      "type": "refund",
+      "date": "2025-11-18T06:09:39.530Z",
+      "note": "ok",
+      "id": "b013a41d-b2f9-473e-bc51-689cb8521ef7",
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
     }
   ]
 }

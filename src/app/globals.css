@@ -60,6 +60,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "TikTok Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-variation-settings:
+      "slnt" 0,
+      "wdth" 125;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
