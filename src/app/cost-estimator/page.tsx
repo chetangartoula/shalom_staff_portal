@@ -1,6 +1,6 @@
 
-import { TrekCostingPage } from "@/components/trek-costing-page";
-import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
+import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getTreks } from '@/app/api/data';
 import { getUser } from '@/lib/auth';
 import type { Trek } from "@/lib/types";
@@ -10,8 +10,8 @@ export default async function NewCostReportPage() {
   const user = await getUser();
   
   return (
-    <DashboardLayoutShell>
+    <DashboardLayout user={user}>
       <TrekCostingPage treks={treks} user={user} />
-    </DashboardLayoutShell>
+    </DashboardLayout>
   );
 }

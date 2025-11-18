@@ -55,15 +55,6 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        'sidebar': {
-          background: 'hsl(var(--sidebar-background))',
-          foreground: 'hsl(var(--sidebar-foreground))',
-          'muted-foreground': 'hsl(var(--sidebar-muted-foreground))',
-          'active-background': 'hsl(var(--sidebar-active-background))'
-        },
-        'header-background': 'hsl(var(--header-background))',
-        'header-foreground': 'hsl(var(--header-foreground))',
-        'header-border': 'hsl(var(--header-border))',
       },
       borderRadius: {
         lg: "var(--radius)",

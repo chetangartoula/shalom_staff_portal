@@ -1,14 +1,16 @@
 
-import { TransactionsContent } from '@/components/transactions-content';
-import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
+import { TransactionsContent } from '@/components/dashboard/transactions-content';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
+import { getUser } from '@/lib/auth';
 
 // Force dynamic rendering to ensure fresh data on each load
 export const dynamic = 'force-dynamic';
 
-export default function TransactionsPage() {
+export default async function TransactionsPage() {
+  const user = await getUser();
   return (
-    <DashboardLayoutShell>
+    <DashboardLayout user={user}>
       <TransactionsContent />
-    </DashboardLayoutShell>
+    </DashboardLayout>
   );
 }

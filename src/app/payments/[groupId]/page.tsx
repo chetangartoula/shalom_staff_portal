@@ -1,8 +1,9 @@
 
-import { DashboardLayoutShell } from "@/components/dashboard-layout-shell";
-import { PaymentPageContent } from "@/components/payment-page-content";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { PaymentPageContent } from "@/components/dashboard/payment-page-content";
 import { getReportByGroupId } from "@/app/api/data";
 import { notFound } from "next/navigation";
+import { getUser } from "@/lib/auth";
 
 interface PaymentPageProps {
   params: {
@@ -10,8 +11,9 @@ interface PaymentPageProps {
   };
 }
 
-export default function PaymentPage({ params }: PaymentPageProps) {
+export default async function PaymentPage({ params }: PaymentPageProps) {
     const { groupId } = params;
+    const user = await getUser();
     const report = getReportByGroupId(groupId);
     
     if (!report) {
@@ -19,8 +21,8 @@ export default function PaymentPage({ params }: PaymentPageProps) {
     }
 
     return (
-        <DashboardLayoutShell>
+        <DashboardLayout user={user}>
             <PaymentPageContent initialReport={report} />
-        </DashboardLayoutShell>
+        </DashboardLayout>
     );
 }

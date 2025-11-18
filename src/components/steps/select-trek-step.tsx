@@ -1,11 +1,10 @@
-
-
 import React, { useState, useMemo, memo } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/shadcn/card";
+import { Input } from "@/components/ui/shadcn/input";
 import { cn } from "@/lib/utils";
 import type { Trek } from "@/lib/types";
 import { Mountain, Search } from 'lucide-react';
+import { Logo } from '../logo';
 
 interface SelectTrekStepProps {
   treks: Trek[];
@@ -45,14 +44,14 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
               <Card 
                 key={trek.id} 
                 className={cn(
-                  "cursor-pointer text-left hover:shadow-md transition-all duration-200",
-                  selectedTrekId === trek.id && "border-primary ring-2 ring-primary"
+                  "cursor-pointer text-left hover:shadow-lg transition-all duration-200 border-2",
+                  selectedTrekId === trek.id ? "border-primary" : "border-transparent"
                 )}
                 onClick={() => onSelectTrek(trek.id)}
               >
                 <CardContent className="p-4 flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                      <Mountain className="h-5 w-5 text-primary" />
+                      <Logo className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                       <h3 className="text-md font-bold">{trek.name}</h3>
@@ -72,4 +71,3 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
 };
 
 export const SelectTrekStep = memo(SelectTrekStepComponent);
-    

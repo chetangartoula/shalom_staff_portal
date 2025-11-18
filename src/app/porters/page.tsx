@@ -1,13 +1,15 @@
 
-import { PortersContent } from '@/components/porters-content';
-import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
+import { PortersContent } from '@/components/dashboard/porters-content';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getPorters } from '../api/data';
+import { getUser } from '@/lib/auth';
 
 export default async function PortersPage() {
   const { porters } = getPorters();
+  const user = await getUser();
   return (
-    <DashboardLayoutShell>
+    <DashboardLayout user={user}>
       <PortersContent initialData={porters} />
-    </DashboardLayoutShell>
+    </DashboardLayout>
   );
 }

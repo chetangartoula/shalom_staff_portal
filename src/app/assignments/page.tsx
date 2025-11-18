@@ -1,13 +1,17 @@
 
-import { AssignmentsContent } from '@/components/assignments-content';
-import { DashboardLayoutShell } from '@/components/dashboard-layout-shell';
+import { AssignmentsContent } from '@/components/dashboard/assignments-content';
+import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getAllAssignmentsWithDetails } from '../api/data';
+import { getUser } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export default async function AssignmentsPage() {
+    const user = await getUser();
     const assignments = await getAllAssignmentsWithDetails();
     return (
-        <DashboardLayoutShell>
+        <DashboardLayout user={user}>
             <AssignmentsContent initialData={assignments} />
-        </DashboardLayoutShell>
+        </DashboardLayout>
     );
 }

@@ -1,20 +1,20 @@
-
 "use client";
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/shadcn/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/shadcn/card";
+import { Input } from "@/components/ui/shadcn/input";
+import { Label } from "@/components/ui/shadcn/label";
 import { useToast } from "@/hooks/use-toast";
-import { Mountain, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function LoginPage() {
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
@@ -38,9 +38,15 @@ export default function LoginPage() {
 
     setIsLoading(true);
     
+    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
+    // Mock credential check
     if (username === "admin" && password === "password") {
+        toast({
+            title: "OTP Required",
+            description: "An OTP has been sent to your device.",
+        });
         setStep("otp");
     } else {
         toast({
@@ -72,17 +78,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+       <div className="absolute top-8 left-8 flex items-center gap-2 font-bold text-lg">
+        <Logo className="h-8 w-auto text-primary" />
+        <span className="font-semibold text-xl">Shalom</span>
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mb-4 flex justify-center">
-            <Mountain className="h-8 w-8 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Shalom Dashboard</CardTitle>
+          <CardTitle className="text-2xl">
+            {step === 'credentials' ? "Welcome Back" : "Two-Factor Authentication"}
+          </CardTitle>
            <CardDescription>
             {step === 'credentials' 
               ? "Enter your credentials to access the dashboard."
-              : "Enter the OTP sent to your device."
+              : "Enter the 6-digit code from your authenticator app."
             }
           </CardDescription>
         </CardHeader>
@@ -100,6 +109,7 @@ export default function LoginPage() {
                     onChange={(e) => setUsername(e.target.value)}
                     required
                     disabled={isLoading}
+                    className="h-10"
                   />
                 </div>
                 <div className="space-y-2">
@@ -112,10 +122,11 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
+                    className="h-10"
                   />
                 </div>
               </div>
-              <Button type="submit" className="mt-6 w-full" disabled={isLoading}>
+              <Button type="submit" className="mt-6 w-full h-10" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
@@ -134,10 +145,11 @@ export default function LoginPage() {
                     required
                     disabled={isLoading}
                     maxLength={6}
+                    className="h-10 text-center text-lg tracking-widest"
                   />
                 </div>
               </div>
-              <Button type="submit" className="mt-6 w-full" disabled={isLoading}>
+              <Button type="submit" className="mt-6 w-full h-10" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify OTP
               </Button>

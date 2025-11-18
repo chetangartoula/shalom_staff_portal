@@ -1,10 +1,8 @@
-
-
 import React, { memo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/shadcn/card";
+import { Input } from "@/components/ui/shadcn/input";
+import { Label } from "@/components/ui/shadcn/label";
+import { DatePicker } from "@/components/ui/shadcn/date-picker";
 
 interface GroupDetailsStepProps {
   groupName: string;
@@ -24,10 +22,9 @@ function GroupDetailsStepComponent({
   onStartDateChange
 }: GroupDetailsStepProps) {
   return (
-    <div className="space-y-8">
-      <Card className="shadow-none border-none">
-          <CardHeader className="px-0"><CardTitle>Group Details</CardTitle></CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-6 p-0">
+      <Card>
+          <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
+          <CardContent className="grid md:grid-cols-3 gap-6">
                <div className="grid gap-2">
                   <Label htmlFor="group-name">Group Name</Label>
                   <Input
@@ -56,9 +53,7 @@ function GroupDetailsStepComponent({
                 </div>
           </CardContent>
       </Card>
-    </div>
   );
 };
 
 export const GroupDetailsStep = memo(GroupDetailsStepComponent);
-    

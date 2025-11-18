@@ -1,6 +1,6 @@
 
-import { TrekCostingPage } from "@/components/trek-costing-page";
-import { DashboardLayoutShell } from "@/components/dashboard-layout-shell";
+import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
+import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { notFound } from "next/navigation";
 import { getReportByGroupId, getTreks } from "@/app/api/data";
 import { getUser } from "@/lib/auth";
@@ -23,8 +23,8 @@ export default async function EditCostMatrixPage({ params }: EditCostMatrixPageP
     }
 
     return (
-        <DashboardLayoutShell>
+        <DashboardLayout user={user}>
             <TrekCostingPage initialData={initialData} treks={treks} user={user} />
-        </DashboardLayoutShell>
+        </DashboardLayout>
     );
 }

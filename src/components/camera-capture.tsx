@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, RefreshCcw, Check } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from './ui/shadcn/button';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import { Alert, AlertTitle, AlertDescription } from './ui/shadcn/alert';
 
 interface CameraCaptureProps {
   onCapture: (imageSrc: string) => void;
@@ -128,5 +127,3 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
     </div>
   );
 }
-
-    

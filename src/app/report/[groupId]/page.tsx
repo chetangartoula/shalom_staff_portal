@@ -1,20 +1,20 @@
-
 "use client";
 
 import React from "react";
-import { useSearchParams, useParams, notFound } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Mountain, Loader2, Check, Copy } from "lucide-react";
+import { Loader2, Check, Copy } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/shadcn/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/shadcn/card";
 import { useToast } from "@/hooks/use-toast";
 import useSWR from 'swr';
+import { Logo } from "@/components/logo";
 
 const fetcher = (url: string) => fetch(url).then(res => {
     if (!res.ok) {
@@ -24,7 +24,7 @@ const fetcher = (url: string) => fetch(url).then(res => {
 });
 
 // Dynamically import the form component with SSR turned off
-const TravelerForm = dynamic(() => import('@/components/traveler-form'), {
+const TravelerForm = dynamic(() => import('@/components/dashboard/traveler-form'), {
   ssr: false,
   loading: () => (
     <div className="flex h-64 items-center justify-center">
@@ -45,11 +45,12 @@ export default function ReportPage() {
 
   const handleCopy = () => {
     if (!groupId) return;
-    navigator.clipboard.writeText(groupId);
+    const url = `${window.location.origin}/report/${groupId}`;
+    navigator.clipboard.writeText(url);
     setIsCopied(true);
     toast({
       title: "Copied!",
-      description: "Group ID copied to clipboard.",
+      description: "Traveler form link copied to clipboard.",
     });
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -72,16 +73,16 @@ export default function ReportPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-slate-50">
-        <header className="flex items-center h-16 px-4 md:px-6 bg-primary text-primary-foreground shadow-md">
+      <div className="flex flex-col min-h-screen bg-muted/40">
+        <header className="flex items-center h-16 px-4 md:px-6 bg-background border-b">
           <div className="flex items-center gap-2">
-            <Mountain className="h-6 w-6" />
-            <h1 className="text-xl font-bold">Shalom Treks</h1>
+            <Logo className="h-8 w-auto text-primary" />
+            <h1 className="text-xl font-semibold">Shalom Treks</h1>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 md:p-8">
           <div className="max-w-4xl mx-auto">
-            <Card className="shadow-lg">
+            <Card>
               <CardHeader>
                 <CardTitle>Traveler Details Form</CardTitle>
                  <div className="text-sm text-muted-foreground pt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
