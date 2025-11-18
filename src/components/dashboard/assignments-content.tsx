@@ -3,13 +3,14 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Edit, Users, Backpack, UserCheck, MoreVertical } from 'lucide-react';
+import { Search, Edit, Users, Backpack, UserCheck, MoreVertical, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/shadcn/table';
 import { Input } from '@/components/ui/shadcn/input';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, Porter } from '@/lib/types';
+import useSWR from 'swr';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,16 +29,16 @@ interface Assignment {
     porters: Porter[];
 }
 
-interface AssignmentsContentProps {
-    initialData: Assignment[];
-}
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
-    const [assignments] = useState<Assignment[]>(initialData);
+export function AssignmentsContent() {
+    const { data, error } = useSWR('/api/assignments', fetcher);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
+
+    const assignments: Assignment[] = data?.assignments || [];
 
     const filteredAssignments = useMemo(() => {
         if (!searchTerm) return assignments;
@@ -51,6 +52,14 @@ export function AssignmentsContent({ initialData }: AssignmentsContentProps) {
         setSelectedAssignment(assignment);
         setIsModalOpen(true);
     };
+
+    if (!data && !error) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    }
+
+    if (error) {
+        return <div className="text-center text-destructive">Failed to load assignments.</div>;
+    }
 
     const renderDesktopTable = () => (
         <div className="border rounded-lg hidden md:block">

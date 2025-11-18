@@ -3,19 +3,10 @@
 
 import Link from "next/link"
 import {
-  ArrowRightLeft,
-  BookUser,
-  Calculator,
-  ClipboardList,
-  Home,
-  Users,
-  Users2,
-  Backpack,
-  Wallet,
-  Menu,
-  X,
   Settings,
-  LifeBuoy
+  LifeBuoy,
+  Menu,
+  X
 } from "lucide-react"
 
 import { Button } from "@/components/ui/shadcn/button"
@@ -33,24 +24,18 @@ import type { User } from "@/lib/auth"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-interface HeaderProps {
-    user: User | null;
+interface NavItem {
+    href: string;
+    label: string;
+    icon: React.ElementType;
 }
 
-const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: Home },
-    { href: "/cost-estimator", label: "Cost Estimator", icon: Calculator },
-    { href: "/reports", label: "All Reports", icon: ClipboardList },
-    { href: "/assignments", label: "Team Assignments", icon: BookUser },
-    { href: "/payments", label: "Payments", icon: Wallet },
-    { href: "/transactions", label: "Transactions", icon: ArrowRightLeft },
-    { href: "/travelers", label: "All Travelers", icon: Users },
-    { href: "/guides", label: "Guides", icon: Users2 },
-    { href: "/porters", label: "Porters", icon: Backpack },
-];
+interface HeaderProps {
+    user: User | null;
+    navItems: NavItem[];
+}
 
-
-const MobileNavItem = ({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType;}) => {
+const MobileNavItem = ({ href, label, icon: Icon }: NavItem) => {
     const pathname = usePathname();
     const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
@@ -79,7 +64,7 @@ const getUserInitials = (name: string) => {
     return name.substring(0, 2).toUpperCase();
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, navItems }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {

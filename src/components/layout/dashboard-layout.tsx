@@ -10,18 +10,14 @@ import {
   Calculator,
   ClipboardList,
   Home,
-  PanelLeft,
   Users,
   Users2,
   Backpack,
   Wallet,
-  Menu,
-  X,
   PanelLeftOpen,
   PanelLeftClose,
 } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/shadcn/sheet';
 import {
   Tooltip,
   TooltipContent,
@@ -112,7 +108,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <Header user={user} />
+        <Header user={user} navItems={navItems} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-7xl mx-auto w-full">
                 {children}

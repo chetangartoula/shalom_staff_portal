@@ -3,20 +3,20 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, User } from 'lucide-react';
+import { Search, User, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Input } from '@/components/ui/shadcn/input';
 import type { Traveler } from '@/lib/types';
+import useSWR from 'swr';
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-interface TravelersContentProps {
-    initialData: Traveler[];
-}
-
-export function TravelersContent({ initialData }: TravelersContentProps) {
-  const [travelers] = useState<Traveler[]>(initialData);
+export function TravelersContent() {
+  const { data, error } = useSWR('/api/travelers/all', fetcher);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const travelers: Traveler[] = data?.travelers || [];
 
   const filteredTravelers = useMemo(() => {
     if (!searchTerm) return travelers;
@@ -27,6 +27,14 @@ export function TravelersContent({ initialData }: TravelersContentProps) {
       (traveler.groupName && traveler.groupName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, travelers]);
+
+  if (!data && !error) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-destructive">Failed to load travelers.</div>;
+  }
 
   const renderDesktopTable = () => (
     <div className="border rounded-lg hidden md:block">

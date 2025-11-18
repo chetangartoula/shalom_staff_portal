@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Porter, PorterStatus } from '@/lib/types';
+import useSWR from 'swr';
 
-interface PortersContentProps {
-    initialData: Porter[];
-}
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const statusColors: Record<PorterStatus, string> = {
     Available: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400",
@@ -18,9 +17,11 @@ const statusColors: Record<PorterStatus, string> = {
     'On Leave': "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
 };
 
-export function PortersContent({ initialData }: PortersContentProps) {
-  const [porters] = useState<Porter[]>(initialData);
+export function PortersContent() {
+  const { data, error } = useSWR('/api/porters', fetcher);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const porters: Porter[] = data?.porters || [];
 
   const filteredPorters = useMemo(() => {
     if (!searchTerm) return porters;
@@ -29,6 +30,14 @@ export function PortersContent({ initialData }: PortersContentProps) {
       (porter.phone && porter.phone.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [searchTerm, porters]);
+
+  if (!data && !error) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-destructive">Failed to load porters.</div>;
+  }
 
   const renderDesktopTable = () => (
     <div className="border rounded-lg hidden md:block">
