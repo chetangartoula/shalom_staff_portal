@@ -69,11 +69,11 @@ export function PortersContent({ initialData }: PortersContentProps) {
         <Card key={porter.id}>
           <CardHeader>
             <CardTitle className="text-lg">{porter.name}</CardTitle>
-            <CardDescription>
-                <Badge className={`${statusColors[porter.status]} font-semibold mt-1`} variant="outline">
+            <div className="text-sm text-muted-foreground pt-1">
+                <Badge className={`${statusColors[porter.status]} font-semibold`} variant="outline">
                     {porter.status}
                 </Badge>
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">

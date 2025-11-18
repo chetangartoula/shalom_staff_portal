@@ -72,11 +72,11 @@ export function GuidesContent({ initialData }: GuidesContentProps) {
         <Card key={guide.id}>
           <CardHeader>
             <CardTitle className="text-lg">{guide.name}</CardTitle>
-            <CardDescription>
-                <Badge className={`${statusColors[guide.status]} font-semibold mt-1`} variant="outline">
+            <div className="text-sm text-muted-foreground pt-1">
+                <Badge className={`${statusColors[guide.status]} font-semibold`} variant="outline">
                     {guide.status}
                 </Badge>
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
