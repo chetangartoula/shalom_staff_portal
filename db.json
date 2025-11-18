@@ -291,6 +291,97 @@
         "balance": 2.842170943040401e-14,
         "paymentStatus": "fully paid"
       }
+    },
+    {
+      "groupId": "0aac067c-b2d7-449c-b21d-06b00578d8dd",
+      "trekId": "manaslu",
+      "trekName": "Manaslu Circuit Trek",
+      "groupName": "Manaslu Circuit Trek 0aac",
+      "groupSize": 3,
+      "startDate": "2025-11-18T07:07:36.841Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "87e14ccf-3efd-4c08-901b-e857da3bacb5",
+            "description": "RMP+GT+MCAP+ACAP",
+            "rate": 160,
+            "no": 3,
+            "times": 1,
+            "total": 480
+          },
+          {
+            "id": "6004e368-c6bb-4b25-ba39-a2b884346ce5",
+            "description": "Extra days Manaslu permit",
+            "rate": 10,
+            "no": 3,
+            "times": 1,
+            "total": 30
+          },
+          {
+            "id": "d67096e0-da1e-4eec-b0ab-2088403429f4",
+            "description": "RTP+GT+MCAP",
+            "rate": 0,
+            "no": 3,
+            "times": 1,
+            "total": 0
+          },
+          {
+            "id": "ab7f5144-eef2-4991-bba9-6a4039ee1aef",
+            "description": "Extra days Tsum permit",
+            "rate": 0,
+            "no": 3,
+            "times": 1,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [
+          {
+            "id": "cc7430fe-c18b-4e58-bda2-3c61106bb20f",
+            "description": "bhim fedi bus",
+            "rate": 700,
+            "no": 3,
+            "times": 1,
+            "total": 2100
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 100
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "c11d19de-a841-4940-b73f-bf6b34c7688d",
+            "description": "Satellite device",
+            "rate": 120,
+            "no": 1,
+            "times": 7,
+            "total": 840
+          },
+          {
+            "id": "64960fb8-ed3a-42f5-9fdc-ee416c09802f",
+            "description": "Adv less",
+            "rate": 20,
+            "no": 1,
+            "times": 1,
+            "total": 20
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/0aac067c-b2d7-449c-b21d-06b00578d8dd"
     }
   ],
   "travelers": [],
@@ -337,6 +428,14 @@
       "note": "ok",
       "id": "c7ca5525-130d-45e3-9ad7-15ac41ea947b",
       "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    },
+    {
+      "amount": 3707,
+      "type": "payment",
+      "date": "2025-11-18T07:09:49.702Z",
+      "note": "pay from local bank ",
+      "id": "118169a5-0108-4d42-a84c-a62e735cbbce",
+      "groupId": "0aac067c-b2d7-449c-b21d-06b00578d8dd"
     }
   ]
 }

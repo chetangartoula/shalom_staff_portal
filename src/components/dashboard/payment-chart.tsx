@@ -70,7 +70,15 @@ export function PaymentChart() {
                             axisLine={false}
                             tickMargin={8}
                             fontSize={12}
-                            tickFormatter={(value) => formatCurrency(Number(value)).slice(0,-3)}
+                            tickFormatter={(value) => {
+                                if (typeof value !== 'number') return '';
+                                return new Intl.NumberFormat('en-US', {
+                                    style: 'currency',
+                                    currency: 'USD',
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
+                            }}
                          />
                         <ChartTooltip
                             cursor={false}
