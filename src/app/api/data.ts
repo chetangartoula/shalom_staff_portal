@@ -3,7 +3,7 @@ import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, P
 import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
-import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { parseISO, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
 
 const dbPath = path.join(process.cwd(), 'db.json');
 
@@ -128,8 +128,12 @@ export const getPorters = () => {
     return { porters: db.porters };
 }
 
-
 // Reports
+export const getAllReports = () => {
+    const db = getDB();
+    return db.reports as Report[];
+};
+
 export const getPaginatedReports = (page: number, limit: number) => {
     const db = getDB();
     const reversedReports = [...db.reports].reverse();

@@ -1,12 +1,11 @@
 
 import { NextResponse } from 'next/server';
-import { getDB } from '../../data';
+import { getAllReports } from '../../data';
 import type { Report } from '@/lib/types';
 
 export async function GET() {
     try {
-        const db = getDB();
-        const reports: Report[] = db.reports;
+        const reports: Report[] = getAllReports();
 
         if (!reports || reports.length === 0) {
             return NextResponse.json({ chartData: [] });
