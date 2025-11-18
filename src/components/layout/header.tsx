@@ -106,7 +106,7 @@ export function Header({ user }: HeaderProps) {
               </SheetClose>
               <SheetTitle className="sr-only">Shalom Navigation</SheetTitle>
             </SheetHeader>
-          <nav className="grid gap-2 text-lg font-medium p-4">
+          <nav className="grid gap-2 text-base font-medium p-4">
             {navItems.map(item => (
                 <MobileNavItem key={item.href} {...item} />
             ))}
