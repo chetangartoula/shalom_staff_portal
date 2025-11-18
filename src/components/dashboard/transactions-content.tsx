@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -152,11 +153,11 @@ export function TransactionsContent() {
                     <div className="flex justify-between items-start">
                         <div>
                              <CardTitle className="text-lg">{transaction.trekName}</CardTitle>
-                             <CardDescription>
+                             <div className="text-sm text-muted-foreground mt-1">
                                 <Link href={`/payments/${transaction.groupId}`} className="hover:underline">
-                                    <Badge variant="outline" className="mt-1">{transaction.groupName}</Badge>
+                                    <Badge variant="outline">{transaction.groupName}</Badge>
                                 </Link>
-                             </CardDescription>
+                             </div>
                         </div>
                          <div className={cn("text-lg font-bold", transaction.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
                             {transaction.type === 'payment' ? '+' : '-'}
@@ -299,3 +300,5 @@ export function TransactionsContent() {
       </div>
   );
 }
+
+    
