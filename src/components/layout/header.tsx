@@ -97,10 +97,9 @@ export function Header({ user }: HeaderProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="md:hidden p-0">
-            <SheetHeader className="flex flex-row items-center justify-between border-b px-4 h-16 bg-primary text-primary-foreground">
+            <SheetHeader className="flex flex-row items-center justify-between border-b px-4 h-16 bg-background">
               <Link href="/dashboard" className="flex items-center gap-2">
-                  <Logo className="h-6 w-6" />
-                  <span className="font-bold text-lg">Shalom</span>
+                  <Logo width={120} height={25} />
               </Link>
               <SheetClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
                 <X className="h-5 w-5" />

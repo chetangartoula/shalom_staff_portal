@@ -51,7 +51,7 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
               >
                 <CardContent className="p-4 flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
-                      <Logo className="h-5 w-5 text-primary" />
+                      <Mountain className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                       <h3 className="text-md font-bold">{trek.name}</h3>

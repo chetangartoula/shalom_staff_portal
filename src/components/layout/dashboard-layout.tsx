@@ -92,16 +92,15 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
         isSidebarExpanded ? "w-64" : "w-20"
       )}>
         <div className={cn(
-            "flex h-16 items-center border-b px-4 bg-primary text-primary-foreground",
+            "flex h-16 items-center border-b px-4 bg-background",
             isSidebarExpanded ? "justify-between" : "justify-center"
         )}>
           {isSidebarExpanded && (
             <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-lg">
-              <Logo className="h-7 w-7" />
-              <span className="font-bold">Shalom</span>
+              <Logo width={120} height={25} />
             </Link>
           )}
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="hover:bg-primary/80 focus-visible:ring-primary-foreground">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="hover:bg-muted focus-visible:ring-primary-foreground">
             {isSidebarExpanded ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
           </Button>
         </div>

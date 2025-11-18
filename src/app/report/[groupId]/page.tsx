@@ -76,8 +76,7 @@ export default function ReportPage() {
       <div className="flex flex-col min-h-screen bg-muted/40">
         <header className="flex items-center h-16 px-4 md:px-6 bg-background border-b">
           <div className="flex items-center gap-2">
-            <Logo className="h-8 w-auto text-primary" />
-            <h1 className="text-xl font-semibold">Shalom Treks</h1>
+            <Logo width={150} height={32} />
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 md:p-8">
