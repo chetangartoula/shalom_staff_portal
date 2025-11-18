@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link"
@@ -52,16 +53,18 @@ const MobileNavItem = ({ href, label, icon: Icon }: { href: string; label: strin
     const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
     return (
-        <Link
-            href={href}
-            className={cn(
-                "flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground",
-                isActive && "text-foreground"
-            )}
-        >
-            <Icon className="h-5 w-5" />
-            {label}
-        </Link>
+        <SheetClose asChild>
+            <Link
+                href={href}
+                className={cn(
+                    "flex items-center gap-4 px-4 py-2 text-muted-foreground rounded-lg hover:text-foreground hover:bg-muted",
+                    isActive && "text-foreground bg-muted"
+                )}
+            >
+                <Icon className="h-5 w-5" />
+                {label}
+            </Link>
+        </SheetClose>
     );
 };
 
@@ -91,10 +94,9 @@ export function Header({ user }: HeaderProps) {
             <span className="sr-only">Toggle Menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="md:hidden">
-            <SheetHeader className="border-b pb-4 mb-4 bg-primary text-primary-foreground -m-6 p-6 flex flex-row items-center justify-between">
-              <SheetTitle className="sr-only">Shalom Navigation</SheetTitle>
-              <Link href="/dashboard" className="mr-6 flex items-center gap-2">
+        <SheetContent side="left" className="md:hidden p-0">
+            <SheetHeader className="flex flex-row items-center justify-between border-b px-4 h-16 bg-primary text-primary-foreground">
+              <Link href="/dashboard" className="flex items-center gap-2">
                   <Logo className="h-6 w-6" />
                   <span className="font-bold text-lg">Shalom</span>
               </Link>
@@ -102,8 +104,9 @@ export function Header({ user }: HeaderProps) {
                 <X className="h-5 w-5" />
                 <span className="sr-only">Close</span>
               </SheetClose>
+              <SheetTitle className="sr-only">Shalom Navigation</SheetTitle>
             </SheetHeader>
-          <nav className="grid gap-6 text-lg font-medium">
+          <nav className="grid gap-2 text-lg font-medium p-4">
             {navItems.map(item => (
                 <MobileNavItem key={item.href} {...item} />
             ))}
