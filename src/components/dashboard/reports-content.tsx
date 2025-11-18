@@ -122,7 +122,7 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle>{report.trekName}</CardTitle>
+                  <CardTitle className="text-xl">{report.trekName}</CardTitle>
                   <div className="text-sm text-muted-foreground mt-1">
                       {report.groupName}
                   </div>
