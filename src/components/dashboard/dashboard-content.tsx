@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense } from 'react';
@@ -6,6 +7,8 @@ import { StatsCards } from '@/components/dashboard/stats-cards';
 import { RecentReports } from '@/components/dashboard/recent-reports';
 import { PaymentChart } from '@/components/dashboard/payment-chart';
 import { Loader2 } from 'lucide-react';
+import { TrekPopularityChart } from './trek-popularity-chart';
+import { TeamAvailabilityChart } from './team-availability-chart';
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -27,19 +30,23 @@ export function DashboardContent() {
                 <StatsCards stats={statsData} />
             </Suspense>
             
-            <div className="grid gap-6 lg:grid-cols-7">
-                <div className="lg:col-span-4">
-                    <Suspense fallback={<PaymentChart.Skeleton />}>
-                        <PaymentChart />
-                    </Suspense>
-                </div>
-
-                <div className="lg:col-span-3">
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                 <Suspense fallback={<TrekPopularityChart.Skeleton />}>
+                    <TrekPopularityChart />
+                </Suspense>
+                <Suspense fallback={<TeamAvailabilityChart.Skeleton />}>
+                    <TeamAvailabilityChart />
+                </Suspense>
+                 <div className="md:col-span-2 xl:col-span-1">
                     <Suspense fallback={<RecentReports.Skeleton />}>
                         <RecentReports reports={reportsData?.reports || []} />
                     </Suspense>
                 </div>
             </div>
+            
+            <Suspense fallback={<PaymentChart.Skeleton />}>
+                <PaymentChart />
+            </Suspense>
         </div>
     );
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import useSWR from 'swr';
@@ -29,12 +30,12 @@ export function PaymentChart() {
     
     if (error) {
         return (
-            <Card className="h-full">
+            <Card>
                 <CardHeader>
                     <CardTitle>Payment Analytics</CardTitle>
                     <CardDescription>Last 30 Days</CardDescription>
                 </CardHeader>
-                <CardContent className="h-full flex items-center justify-center">
+                <CardContent className="h-[300px] flex items-center justify-center">
                     <p className="text-destructive">Could not load payment data.</p>
                 </CardContent>
             </Card>
@@ -42,7 +43,7 @@ export function PaymentChart() {
     }
     
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <CardTitle>Payment Analytics</CardTitle>
                 <CardDescription>Last 30 Days</CardDescription>
@@ -110,7 +111,7 @@ export function PaymentChart() {
 
 PaymentChart.Skeleton = function PaymentChartSkeleton() {
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <div className="space-y-2">
                     <div className="h-5 w-40 bg-muted rounded-md animate-pulse"></div>
