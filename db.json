@@ -1,0 +1,284 @@
+{
+  "treks": [
+    {
+      "id": "manaslu",
+      "name": "Manaslu Circuit Trek",
+      "description": "A classic trek offering stunning views of Manaslu, remote villages, and diverse landscapes.",
+      "permits": [
+        {
+          "name": "RMP+GT+MCAP+ACAP",
+          "rate": 160
+        },
+        {
+          "name": "Extra days Manaslu permit",
+          "rate": 10
+        },
+        {
+          "name": "RTP+GT+MCAP",
+          "rate": 0
+        },
+        {
+          "name": "Extra days Tsum permit",
+          "rate": 0
+        }
+      ]
+    },
+    {
+      "id": "everest",
+      "name": "Everest Base Camp Trek",
+      "description": "The world-famous trek to the foot of Mount Everest, the highest peak on Earth.",
+      "permits": [
+        {
+          "name": "Sagarmatha National Park Permit",
+          "rate": 30
+        },
+        {
+          "name": "Khumbu Pasang Lhamu Rural Municipality Fee",
+          "rate": 20
+        }
+      ]
+    },
+    {
+      "id": "annapurna",
+      "name": "Annapurna Circuit Trek",
+      "description": "A diverse trek circling the Annapurna massif, featuring high passes and lush valleys.",
+      "permits": [
+        {
+          "name": "ACAP Permit",
+          "rate": 30
+        },
+        {
+          "name": "TIMS Card",
+          "rate": 20
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "Guide days",
+      "rate": 30,
+      "times": 12,
+      "id": "386ba860-dabe-43f2-8dcf-5309f82231f1"
+    },
+    {
+      "name": "Porter days",
+      "rate": 25,
+      "times": 12,
+      "id": "fe9de2d1-c64d-426a-b815-c65c55537349"
+    },
+    {
+      "name": "Normal Tea house",
+      "rate": 35,
+      "times": 11,
+      "id": "c1a4376a-699e-4cf4-8649-d1503ebf5e57"
+    },
+    {
+      "name": "Private jeep ktm to trek",
+      "rate": 250,
+      "times": 1,
+      "id": "f013e9f6-945e-41b8-8bd2-98cbb1e9b4cf"
+    },
+    {
+      "name": "Private jeep trek to ktm/pkr",
+      "rate": 250,
+      "times": 1,
+      "id": "fc8a235f-4992-4855-ad05-a725b3d16310"
+    },
+    {
+      "name": "International Pick up",
+      "rate": 0,
+      "times": 1,
+      "id": "2a34fa95-4077-4abf-ad1a-be0845773754"
+    },
+    {
+      "name": "International Drop up",
+      "rate": 0,
+      "times": 1,
+      "id": "51af490f-f27c-4b9b-a7ca-d1d1511cac3e"
+    },
+    {
+      "name": "local ride ktm to trek",
+      "rate": 15,
+      "times": 1,
+      "id": "bfdd6a2f-9369-4134-9414-5bc305f30f4f"
+    },
+    {
+      "name": "local ride trek to ktm",
+      "rate": 35,
+      "times": 1,
+      "id": "f74adce1-3ec5-4301-915d-e2e91dfecd48"
+    },
+    {
+      "name": "Guide insurance",
+      "rate": 30,
+      "times": 1,
+      "id": "d4a12d22-9ab0-47c5-bec3-33138c881967"
+    },
+    {
+      "name": "porter insurance",
+      "rate": 20,
+      "times": 1,
+      "id": "84700461-effb-4850-97b2-239c820b3541"
+    },
+    {
+      "name": "Hotel in kathmandu",
+      "rate": 0,
+      "times": 1,
+      "id": "19c1dc58-2ab2-46c2-ad05-0c6b752efcaf"
+    }
+  ],
+  "guides": [
+    {
+      "name": "Dorje Sherpa",
+      "email": "dorje.sherpa@example.com",
+      "phone": "984-1234567",
+      "status": "Available",
+      "id": "77fc4ef4-efc4-40ba-a90b-e88448f27e6d"
+    },
+    {
+      "name": "Lakpa Tamang",
+      "email": "lakpa.tamang@example.com",
+      "phone": "984-7654321",
+      "status": "On Tour",
+      "id": "70c5fee6-5272-42d4-87a8-018c6e8a455b"
+    },
+    {
+      "name": "Nima Lama",
+      "email": "nima.lama@example.com",
+      "phone": "986-1122334",
+      "status": "Available",
+      "id": "a466c445-adaf-43c0-8d29-34cff1ec0d67"
+    },
+    {
+      "name": "Pemba Gurung",
+      "email": "pemba.gurung@example.com",
+      "phone": "984-5566778",
+      "status": "On Leave",
+      "id": "f7aef31a-460c-4bbf-acc4-b32f06581f3d"
+    },
+    {
+      "name": "Tenzing Rai",
+      "email": "tenzing.rai@example.com",
+      "phone": "981-8899001",
+      "status": "On Tour",
+      "id": "ebf070d3-f4c5-445a-a3e0-2617623c6303"
+    },
+    {
+      "name": "Sonam Bhote",
+      "email": "sonam.bhote@example.com",
+      "phone": "980-3344556",
+      "status": "Available",
+      "id": "3c5ecca5-dca6-41ac-ab76-b64c2d7c2f4b"
+    }
+  ],
+  "porters": [
+    {
+      "name": "Kaji Sherpa",
+      "phone": "984-2345678",
+      "status": "Available",
+      "id": "6d1a4388-edb5-4ed0-8328-f981e670e170"
+    },
+    {
+      "name": "Mingma Tamang",
+      "phone": "984-8765432",
+      "status": "On Trek",
+      "id": "ce532410-0a1b-48f4-aebd-6e49bbb0d416"
+    },
+    {
+      "name": "Ang Phurba Lama",
+      "phone": "986-2233445",
+      "status": "Available",
+      "id": "0147a61c-8af0-4fee-ad48-4a101de7fef6"
+    },
+    {
+      "name": "Dawa Gurung",
+      "phone": "984-6677889",
+      "status": "On Leave",
+      "id": "79d9f9b7-c469-4098-8cff-53a346cb1354"
+    },
+    {
+      "name": "Pasang Rai",
+      "phone": "981-9900112",
+      "status": "On Trek",
+      "id": "dd7606f7-1e50-441f-b62f-cbc9e6c3535f"
+    },
+    {
+      "name": "Karma Bhote",
+      "phone": "980-4455667",
+      "status": "Available",
+      "id": "9c6aeef2-008c-4794-bf7d-44034015d272"
+    }
+  ],
+  "reports": [
+    {
+      "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+      "trekId": "annapurna",
+      "trekName": "Annapurna Circuit Trek",
+      "groupName": "",
+      "groupSize": 1,
+      "startDate": "2025-11-18T05:33:06.123Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "d7959210-84ab-4a64-9928-942018aef6b5",
+            "description": "ACAP Permit",
+            "rate": 30,
+            "no": 1,
+            "times": 1,
+            "total": 30
+          },
+          {
+            "id": "47c03d4c-439c-4ec4-bcfb-e95f199eb5dd",
+            "description": "TIMS Card",
+            "rate": 20,
+            "no": 1,
+            "times": 1,
+            "total": 20
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "ed5d0348-efbf-4efd-a695-d380fe9889aa",
+            "description": "Satellite device",
+            "rate": 0,
+            "no": 1,
+            "times": 12,
+            "total": 0
+          },
+          {
+            "id": "593295d2-8a8a-4478-9ccc-6bdb572a34cc",
+            "description": "Adv less",
+            "rate": 0,
+            "no": 1,
+            "times": 0,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e"
+    }
+  ],
+  "travelers": [],
+  "assignments": [],
+  "transactions": []
+}
