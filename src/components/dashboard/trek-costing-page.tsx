@@ -505,24 +505,26 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     <Suspense fallback={<LoadingStep />}>
       { (currentStep > 0 || initialData) && (
          <header className="mb-6 space-y-4">
-             <Breadcrumb>
-                <BreadcrumbList>
-                    {breadcrumbItems.map((item, index) => (
-                        <React.Fragment key={index}>
-                            <BreadcrumbItem>
-                                {item.isCurrent ? (
-                                    <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                                ) : (
-                                    <BreadcrumbLink asChild>
-                                        <button onClick={() => setCurrentStep(item.stepIndex)} className="transition-colors hover:text-foreground">{item.label}</button>
-                                    </BreadcrumbLink>
-                                )}
-                            </BreadcrumbItem>
-                            {index < breadcrumbItems.length - 1 && <BreadcrumbSeparator />}
-                        </React.Fragment>
-                    ))}
-                </BreadcrumbList>
-            </Breadcrumb>
+             <div className="overflow-x-auto hide-scrollbar">
+                <Breadcrumb>
+                    <BreadcrumbList>
+                        {breadcrumbItems.map((item, index) => (
+                            <React.Fragment key={index}>
+                                <BreadcrumbItem>
+                                    {item.isCurrent ? (
+                                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                                    ) : (
+                                        <BreadcrumbLink asChild>
+                                            <button onClick={() => setCurrentStep(item.stepIndex)} className="transition-colors hover:text-foreground whitespace-nowrap">{item.label}</button>
+                                        </BreadcrumbLink>
+                                    )}
+                                </BreadcrumbItem>
+                                {index < breadcrumbItems.length - 1 && <BreadcrumbSeparator />}
+                            </React.Fragment>
+                        ))}
+                    </BreadcrumbList>
+                </Breadcrumb>
+             </div>
              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{breadcrumbItems.find(b => b.isCurrent)?.label || 'Cost Estimator'}</h1>
