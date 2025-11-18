@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
@@ -307,7 +308,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                     {renderDesktopTable()}
                     {renderMobileCards()}
                     {filteredReports.length === 0 && !isLoading && (
-                        <div className="text-center text-muted-foreground py-12 md:py-24">
+                        <div className="text-center text-muted-foreground py-12">
                             <p>No reports found.</p>
                         </div>
                     )}
@@ -327,3 +328,4 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
     </>
   );
 }
+
