@@ -1,9 +1,8 @@
-
-
 "use client";
 
 import { format } from "date-fns";
 import type { Trek, SectionState } from "@/lib/types";
+import { logoUrl } from "@/components/logo";
 
 type ReportState = {
   groupId: string;
@@ -39,6 +38,8 @@ export async function handleExportPDF({
   const { default: QRCode } = await import("qrcode");
 
   const doc = new jsPDF();
+  doc.setFont("helvetica");
+
   const qrCodeUrl = `${window.location.origin}/report/${report.groupId}?groupSize=${report.groupSize}`;
   const qrCodeDataUrl = await QRCode.toDataURL(qrCodeUrl);
   
@@ -50,7 +51,7 @@ export async function handleExportPDF({
   })).filter(section => section.rows.length > 0 || section.discountValue > 0);
 
   let yPos = 0;
-  const pageTopMargin = 15;
+  const pageTopMargin = 20;
   const pageLeftMargin = 14;
   const pageRightMargin = 14;
   const brandColor = [21, 29, 79]; // #151D4F
@@ -71,28 +72,36 @@ export async function handleExportPDF({
       }
   };
   
-  const qrCodeSize = 40;
+  const qrCodeSize = 35;
   const qrCodeX = doc.internal.pageSize.width - qrCodeSize - pageRightMargin;
   
+  // Header
+  const logoWidth = 50;
+  const logoHeight = (logoWidth * 54) / 256; // Maintain aspect ratio
+  doc.addImage(logoUrl, 'PNG', pageLeftMargin, pageTopMargin - 12, logoWidth, logoHeight);
+
   doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-  doc.text("Cost Calculation Report", pageLeftMargin, pageTopMargin + 7);
-  doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
-  doc.line(pageLeftMargin, pageTopMargin + 10, doc.internal.pageSize.width - pageRightMargin, pageTopMargin + 10);
+  doc.text("Cost Calculation Report", doc.internal.pageSize.width - pageRightMargin, pageTopMargin, { align: "right" });
+  doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin + 5, qrCodeSize, qrCodeSize);
 
-
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Group ID: ${report.groupId}`, pageLeftMargin, pageTopMargin + 18);
+  yPos = Math.max(pageTopMargin + 20, pageTopMargin + qrCodeSize);
   
-  doc.addImage(qrCodeDataUrl, 'PNG', qrCodeX, pageTopMargin, qrCodeSize, qrCodeSize);
+  doc.setDrawColor(200);
+  doc.line(pageLeftMargin, yPos, doc.internal.pageSize.width - pageRightMargin, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100);
+  doc.text(`Group ID: ${report.groupId}`, pageLeftMargin, yPos - 5);
 
-  yPos = Math.max(pageTopMargin + 25, pageTopMargin + qrCodeSize) + 10;
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text("Group Details", pageLeftMargin, yPos);
-  yPos += 7;
+  doc.text("Group Details", pageLeftMargin, yPos + 5);
+  yPos += 12;
   autoTable(doc, {
       startY: yPos,
       body: [
@@ -102,7 +111,7 @@ export async function handleExportPDF({
           ['Start Date', report.startDate ? format(report.startDate, 'PPP') : 'N/A'],
       ],
       theme: 'plain',
-      styles: { fontSize: 10 },
+      styles: { fontSize: 10, font: 'helvetica' },
       columnStyles: { 0: { fontStyle: 'bold' } }
   });
   yPos = (doc as any).lastAutoTable.finalY + 15;
@@ -112,10 +121,10 @@ export async function handleExportPDF({
       doc.addPage();
       yPos = pageTopMargin;
     }
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text(section.name, pageLeftMargin, yPos);
-    yPos += 10;
+    yPos += 8;
     
     const head = [['#', 'Description', 'Rate', 'No', 'Times', 'Total']];
     const body = section.rows.map((row, i) => [
@@ -142,7 +151,8 @@ export async function handleExportPDF({
         head: head,
         body: body,
         theme: 'striped',
-        headStyles: { fillColor: brandColor },
+        headStyles: { fillColor: brandColor, font: 'helvetica' },
+        styles: { font: 'helvetica' },
         didDrawPage: (data: any) => {
             yPos = data.cursor?.y || yPos;
         }
@@ -158,10 +168,10 @@ export async function handleExportPDF({
       doc.addPage();
       yPos = pageTopMargin;
     }
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text("Summary", pageLeftMargin, yPos);
-    yPos += 10;
+    yPos += 8;
 
     const summaryData = sectionsToExport.map(section => {
       const { total } = calculateSectionTotals(section);
@@ -183,7 +193,9 @@ export async function handleExportPDF({
     autoTable(doc, {
         startY: yPos,
         body: summaryData,
-        theme: 'plain'
+        theme: 'grid',
+        styles: { font: 'helvetica' },
+        columnStyles: { 0: { fontStyle: 'bold' } },
     });
   }
 

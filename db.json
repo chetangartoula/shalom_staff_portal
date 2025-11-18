@@ -539,6 +539,72 @@
       "customSections": [],
       "serviceCharge": 10,
       "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+    },
+    {
+      "groupId": "22b3078f-6db1-450e-9824-e4bb52a486ec",
+      "trekId": "manaslu",
+      "trekName": "Manaslu Circuit Trek",
+      "groupName": "Manaslu Circuit Trek 22b3",
+      "groupSize": 1,
+      "startDate": "2025-11-18T09:15:43.011Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "a84512e6-6866-46fc-a143-6a1ef28c7286",
+            "description": "RMP+GT+MCAP+ACAP",
+            "rate": 160,
+            "no": 1,
+            "times": 1,
+            "total": 160
+          },
+          {
+            "id": "1045d3d0-a9e2-44bc-a11f-e6c491a8876d",
+            "description": "Extra days Manaslu permit",
+            "rate": 10,
+            "no": 1,
+            "times": 1,
+            "total": 10
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "539b2b9a-100b-473c-9f55-55b7c9a52b3c",
+            "description": "Satellite device",
+            "rate": 0,
+            "no": 1,
+            "times": 12,
+            "total": 0
+          },
+          {
+            "id": "f1a32cfc-c247-44a8-b608-ea75a933a8de",
+            "description": "Adv less",
+            "rate": 0,
+            "no": 1,
+            "times": 0,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/22b3078f-6db1-450e-9824-e4bb52a486ec"
     }
   ],
   "travelers": [],

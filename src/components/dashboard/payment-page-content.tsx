@@ -19,7 +19,7 @@ import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
 import { DatePicker } from '../ui/shadcn/date-picker';
-import { Logo } from '@/components/logo';
+import { Logo, logoUrl } from '@/components/logo';
 
 interface PaymentPageContentProps {
     initialReport: Report;
@@ -96,27 +96,26 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         const { default: autoTable } = await import('jspdf-autotable');
 
         const doc = new jsPDF();
+        doc.setFont("helvetica");
+
         const pageLeftMargin = 15;
         const pageRightMargin = 15;
         const brandColor = [21, 29, 79]; // #151D4F
         let yPos = 20;
 
         // --- Header ---
+        const logoWidth = 50;
+        const logoHeight = (logoWidth * 54) / 256;
+        doc.addImage(logoUrl, 'PNG', pageLeftMargin, yPos - 12, logoWidth, logoHeight);
+
         doc.setFontSize(26);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-        doc.text("INVOICE", pageLeftMargin, yPos);
+        doc.text("INVOICE", doc.internal.pageSize.width - pageRightMargin, yPos, { align: 'right' });
         
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-        doc.text("Shalom Treks & Expeditions", doc.internal.pageSize.width - pageRightMargin, yPos - 10, { align: 'right' });
-        doc.text("Thamel, Kathmandu, Nepal", doc.internal.pageSize.width - pageRightMargin, yPos - 5, { align: 'right' });
-        doc.text("info@shalomtreks.com", doc.internal.pageSize.width - pageRightMargin, yPos, { align: 'right' });
-        yPos += 5;
+        yPos += 15;
 
-        doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
-        doc.setLineWidth(0.5);
+        doc.setDrawColor(200);
         doc.line(pageLeftMargin, yPos, doc.internal.pageSize.width - pageRightMargin, yPos);
         yPos += 15;
 
@@ -147,7 +146,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                 ['Balance Due:', formatCurrency(paymentDetails.balance)],
             ],
             theme: 'plain',
-            styles: { fontSize: 12 },
+            styles: { fontSize: 12, font: 'helvetica' },
             columnStyles: { 
                 0: { fontStyle: 'bold', halign: 'right' },
                 1: { fontStyle: 'bold', halign: 'right' }
@@ -174,7 +173,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                 formatCurrency(t.amount)
             ]),
             theme: 'striped',
-            headStyles: { fillColor: brandColor },
+            headStyles: { fillColor: brandColor, font: 'helvetica' },
+            styles: { font: 'helvetica' },
             columnStyles: {
                 3: { halign: 'right' }
             }
@@ -348,5 +348,3 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         </div>
     );
 }
-
-    

@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from '@/components/ui/shadcn/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Guide, Porter, SectionState, Traveler } from '@/lib/types';
+import { Logo } from '../logo';
 
 interface Assignment {
     groupId: string;
@@ -78,6 +79,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         if (!assignment || !details) return;
         const { default: jsPDF } = await import('jspdf');
         const { default: autoTable } = await import('jspdf-autotable');
+        const { logoUrl } = await import('@/components/logo');
 
         const doc = new jsPDF();
         const brandColor = [21, 29, 79]; // #151D4F
@@ -87,20 +89,29 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         let yPos = pageTopMargin;
 
         // Header
+        const logoWidth = 50;
+        const logoHeight = (logoWidth * 54) / 256; // Maintain aspect ratio
+        doc.addImage(logoUrl, 'PNG', pageLeftMargin, pageTopMargin - 10, logoWidth, logoHeight);
+
         doc.setFontSize(20);
+        doc.setFont("helvetica", "bold");
         doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
-        doc.text(`Shalom Treks - Trip Details`, pageLeftMargin, yPos);
-        yPos += 4;
-        doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.text(`Trip Details`, doc.internal.pageSize.width - pageRightMargin, pageTopMargin, { align: 'right' });
+        
+        yPos += logoHeight > 15 ? logoHeight - 15 : 0;
+        
+        doc.setDrawColor(200);
         doc.line(pageLeftMargin, yPos, doc.internal.pageSize.width - pageRightMargin, yPos);
         yPos += 8;
 
         // Trip Info
-        doc.setFontSize(12);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
         doc.text(details.report.trekName, pageLeftMargin, yPos);
         yPos += 6;
         doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(100);
         doc.text(`Group: ${details.report.groupName} | Start Date: ${format(new Date(details.report.startDate), 'PPP')}`, pageLeftMargin, yPos);
         yPos += 12;
@@ -121,7 +132,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 ['Porters', portersText || 'None'],
             ],
             theme: 'grid',
-            styles: { fontSize: 10, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } },
+            styles: { fontSize: 10, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 }, font: 'helvetica' },
             columnStyles: { 0: { fontStyle: 'bold', cellWidth: 30 } }
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
@@ -137,7 +148,8 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 head: [['Permit Name']],
                 body: details.report.permits.rows.map(r => [r.description]),
                 theme: 'striped',
-                headStyles: { fillColor: brandColor },
+                headStyles: { fillColor: brandColor, font: 'helvetica' },
+                styles: { font: 'helvetica' },
             });
             yPos = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -154,7 +166,8 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                 head: [['Service Name']],
                 body: details.report.services.rows.map(r => [r.description]),
                 theme: 'striped',
-                headStyles: { fillColor: brandColor },
+                headStyles: { fillColor: brandColor, font: 'helvetica' },
+                styles: { font: 'helvetica' },
             });
             yPos = (doc as any).lastAutoTable.finalY + 10;
         }
@@ -181,12 +194,17 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
             head: [travelerCols],
             body: travelerRows,
             theme: 'striped',
-            headStyles: { fillColor: brandColor },
+            headStyles: { fillColor: brandColor, font: 'helvetica' },
+            styles: { font: 'helvetica' },
             didDrawCell: (data) => {
               if (data.section === 'body' && data.column.index === 0) {
                 const traveler = details.travelers[data.row.index];
                 if (traveler.profilePicture) {
-                  doc.addImage(traveler.profilePicture, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
+                  try {
+                    doc.addImage(traveler.profilePicture, 'JPEG', data.cell.x + 2, data.cell.y + 2, 10, 10);
+                  } catch (e) {
+                    console.error("Error adding image to PDF:", e);
+                  }
                 }
               }
             },

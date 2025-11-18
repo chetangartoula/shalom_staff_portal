@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Traveler, Report } from '@/lib/types';
+import { logoUrl } from '../logo';
 
 
 interface TravelerDetailsModalProps {
@@ -55,18 +56,26 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
 
         const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        doc.setFont("helvetica");
+
         const pageLeftMargin = 15;
         const pageRightMargin = 15;
         const pageWidth = doc.internal.pageSize.getWidth();
         const contentWidth = pageWidth - pageLeftMargin - pageRightMargin;
         let yPos = 20;
 
+        const logoWidth = 40;
+        const logoHeight = (logoWidth * 54) / 256;
+        doc.addImage(logoUrl, 'PNG', pageLeftMargin, yPos - 10, logoWidth, logoHeight);
+
         doc.setFontSize(18);
-        doc.text(`Traveler Details for ${report.trekName}`, pageLeftMargin, yPos);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Traveler Details`, pageWidth - pageRightMargin, yPos, { align: 'right' });
         yPos += 8;
         doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
         doc.setTextColor(100);
-        doc.text(`Group: ${report.groupName} (ID: ${report.groupId})`, pageLeftMargin, yPos);
+        doc.text(`${report.trekName} | Group: ${report.groupName}`, pageWidth - pageRightMargin, yPos, { align: 'right' });
         yPos += 15;
 
         for (const traveler of travelers) {
@@ -95,7 +104,6 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
             
             // Draw details
             doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
             details.forEach(detail => {
                 doc.setFont('helvetica', 'bold');
                 doc.text(detail[0] + ':', pageLeftMargin, yPos);
@@ -106,7 +114,11 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
 
             // Draw Profile Picture
             if (traveler.profilePicture) {
+              try {
                 doc.addImage(traveler.profilePicture, 'JPEG', pageLeftMargin + 120, startY, 30, 30);
+              } catch (e) {
+                console.error("Could not add profile picture to PDF", e);
+              }
             }
             
             yPos = Math.max(yPos, startY + 35); // Ensure yPos is below image
@@ -136,7 +148,12 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
                         doc.text('PDF uploaded, cannot display.', imgX, yPos);
                         yPos += 5;
                     } else {
-                        doc.addImage(img.data, 'JPEG', imgX, yPos, imgWidth, imgHeight);
+                        try {
+                           doc.addImage(img.data, 'JPEG', imgX, yPos, imgWidth, imgHeight);
+                        } catch (e) {
+                           console.error(`Could not add ${img.label} to PDF`, e);
+                           doc.text('Image could not be loaded.', imgX, yPos);
+                        }
                     }
                     
                     if (imgX === pageLeftMargin) {
