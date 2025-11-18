@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
@@ -19,7 +19,7 @@ import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
 import { DatePicker } from '../ui/shadcn/date-picker';
-
+import { Logo } from '@/components/logo';
 
 interface PaymentPageContentProps {
     initialReport: Report;
@@ -89,15 +89,127 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const isFullyPaid = paymentDetails?.paymentStatus === 'fully paid' || paymentDetails?.paymentStatus === 'overpaid';
     const isPaymentDisabled = isFullyPaid && transactionType === 'payment';
 
+     const handleDownloadInvoice = async () => {
+        if (!reportData || !paymentDetails) return;
+
+        const { default: jsPDF } = await import('jspdf');
+        const { default: autoTable } = await import('jspdf-autotable');
+
+        const doc = new jsPDF();
+        const pageLeftMargin = 15;
+        const pageRightMargin = 15;
+        const brandColor = [21, 29, 79]; // #151D4F
+        let yPos = 20;
+
+        // --- Header ---
+        doc.setFontSize(26);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.text("INVOICE", pageLeftMargin, yPos);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+        doc.text("Shalom Treks & Expeditions", doc.internal.pageSize.width - pageRightMargin, yPos - 10, { align: 'right' });
+        doc.text("Thamel, Kathmandu, Nepal", doc.internal.pageSize.width - pageRightMargin, yPos - 5, { align: 'right' });
+        doc.text("info@shalomtreks.com", doc.internal.pageSize.width - pageRightMargin, yPos, { align: 'right' });
+        yPos += 5;
+
+        doc.setDrawColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.setLineWidth(0.5);
+        doc.line(pageLeftMargin, yPos, doc.internal.pageSize.width - pageRightMargin, yPos);
+        yPos += 15;
+
+        // --- Bill To & Info ---
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text("BILL TO", pageLeftMargin, yPos);
+        doc.text("INVOICE #", 120, yPos);
+        doc.text("DATE", 160, yPos);
+        
+        yPos += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0);
+        doc.text(reportData.groupName, pageLeftMargin, yPos);
+        doc.text(reportData.groupId.substring(0, 13).toUpperCase(), 120, yPos);
+        doc.text(format(new Date(), 'PPP'), 160, yPos);
+        
+        yPos += 5;
+        doc.text(reportData.trekName, pageLeftMargin, yPos);
+        yPos += 15;
+
+        // --- Summary ---
+        autoTable(doc, {
+            startY: yPos,
+            body: [
+                ['Total Cost:', formatCurrency(paymentDetails.totalCost)],
+                ['Total Paid:', formatCurrency(paymentDetails.totalPaid)],
+                ['Balance Due:', formatCurrency(paymentDetails.balance)],
+            ],
+            theme: 'plain',
+            styles: { fontSize: 12 },
+            columnStyles: { 
+                0: { fontStyle: 'bold', halign: 'right' },
+                1: { fontStyle: 'bold', halign: 'right' }
+            },
+            tableWidth: 'wrap',
+            margin: { left: doc.internal.pageSize.width - 85 }
+        });
+        yPos = (doc as any).lastAutoTable.finalY + 15;
+
+
+        // --- Transactions Table ---
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Transaction History", pageLeftMargin, yPos);
+        yPos += 8;
+
+        autoTable(doc, {
+            startY: yPos,
+            head: [['Date', 'Type', 'Note', 'Amount']],
+            body: transactions.map(t => [
+                format(parseISO(t.date), 'PPP'),
+                t.type.charAt(0).toUpperCase() + t.type.slice(1),
+                t.note || '-',
+                formatCurrency(t.amount)
+            ]),
+            theme: 'striped',
+            headStyles: { fillColor: brandColor },
+            columnStyles: {
+                3: { halign: 'right' }
+            }
+        });
+
+        // --- Footer ---
+        const finalY = (doc as any).lastAutoTable.finalY;
+        const pageHeight = doc.internal.pageSize.height;
+        let footerY = pageHeight - 20;
+
+        // If table is too long, put footer on next page
+        if (finalY > footerY - 20) {
+            doc.addPage();
+            footerY = pageHeight - 20;
+        } else {
+            footerY = finalY + 30 > footerY ? pageHeight - 20 : finalY + 30;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Thank you for your business!", doc.internal.pageSize.width / 2, footerY, { align: 'center' });
+
+
+        doc.save(`invoice-${reportData.groupId.substring(0, 8)}.pdf`);
+    };
+
     return (
         <div className="space-y-6">
              <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.back()}>
+                <Button variant="outline" size="icon" onClick={() => router.back()} className="shrink-0">
                     <ArrowLeft className="h-4 w-4" />
                     <span className="sr-only">Go back</span>
                 </Button>
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Manage Payments</h1>
+                <div className="min-w-0">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight truncate">Manage Payments</h1>
                     <p className="text-muted-foreground text-sm md:text-base max-w-full truncate">
                         For Trek: <span className="font-medium text-primary">{reportData?.trekName}</span> | Group: <span className="font-medium text-primary">{reportData?.groupName}</span>
                     </p>
@@ -105,8 +217,12 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             </div>
             
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Financial Summary</CardTitle>
+                     <Button variant="outline" onClick={handleDownloadInvoice} disabled={transactions.length === 0}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Download Invoice
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
@@ -232,3 +348,5 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         </div>
     );
 }
+
+    
