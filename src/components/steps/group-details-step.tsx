@@ -24,7 +24,7 @@ function GroupDetailsStepComponent({
   return (
       <Card>
           <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-6">
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                <div className="grid gap-2">
                   <Label htmlFor="group-name">Group Name</Label>
                   <Input

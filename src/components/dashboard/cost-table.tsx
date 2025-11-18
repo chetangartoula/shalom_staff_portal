@@ -5,6 +5,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/shadcn/card";
 import { Input } from "@/components/ui/shadcn/input";
 import {
@@ -22,6 +23,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { CostRow, SectionState } from "@/lib/types";
 import { Edit, Trash2, Plus, Percent, DollarSign } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/shadcn/toggle-group";
+import { cn } from '@/lib/utils';
 
 interface CostTableProps {
     section: SectionState;
@@ -64,11 +66,107 @@ function CostTableComponent({
 
     const { subtotal, total, discountAmount } = calculateSectionTotals(section);
 
+    const renderDesktopTable = () => (
+      <div className="overflow-x-auto rounded-lg border hidden md:block">
+          <Table>
+              <TableHeader className="bg-muted/50">
+              <TableRow>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead className="min-w-[250px]">Description</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>No.</TableHead>
+                  <TableHead>Times</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="w-20 text-center">Action</TableHead>
+              </TableRow>
+              </TableHeader>
+              <TableBody>
+              {section.rows.map((row, index) => (
+                  <TableRow key={row.id}>
+                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell>
+                      {isDescriptionEditable ? (
+                      <Input
+                          type="text"
+                          value={row.description}
+                          onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)}
+                          className="w-full bg-transparent border-0 focus-visible:ring-0 px-0"
+                          placeholder="Enter item description"
+                      />
+                      ) : (
+                      row.description
+                      )}
+                  </TableCell>
+                  <TableCell>
+                      <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24 bg-transparent border-0 focus-visible:ring-0 px-0"/>
+                  </TableCell>
+                  <TableCell>
+                      <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0 px-0" disabled={usePax} />
+                  </TableCell>
+                  <TableCell>
+                      <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0 px-0"/>
+                  </TableCell>
+                  <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
+                  <TableCell className="text-center">
+                      <Button variant="ghost" size="icon" onClick={() => onRemoveRow(row.id, section.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <span className="sr-only">Remove row</span>
+                      </Button>
+                  </TableCell>
+                  </TableRow>
+              ))}
+              </TableBody>
+          </Table>
+      </div>
+    );
+    
+    const renderMobileCards = () => (
+      <div className="space-y-4 md:hidden">
+        {section.rows.map((row, index) => (
+          <Card key={row.id} className="relative">
+            <CardHeader>
+              <CardTitle className="text-base truncate">{row.description || `Item ${index + 1}`}</CardTitle>
+               <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={() => onRemoveRow(row.id, section.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <span className="sr-only">Remove row</span>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+               {isDescriptionEditable && (
+                  <div className="space-y-1">
+                      <Label htmlFor={`desc-${row.id}`}>Description</Label>
+                      <Input id={`desc-${row.id}`} type="text" value={row.description} onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)} placeholder="Enter item description" />
+                  </div>
+              )}
+              <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                      <Label htmlFor={`rate-${row.id}`}>Rate</Label>
+                      <Input id={`rate-${row.id}`} type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor={`no-${row.id}`}>No.</Label>
+                      <Input id={`no-${row.id}`} type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} disabled={usePax} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label htmlFor={`times-${row.id}`}>Times</Label>
+                      <Input id={`times-${row.id}`} type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} />
+                  </div>
+              </div>
+            </CardContent>
+            <CardFooter className="bg-muted p-4 justify-between">
+                <span className="font-medium text-muted-foreground">Row Total</span>
+                <span className="font-bold">{formatCurrency(row.total)}</span>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{section.name}</CardTitle>
-                <div className="flex items-center gap-4">
+            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardTitle className="text-2xl">{section.name}</CardTitle>
+                <div className="flex items-center gap-4 self-start md:self-center">
                     {isCustom && onEditSection && (
                          <Button variant="ghost" size="icon" onClick={() => onEditSection(section)}>
                             <Edit className="h-4 w-4" />
@@ -88,57 +186,9 @@ function CostTableComponent({
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="overflow-x-auto rounded-lg border">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                        <TableRow>
-                            <TableHead className="w-12">#</TableHead>
-                            <TableHead className="min-w-[250px]">Description</TableHead>
-                            <TableHead>Rate</TableHead>
-                            <TableHead>No.</TableHead>
-                            <TableHead>Times</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="w-20 text-center">Action</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {section.rows.map((row, index) => (
-                            <TableRow key={row.id}>
-                            <TableCell className="font-medium">{index + 1}</TableCell>
-                            <TableCell>
-                                {isDescriptionEditable ? (
-                                <Input
-                                    type="text"
-                                    value={row.description}
-                                    onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)}
-                                    className="w-full bg-transparent border-0 focus-visible:ring-0 px-0"
-                                    placeholder="Enter item description"
-                                />
-                                ) : (
-                                row.description
-                                )}
-                            </TableCell>
-                            <TableCell>
-                                <Input type="number" value={row.rate} onChange={e => onRowChange(row.id, 'rate', Number(e.target.value), section.id)} className="w-24 bg-transparent border-0 focus-visible:ring-0 px-0"/>
-                            </TableCell>
-                            <TableCell>
-                                <Input type="number" value={row.no} onChange={e => onRowChange(row.id, 'no', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0 px-0" disabled={usePax} />
-                            </TableCell>
-                            <TableCell>
-                                <Input type="number" value={row.times} onChange={e => onRowChange(row.id, 'times', Number(e.target.value), section.id)} className="w-20 bg-transparent border-0 focus-visible:ring-0 px-0"/>
-                            </TableCell>
-                            <TableCell className="text-right">{formatCurrency(row.total)}</TableCell>
-                            <TableCell className="text-center">
-                                <Button variant="ghost" size="icon" onClick={() => onRemoveRow(row.id, section.id)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                    <span className="sr-only">Remove row</span>
-                                </Button>
-                            </TableCell>
-                            </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                {renderDesktopTable()}
+                {renderMobileCards()}
+
                  <div className="mt-6">
                     <Button onClick={() => onAddRow(section.id)} variant="outline" className="w-full border-dashed">
                         <Plus className="h-4 w-4 mr-2" /> Add New Row

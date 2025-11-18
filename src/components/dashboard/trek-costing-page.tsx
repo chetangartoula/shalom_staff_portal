@@ -4,7 +4,7 @@
 import React, { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, PlusSquare, Check, Copy, Edit, Save, ArrowLeft } from "lucide-react";
+import { Loader2, PlusSquare, Check, Copy, Edit, Save, ArrowLeft, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/shadcn/button";
 import {
@@ -525,8 +525,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             </Breadcrumb>
              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold">{breadcrumbItems.find(b => b.isCurrent)?.label || 'Cost Estimator'}</h1>
-                  <p className="text-muted-foreground">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{breadcrumbItems.find(b => b.isCurrent)?.label || 'Cost Estimator'}</h1>
+                  <p className="text-muted-foreground text-sm md:text-base">
                     {initialData?.groupId ? "Editing report for" : "Creating new report for"} <span className="font-semibold text-primary">{report.trekName}</span>
                   </p>
                 </div>
@@ -566,9 +566,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
                 <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <div className="flex flex-col-reverse sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {savedReportUrl && (
-                <div className="flex items-center gap-1 rounded-md bg-muted p-1 pr-2 text-sm order-first sm:order-none w-full sm:w-auto">
+                <div className="flex items-center gap-1 rounded-md bg-muted p-1 pr-2 text-sm w-full sm:w-auto">
                     <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleCopyToClipboard}>
                       {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
@@ -586,12 +586,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
 
                 {currentStep === finalStepIndex ? (
                   <Button onClick={handleFinish} disabled={isSaving} className="flex-1">
-                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Finish
+                      {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Finish'}
                   </Button>
                 ) : (
                   <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1">
-                      Next
+                      Next <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 )}
               </div>
