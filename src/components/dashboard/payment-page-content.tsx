@@ -19,7 +19,7 @@ import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
 import { DatePicker } from '../ui/shadcn/date-picker';
-import { Logo, logoUrl } from '@/components/logo';
+import { logoUrl } from '@/components/logo';
 
 interface PaymentPageContentProps {
     initialReport: Report;
@@ -106,7 +106,16 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         // --- Header ---
         const logoWidth = 50;
         const logoHeight = (logoWidth * 54) / 256;
-        doc.addImage(logoUrl, 'PNG', pageLeftMargin, yPos - 12, logoWidth, logoHeight);
+        
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const dataUrl = await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+
+        doc.addImage(dataUrl as string, 'PNG', pageLeftMargin, yPos - 12, logoWidth, logoHeight);
 
         doc.setFontSize(26);
         doc.setFont('helvetica', 'bold');

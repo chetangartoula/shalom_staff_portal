@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from '@/components/ui/shadcn/separator';
 import { useToast } from '@/hooks/use-toast';
 import type { Guide, Porter, SectionState, Traveler } from '@/lib/types';
-import { Logo } from '../logo';
+import { logoUrl } from '../logo';
 
 interface Assignment {
     groupId: string;
@@ -79,8 +79,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         if (!assignment || !details) return;
         const { default: jsPDF } = await import('jspdf');
         const { default: autoTable } = await import('jspdf-autotable');
-        const { logoUrl } = await import('@/components/logo');
-
+        
         const doc = new jsPDF();
         const brandColor = [21, 29, 79]; // #151D4F
         const pageLeftMargin = 14;
@@ -91,7 +90,16 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         // Header
         const logoWidth = 50;
         const logoHeight = (logoWidth * 54) / 256; // Maintain aspect ratio
-        doc.addImage(logoUrl, 'PNG', pageLeftMargin, pageTopMargin - 10, logoWidth, logoHeight);
+        
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const dataUrl = await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+
+        doc.addImage(dataUrl as string, 'PNG', pageLeftMargin, pageTopMargin - 10, logoWidth, logoHeight);
 
         doc.setFontSize(20);
         doc.setFont("helvetica", "bold");

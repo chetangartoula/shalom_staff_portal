@@ -78,7 +78,15 @@ export async function handleExportPDF({
   // Header
   const logoWidth = 50;
   const logoHeight = (logoWidth * 54) / 256; // Maintain aspect ratio
-  doc.addImage(logoUrl, 'PNG', pageLeftMargin, pageTopMargin - 12, logoWidth, logoHeight);
+  const response = await fetch(logoUrl);
+  const blob = await response.blob();
+  const reader = new FileReader();
+  const dataUrl = await new Promise(resolve => {
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+  });
+
+  doc.addImage(dataUrl as string, 'PNG', pageLeftMargin, pageTopMargin - 12, logoWidth, logoHeight);
 
   doc.setFontSize(22);
   doc.setFont("helvetica", "bold");

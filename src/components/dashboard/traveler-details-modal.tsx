@@ -66,7 +66,16 @@ export default function TravelerDetailsModal({ isOpen, onClose, report }: Travel
 
         const logoWidth = 40;
         const logoHeight = (logoWidth * 54) / 256;
-        doc.addImage(logoUrl, 'PNG', pageLeftMargin, yPos - 10, logoWidth, logoHeight);
+        
+        const response = await fetch(logoUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const dataUrl = await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+        });
+
+        doc.addImage(dataUrl as string, 'PNG', pageLeftMargin, yPos - 10, logoWidth, logoHeight);
 
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");

@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import React from 'react';
 import Image from 'next/image';
 
-export const logoUrl = "https://www.shalomtreks.com/Logo.png";
+export const logoUrl = "/logo/logo.png";
 
 export const Logo = ({ className, width = 256, height = 54 }: { className?: string, width?: number, height?: number }) => (
   <Image
