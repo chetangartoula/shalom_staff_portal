@@ -785,7 +785,7 @@
       "customSections": [],
       "serviceCharge": 10,
       "clientCommunicationMethod": "Email, Other:hey",
-      "reportUrl": "http://localhost:3000/report/639e1dda-50dd-4e1b-98a5-bf5c14d5cebc"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/639e1dda-50dd-4e1b-98a5-bf5c14d5cebc"
     }
   ],
   "travelers": [
