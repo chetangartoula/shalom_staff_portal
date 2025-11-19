@@ -75,15 +75,16 @@ export interface Traveler {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   address: string;
   passportNumber?: string;
   emergencyContact: string;
-  dateOfBirth?: string;
   nationality?: string;
-  passportExpiryDate?: string;
   profilePicture?: string;
   passportPhoto?: string;
   visaPhoto?: string;
+  travelPolicyId?: string;
+  travelInsurance?: string;
   // Properties added when joining with other data sources
   groupId?: string;
   trekName?: string;
@@ -99,6 +100,7 @@ export interface Transaction {
   type: 'payment' | 'refund';
   date: string;
   note?: string;
+  mergeGroups?: string[]; // Added for merged groups functionality
 }
 
 export interface PaymentDetails {

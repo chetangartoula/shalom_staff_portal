@@ -1,5 +1,5 @@
 
-import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp } from '@/lib/types';
+import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp, Assignment } from '@/lib/types';
 import { initialTreks, services as staticServices, initialGuides, initialPorters, initialAirportPickUp } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
@@ -68,7 +68,22 @@ const writeDB = (data: any) => {
     }
 };
 
-const getDB = () => {
+interface TravelerGroup {
+    groupId: string;
+    travelers: any[]; // We'll keep this as any[] for now since it contains Traveler objects with additional properties
+}
+
+const getDB = (): {
+    treks: Trek[];
+    services: Service[];
+    guides: Guide[];
+    porters: Porter[];
+    airportPickUp: AirportPickUp[];
+    reports: Report[];
+    travelers: TravelerGroup[];
+    assignments: Assignment[];
+    transactions: Transaction[];
+} => {
     return readDB();
 }
 
@@ -93,6 +108,10 @@ export const getPaymentDetails = (groupId: string, totalCost: number) => {
     const db = getDB();
     const groupTransactions = db.transactions.filter((t: Transaction) => t.groupId === groupId);
     const totalPaid = groupTransactions.reduce((acc: number, t: Transaction) => {
+        // Exclude "Balance Due" transactions from the total paid calculation
+        if (t.note && t.note.includes('Balance Due')) {
+            return acc;
+        }
         return t.type === 'payment' ? acc + t.amount : acc - t.amount;
     }, 0);
     const balance = totalCost - totalPaid;
@@ -181,7 +200,7 @@ export const getPaginatedReports = (page: number, limit: number) => {
 }
 export const getReportByGroupId = (groupId: string) => {
     const db = getDB();
-    const report = db.reports.find((r: any) => r.groupId === groupId);
+    const report = db.reports.find((r: Report) => r.groupId === groupId);
     if (!report) return null;
 
     const totalCost = calculateReportTotalCost(report);
@@ -189,16 +208,16 @@ export const getReportByGroupId = (groupId: string) => {
 
     return { ...report, paymentDetails };
 }
-export const addReport = (report: any) => {
+export const addReport = (report: Report) => {
     const db = getDB();
     const reportWithStatus = { ...report };
     db.reports.push(reportWithStatus);
     writeDB(db);
     return reportWithStatus;
 }
-export const updateReport = (groupId: string, body: any) => {
+export const updateReport = (groupId: string, body: Partial<Report>) => {
     const db = getDB();
-    const reportIndex = db.reports.findIndex((r: any) => r.groupId === groupId);
+    const reportIndex = db.reports.findIndex((r: Report) => r.groupId === groupId);
     if (reportIndex > -1) {
         db.reports[reportIndex] = { ...db.reports[reportIndex], ...body };
         writeDB(db);
@@ -210,8 +229,8 @@ export const updateReport = (groupId: string, body: any) => {
 // Travelers
 export async function getAllTravelers() {
     const db = getDB();
-    const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
-    const allTravelers = db.travelers.flatMap((group: any) => {
+    const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, r]));
+    const allTravelers = db.travelers.flatMap((group: TravelerGroup) => {
         const report = reportMap.get(group.groupId);
         return group.travelers.map((traveler: any) => ({
             ...traveler,
@@ -224,11 +243,11 @@ export async function getAllTravelers() {
 }
 export const getTravelerGroup = (groupId: string) => {
     const db = getDB();
-    return db.travelers.find((t: any) => t.groupId === groupId);
+    return db.travelers.find((t: TravelerGroup) => t.groupId === groupId);
 }
 export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => {
     const db = getDB();
-    const groupIndex = db.travelers.findIndex((t: any) => t.groupId === groupId);
+    const groupIndex = db.travelers.findIndex((t: TravelerGroup) => t.groupId === groupId);
     if (groupIndex > -1) {
         const existingGroup = db.travelers[groupIndex];
         const travelerIndex = existingGroup.travelers.findIndex((t: any) => t.id === submittedTraveler.id);
@@ -244,21 +263,21 @@ export const updateTravelerGroup = (groupId: string, submittedTraveler: any) => 
         db.travelers.push(newTravelerGroup);
     }
     writeDB(db);
-    return db.travelers.find((t: any) => t.groupId === groupId);
+    return db.travelers.find((t: TravelerGroup) => t.groupId === groupId);
 }
 
 // Assignments
 export const getAssignmentsByGroupId = (groupId: string) => {
     const db = getDB();
-    return db.assignments.find((a: any) => a.groupId === groupId) || null;
+    return db.assignments.find((a: Assignment) => a.groupId === groupId) || null;
 }
 
 export const updateAssignments = (groupId: string, guideIds: string[], porterIds: string[]) => {
     const db = getDB();
-    const assignmentIndex = db.assignments.findIndex((a: any) => a.groupId === groupId);
+    const assignmentIndex = db.assignments.findIndex((a: Assignment) => a.groupId === groupId);
 
     // For airport pickup assignments, we're reusing the guideIds field
-    const newAssignment = { groupId, guideIds, porterIds };
+    const newAssignment: Assignment = { groupId, guideIds, porterIds };
 
     if (assignmentIndex > -1) {
         db.assignments[assignmentIndex] = newAssignment;
@@ -271,12 +290,12 @@ export const updateAssignments = (groupId: string, guideIds: string[], porterIds
 
 export const getAllAssignmentsWithDetails = () => {
     const db = getDB();
-    const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
-    const guideMap = new Map(db.guides.map((g: any) => [g.id, g]));
-    const porterMap = new Map(db.porters.map((p: any) => [p.id, p]));
-    const airportPickUpMap = new Map(db.airportPickUp.map((a: any) => [a.id, a])); // Add this line
+    const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, r]));
+    const guideMap = new Map(db.guides.map((g: Guide) => [g.id, g]));
+    const porterMap = new Map(db.porters.map((p: Porter) => [p.id, p]));
+    const airportPickUpMap = new Map(db.airportPickUp.map((a: AirportPickUp) => [a.id, a]));
 
-    return db.assignments.map((assignment: any) => {
+    return db.assignments.map((assignment: Assignment) => {
         const report = reportMap.get(assignment.groupId);
         return {
             ...assignment,
@@ -285,7 +304,7 @@ export const getAllAssignmentsWithDetails = () => {
             startDate: report?.startDate || null,
             guides: assignment.guideIds.map((id: string) => guideMap.get(id)).filter(Boolean),
             porters: assignment.porterIds.map((id: string) => porterMap.get(id)).filter(Boolean),
-            airportPickUp: assignment.guideIds.map((id: string) => airportPickUpMap.get(id)).filter(Boolean), // Add this line
+            airportPickUp: assignment.guideIds.map((id: string) => airportPickUpMap.get(id)).filter(Boolean),
         };
     });
 }
@@ -319,29 +338,29 @@ export const getPaginatedTransactions = (page: number, limit: number, filters: {
     const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, { trekName: r.trekName, groupName: r.groupName }]));
     
     // Start with all transactions, sorted
-    let allTransactions = [...db.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    let allTransactions = [...db.transactions].sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Apply filters
     const { from, to, type } = filters;
     let filteredTransactions = allTransactions;
 
     if (type && type !== 'all') {
-        filteredTransactions = filteredTransactions.filter(t => t.type === type);
+        filteredTransactions = filteredTransactions.filter((t: Transaction) => t.type === type);
     }
 
     if (from && to) {
         const interval = { start: startOfDay(parseISO(from)), end: endOfDay(parseISO(to)) };
-        filteredTransactions = filteredTransactions.filter(t => isWithinInterval(parseISO(t.date), interval));
+        filteredTransactions = filteredTransactions.filter((t: Transaction) => isWithinInterval(parseISO(t.date), interval));
     }
     
     // Calculate totals on the filtered data *before* pagination
     const totalPayments = filteredTransactions
-        .filter(t => t.type === 'payment')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: Transaction) => t.type === 'payment')
+        .reduce((sum, t: Transaction) => sum + t.amount, 0);
     
     const totalRefunds = filteredTransactions
-        .filter(t => t.type === 'refund')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .filter((t: Transaction) => t.type === 'refund')
+        .reduce((sum, t: Transaction) => sum + t.amount, 0);
 
     const netTotal = totalPayments - totalRefunds;
 
@@ -379,7 +398,7 @@ export const getStats = () => {
     const db = getDB();
     return {
         reports: db.reports.length,
-        travelers: db.travelers.reduce((acc: number, group: any) => acc + group.travelers.length, 0),
+        travelers: db.travelers.reduce((acc: number, group: TravelerGroup) => acc + group.travelers.length, 0),
         treks: db.treks.length,
         guides: db.guides.length,
         porters: db.porters.length,

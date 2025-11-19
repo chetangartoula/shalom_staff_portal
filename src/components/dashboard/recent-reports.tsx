@@ -29,8 +29,8 @@ export function RecentReports({ reports }: RecentReportsProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {reports.length > 0 ? reports.map((report: any) => (
-                                <TableRow key={report.groupId}>
+                            {reports.length > 0 ? reports.map((report: any, index: number) => (
+                                <TableRow key={`${report.groupId}-${index}`}>
                                     <TableCell>
                                         <div className="font-medium">{report.trekName}</div>
                                         <div className="text-sm text-muted-foreground">{report.groupName}</div>

@@ -46,6 +46,7 @@ const navItems = [
   { href: "/guides", label: "Guides", icon: Users2 },
   { href: "/porters", label: "Porters", icon: Backpack },
   { href: "/airport-pick-up", label: "Airport Pick Up", icon: Plane },
+  { href: "/comprehensive-reports", label: "Reports", icon: BookUser },
 ];
 
 const NavItem = ({ href, label, icon: Icon, isExpanded }: { href: string; label: string; icon: React.ElementType; isExpanded: boolean; }) => {

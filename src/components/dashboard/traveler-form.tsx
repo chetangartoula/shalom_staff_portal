@@ -57,15 +57,16 @@ const travelerSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone number is required"),
+  email: z.string().email("Please enter a valid email address").optional(),
   address: z.string().min(1, "Address is required"),
   passportNumber: z.string().optional(),
   emergencyContact: z.string().min(1, "Emergency contact is required"),
-  dateOfBirth: z.date({ required_error: "Date of birth is required" }),
   nationality: z.string().min(1, "Nationality is required"),
-  passportExpiryDate: z.date({ required_error: "Passport expiry is required" }),
   profilePicture: z.string().optional(),
   passportPhoto: z.any().refine((files) => files?.length > 0, "Passport photo is required."),
   visaPhoto: z.any().optional(),
+  travelPolicyId: z.any().optional(),
+  travelInsurance: z.any().optional(),
 });
 
 
@@ -110,15 +111,16 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
         id: clientSideTravelerIds[i],
         name: "",
         phone: "",
+        email: "",
         address: "",
         passportNumber: "",
         emergencyContact: "",
         nationality: "",
-        dateOfBirth: undefined,
-        passportExpiryDate: undefined,
         profilePicture: "",
         passportPhoto: undefined,
         visaPhoto: undefined,
+        travelPolicyId: undefined,
+        travelInsurance: undefined,
       })),
     [groupSize, clientSideTravelerIds]
   );
@@ -149,12 +151,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
             }));
              
             const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-              const existing = existingTravelers.find((et: Traveler) => {
-                // This logic is tricky. Assuming order is preserved for now.
-                // A better approach would be a stable ID.
-                return index < existingTravelers.length;
-              });
-
               if (existingTravelers[index]) {
                   const existing = existingTravelers[index];
                   return { 
@@ -249,6 +245,16 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
         const visaFile = payload.visaPhoto?.[0];
         if (visaFile instanceof File) {
             payload.visaPhoto = await fileToDataURL(visaFile);
+        }
+
+        const travelPolicyIdFile = payload.travelPolicyId?.[0];
+        if (travelPolicyIdFile instanceof File) {
+            payload.travelPolicyId = await fileToDataURL(travelPolicyIdFile);
+        }
+
+        const travelInsuranceFile = payload.travelInsurance?.[0];
+        if (travelInsuranceFile instanceof File) {
+            payload.travelInsurance = await fileToDataURL(travelInsuranceFile);
         }
 
       const response = await fetch(`/api/travelers/${groupId}`, {
@@ -357,7 +363,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         </FormItem>
                     )}
                     />
-                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.phone`}
@@ -377,22 +382,21 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                     />
                     <FormField
                         control={form.control}
-                        name={`travelers.${index}.dateOfBirth`}
+                        name={`travelers.${index}.email`}
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Date of Birth</FormLabel>
+                            <FormLabel>Email Address (Optional)</FormLabel>
                             <FormControl>
-                            <DatePicker
-                                date={field.value}
-                                setDate={field.onChange}
+                            <Input
+                                placeholder="traveler@example.com"
+                                {...field}
+                                value={field.value ?? ""}
                             />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
                     />
-                    </div>
-                    <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
                         name={`travelers.${index}.passportNumber`}
@@ -410,23 +414,6 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         </FormItem>
                         )}
                     />
-                    <FormField
-                        control={form.control}
-                        name={`travelers.${index}.passportExpiryDate`}
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Passport Expiry Date</FormLabel>
-                            <FormControl>
-                            <DatePicker
-                                date={field.value}
-                                setDate={field.onChange}
-                            />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
@@ -537,6 +524,65 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                         </FormItem>
                         )}
                     />
+                    </div>
+                    
+                    {/* Travel Policy ID and Travel Insurance */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name={`travelers.${index}.travelPolicyId`}
+                          render={({
+                          field: { onChange, onBlur, name, ref },
+                          }) => (
+                          <FormItem>
+                              <FormLabel>Travel Policy ID</FormLabel>
+                              <FormControl>
+                              <Input
+                                  type="file"
+                                  onBlur={onBlur}
+                                  name={name}
+                                  ref={ref}
+                                  onChange={(e) =>
+                                  onChange(e.target.files)
+                                  }
+                                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                              />
+                              </FormControl>
+                              <FormDescription>
+                                  Upload your travel policy ID document (PDF or Word document).
+                              </FormDescription>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
+                      
+                      <FormField
+                          control={form.control}
+                          name={`travelers.${index}.travelInsurance`}
+                          render={({
+                          field: { onChange, onBlur, name, ref },
+                          }) => (
+                          <FormItem>
+                              <FormLabel>Travel Insurance</FormLabel>
+                              <FormControl>
+                              <Input
+                                  type="file"
+                                  onBlur={onBlur}
+                                  name={name}
+                                  ref={ref}
+                                  onChange={(e) =>
+                                  onChange(e.target.files)
+                                  }
+                                  accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                              />
+                              </FormControl>
+                              <FormDescription>
+                                  Upload your travel insurance document (PDF or Word document).
+                              </FormDescription>
+                              <FormMessage />
+                          </FormItem>
+                          )}
+                      />
                     </div>
                     <CardFooter className="px-0 pt-6">
                     <Button

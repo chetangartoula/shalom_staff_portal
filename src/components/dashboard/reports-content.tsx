@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import useSWR from 'swr';
-import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical, Plane } from 'lucide-react';
+import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical, Plane, PlusSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/shadcn/input';
@@ -28,6 +28,7 @@ const TravelerDetailsModal = lazy(() => import('@/components/dashboard/traveler-
 interface ReportsContentProps {
     initialData?: {
         reports: Report[];
+        total: number;
         hasMore: boolean;
     },
     pageType?: 'reports' | 'payments';
@@ -48,13 +49,21 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
   const [reports, setReports] = useState<Report[]>(initialData?.reports || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
+  const [totalReports, setTotalReports] = useState(initialData?.total ?? 0);
   const [hasMore, setHasMore] = useState(initialData?.hasMore ?? true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   
   const [selectedReportForTravelers, setSelectedReportForTravelers] = useState<Report | null>(null);
   const [isTravelerModalOpen, setIsTravelerModalOpen] = useState(false);
   
-  const endpoint = `/api/reports?page=${page}&limit=10`;
+  const endpoint = searchTerm 
+      ? `/api/reports?search=${encodeURIComponent(searchTerm)}&page=${page}&limit=10`
+      : `/api/reports?page=${page}&limit=10`;
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
   const { data, error, isLoading } = useSWR(endpoint, fetcher, {
     fallbackData: page === 1 ? initialData : undefined,
     keepPreviousData: true,
@@ -62,24 +71,23 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
 
   useEffect(() => {
     if (data) {
-      setReports(prev => page === 1 ? data.reports : [...prev, ...data.reports.filter((newReport: Report) => !prev.some(p => p.groupId === newReport.groupId))]);
+      setReports(data.reports);
+      setTotalReports(data.total);
       setHasMore(data.hasMore);
     }
-  }, [data, page]);
+  }, [data]);
 
   const filteredReports = useMemo(() => {
-    return reports.filter(report =>
-      (report.trekName && report.trekName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (report.groupName && report.groupName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (report.groupId && report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, reports]);
+    return reports;
+  }, [reports]);
 
-  const handleLoadMore = useCallback(() => {
-    if (hasMore && !isLoading) {
-      setPage(p => p + 1);
+  const totalPages = Math.ceil(totalReports / 10);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPage(newPage);
     }
-  }, [hasMore, isLoading]);
+  }, [totalPages]);
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -110,6 +118,10 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
 
   const handleManagePayments = (groupId: string) => {
     router.push(`/payments/${groupId}`);
+  }
+
+  const handleExtraServices = (groupId: string) => {
+    router.push(`/extra-services?groupId=${groupId}`);
   }
 
   const cardTitle = pageType === 'payments' ? 'Payment Status' : 'All Reports';
@@ -152,6 +164,9 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                      </DropdownMenuItem>
                      <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
                        <Edit className="mr-2 h-4 w-4" /> Edit Costing
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => handleExtraServices(report.groupId)}>
+                       <PlusSquare className="mr-2 h-4 w-4" /> Extra Services
                      </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -279,6 +294,9 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                                         <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
                                             <Edit className="mr-2 h-4 w-4" /> Edit Costing
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleExtraServices(report.groupId)}>
+                                            <PlusSquare className="mr-2 h-4 w-4" /> Extra Services
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </div>
@@ -336,14 +354,47 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
                 </>
                 )}
             </CardContent>
-            {hasMore && !searchTerm && (
-            <CardFooter className="justify-center pt-6">
-                <Button onClick={handleLoadMore} disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Load More
-                </Button>
+            <CardFooter className="flex flex-col items-center justify-between gap-4 pt-6">
+                <div className="text-sm text-muted-foreground">
+                    Showing {(page - 1) * 10 + 1}-{Math.min(page * 10, totalReports)} of {totalReports} reports
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page === 1}
+                    >
+                        Previous
+                    </Button>
+                    
+                    {/* Page numbers */}
+                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                        const pageNum = Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
+                        if (pageNum > totalPages) return null;
+                        
+                        return (
+                            <Button
+                                key={pageNum}
+                                variant={pageNum === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => handlePageChange(pageNum)}
+                            >
+                                {pageNum}
+                            </Button>
+                        );
+                    })}
+                    
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={!hasMore}
+                    >
+                        Next
+                    </Button>
+                </div>
             </CardFooter>
-            )}
         </Card>
       </div>
     </>

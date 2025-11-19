@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, FileDown, Search } from 'lucide-react';
+import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, Search, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
@@ -51,6 +51,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: reportData, mutate: mutateReport } = useSWR(`/api/reports/${initialReport.groupId}`, fetcher, { fallbackData: initialReport });
     const { data: transactionData, mutate: mutateTransactions, error: swrError } = useSWR(`/api/transactions/${initialReport.groupId}`, fetcher);
     const { data: allReportsData } = useSWR('/api/reports?limit=1000', fetcher); // Fetch all reports for merge selection
+    const { data: allTransactionsData } = useSWR('/api/transactions/all?all=true', fetcher); // Fetch all transactions for merged group calculations
     
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [open, setOpen] = useState(false);
@@ -63,6 +64,23 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         (report.groupName.toLowerCase().includes(searchTerm.toLowerCase()) || 
          report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
     ) || [];
+
+    // Calculate total amount from merged groups
+    const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
+        if (!mergeGroups || mergeGroups.length === 0 || !allTransactionsData) {
+            return 0;
+        }
+
+        // Get all transactions for the merged groups
+        const mergedGroupTransactions = allTransactionsData.transactions.filter(
+            (t: Transaction) => mergeGroups.includes(t.groupId)
+        );
+
+        // Sum up all payment amounts (exclude refunds)
+        return mergedGroupTransactions
+            .filter((t: Transaction) => t.type === 'payment')
+            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+    };
 
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionSchema),
@@ -77,10 +95,26 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
     // Update form when selected reports change
     useEffect(() => {
-        form.setValue('mergeGroups', selectedReports.map(r => r.groupId));
+        const mergeGroups = selectedReports.map(r => r.groupId);
+        form.setValue('mergeGroups', mergeGroups);
+        
+        // Automatically calculate and set the amount based on merged groups
+        const mergedTotal = calculateMergedGroupsTotal(mergeGroups);
+        if (mergedTotal > 0 && mergeGroups.length > 0) {
+            form.setValue('amount', mergedTotal);
+        }
     }, [selectedReports]);
 
     const transactionType = form.watch('type');
+    const mergeGroupsValue = form.watch('mergeGroups');
+    
+    // Update amount when mergeGroups change
+    useEffect(() => {
+        const mergedTotal = calculateMergedGroupsTotal(mergeGroupsValue);
+        if (mergedTotal > 0 && mergeGroupsValue && mergeGroupsValue.length > 0) {
+            form.setValue('amount', mergedTotal);
+        }
+    }, [mergeGroupsValue]);
 
     const onSubmit = async (values: TransactionFormValues) => {
         if (!reportData) return;
@@ -114,7 +148,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const isFullyPaid = paymentDetails?.paymentStatus === 'fully paid' || paymentDetails?.paymentStatus === 'overpaid';
     const isPaymentDisabled = isFullyPaid && transactionType === 'payment';
 
-     const handleDownloadInvoice = async () => {
+    const handleDownloadInvoice = async (transaction?: Transaction) => {
         if (!reportData || !paymentDetails) return;
 
         const { default: jsPDF } = await import('jspdf');
@@ -197,22 +231,50 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.text("Transaction History", pageLeftMargin, yPos);
         yPos += 8;
 
-        autoTable(doc, {
-            startY: yPos,
-            head: [['Date', 'Type', 'Note', 'Amount']],
-            body: transactions.map(t => [
-                format(parseISO(t.date), 'PPP'),
-                t.type.charAt(0).toUpperCase() + t.type.slice(1),
-                t.note || '-',
-                formatCurrency(t.amount)
-            ]),
-            theme: 'striped',
-            headStyles: { fillColor: brandColor, font: 'helvetica' },
-            styles: { font: 'helvetica' },
-            columnStyles: {
-                3: { halign: 'right' }
-            }
-        });
+        // If downloading individual transaction, only show that one
+        const transactionsToShow = transaction ? [transaction] : transactions;
+        const tableTitle = transaction ? "Transaction Details" : "Transaction History";
+
+        if (transaction) {
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text(tableTitle, pageLeftMargin, yPos);
+            yPos += 8;
+            
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Date', 'Type', 'Note', 'Amount']],
+                body: [[
+                    format(parseISO(transaction.date), 'PPP'),
+                    transaction.note && transaction.note.includes('Balance Due') ? 'Unpaid' : transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1),
+                    transaction.note || '-',
+                    formatCurrency(transaction.amount)
+                ]],
+                theme: 'striped',
+                headStyles: { fillColor: brandColor, font: 'helvetica' },
+                styles: { font: 'helvetica' },
+                columnStyles: {
+                    3: { halign: 'right' }
+                }
+            });
+        } else {
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Date', 'Type', 'Note', 'Amount']],
+                body: transactions.map(t => [
+                    format(parseISO(t.date), 'PPP'),
+                    t.note && t.note.includes('Balance Due') ? 'Unpaid' : t.type.charAt(0).toUpperCase() + t.type.slice(1),
+                    t.note || '-',
+                    formatCurrency(t.amount)
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: brandColor, font: 'helvetica' },
+                styles: { font: 'helvetica' },
+                columnStyles: {
+                    3: { halign: 'right' }
+                }
+            });
+        }
 
         // --- Footer ---
         const finalY = (doc as any).lastAutoTable.finalY;
@@ -232,7 +294,11 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.text("Thank you for your business!", doc.internal.pageSize.width / 2, footerY, { align: 'center' });
 
 
-        doc.save(`invoice-${reportData.groupId.substring(0, 8)}.pdf`);
+        // If downloading individual transaction, name the file with transaction ID
+        const filename = transaction 
+            ? `invoice-${reportData.groupId.substring(0, 8)}-${transaction.id.substring(0, 8)}.pdf`
+            : `invoice-${reportData.groupId.substring(0, 8)}.pdf`;
+        doc.save(filename);
     };
 
     return (
@@ -251,12 +317,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             </div>
             
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader>
                     <CardTitle>Financial Summary</CardTitle>
-                     <Button variant="outline" onClick={handleDownloadInvoice} disabled={transactions.length === 0}>
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Download Invoice
-                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
@@ -446,22 +508,32 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                         <TableHead>Type</TableHead>
                                         <TableHead>Note</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {isLoadingTransactions ? (
-                                        <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                     ) : transactions.length > 0 ? (
                                         transactions.map(t => (
                                             <TableRow key={t.id}>
                                                 <TableCell>{format(parseISO(t.date), 'PPP')}</TableCell>
-                                                <TableCell className={cn("capitalize", t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>{t.type}</TableCell>
+                                                <TableCell className={cn("capitalize", 
+                                                    t.note && t.note.includes('Balance Due') ? 'text-yellow-600' : 
+                                                    t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
+                                                    {t.note && t.note.includes('Balance Due') ? 'Unpaid' : t.type}
+                                                </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>
                                                 <TableCell className="text-right font-medium">{formatCurrency(t.amount)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm" onClick={() => handleDownloadInvoice(t)}>
+                                                        <FileDown className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
-                                        <TableRow><TableCell colSpan={4} className="text-center h-24">No transactions yet.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={5} className="text-center h-24">No transactions yet.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
