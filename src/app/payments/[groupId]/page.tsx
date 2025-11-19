@@ -12,7 +12,7 @@ interface PaymentPageProps {
 }
 
 export default async function PaymentPage({ params }: PaymentPageProps) {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const user = await getUser();
     const report = getReportByGroupId(groupId);
     

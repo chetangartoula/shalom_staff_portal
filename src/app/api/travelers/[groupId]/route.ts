@@ -18,7 +18,7 @@ async function sha256(str: string): Promise<string> {
 
 export async function GET(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const travelerGroup = getTravelerGroup(groupId);
 
     if (travelerGroup) {
@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function PUT(request: Request, { params }: Params) {
     try {
-        const { groupId } = params;
+        const { groupId } = await params; // Await the params object
         const body = await request.json();
         let { traveler: submittedTraveler } = body;
 

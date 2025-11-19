@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { getReportByGroupId, updateReport } from '../../data';
 
@@ -10,7 +9,7 @@ interface Params {
 
 export async function GET(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const report = getReportByGroupId(groupId);
     if (report) {
       return NextResponse.json(report);
@@ -23,7 +22,7 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function PUT(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const body = await request.json();
     const updated = updateReport(groupId, body);
 

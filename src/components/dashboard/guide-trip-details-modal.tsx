@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Loader2, FileDown, User, Backpack, Users as UsersIcon, Ticket, ConciergeBell } from 'lucide-react';
+import { Loader2, FileDown, User, Backpack, Users as UsersIcon, Ticket, ConciergeBell, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import Image from 'next/image';
 import {
@@ -16,7 +16,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Separator } from '@/components/ui/shadcn/separator';
 import { useToast } from '@/hooks/use-toast';
-import type { Guide, Porter, SectionState, Traveler } from '@/lib/types';
+import type { Guide, Porter, SectionState, Traveler, AirportPickUp } from '@/lib/types';
 import { logoUrl } from '../logo';
 
 interface Assignment {
@@ -38,6 +38,7 @@ interface TripDetails {
     travelers: Traveler[];
     guides: Guide[];
     porters: Porter[];
+    airportPickUp: AirportPickUp[]; // Add this line
 }
 
 interface GuideTripDetailsModalProps {
@@ -132,12 +133,14 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
 
         const guidesText = details.guides.map(g => `${g.name} (${g.phone})`).join('\n');
         const portersText = details.porters.map(p => `${p.name} (${p.phone})`).join('\n');
+        const airportPickUpText = details.airportPickUp.map(a => `${a.name} (${a.phone})`).join('\n'); // Add this line
 
         autoTable(doc, {
             startY: yPos,
             body: [
                 ['Guides', guidesText || 'None'],
                 ['Porters', portersText || 'None'],
+                ['Airport Pickup', airportPickUpText || 'None'], // Add this line
             ],
             theme: 'grid',
             styles: { fontSize: 10, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 }, font: 'helvetica' },
@@ -255,7 +258,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                             {/* Team */}
                             <div>
                                 <h4 className="font-semibold mb-2">Assigned Team</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Changed to 3 columns */}
                                     <div className="rounded-lg border p-4">
                                         <h5 className="font-medium flex items-center gap-2 mb-2"><User className="h-4 w-4"/> Guides ({details.guides.length})</h5>
                                         <div className="flex flex-col gap-1 text-sm">
@@ -274,6 +277,18 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                                 <div key={p.id} className="flex justify-between">
                                                     <span>{p.name}</span>
                                                     <span className="text-muted-foreground">{p.phone}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {/* Add this section for airport pickup */}
+                                    <div className="rounded-lg border p-4">
+                                        <h5 className="font-medium flex items-center gap-2 mb-2"><Plane className="h-4 w-4"/> Airport Pickup ({details.airportPickUp.length})</h5>
+                                        <div className="flex flex-col gap-1 text-sm">
+                                            {details.airportPickUp.map(a => (
+                                                <div key={a.id} className="flex justify-between">
+                                                    <span>{a.name}</span>
+                                                    <span className="text-muted-foreground">{a.phone}</span>
                                                 </div>
                                             ))}
                                         </div>

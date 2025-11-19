@@ -4,13 +4,13 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Search, Edit, Users, Backpack, UserCheck, MoreVertical, Loader2 } from 'lucide-react';
+import { Search, Edit, Users, Backpack, UserCheck, MoreVertical, Loader2, Plane } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/shadcn/table';
 import { Input } from '@/components/ui/shadcn/input';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
-import type { Guide, Porter } from '@/lib/types';
+import type { Guide, Porter, AirportPickUp } from '@/lib/types';
 import useSWR from 'swr';
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ interface Assignment {
     startDate: string;
     guides: Guide[];
     porters: Porter[];
+    airportPickUp: AirportPickUp[];
 }
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -72,6 +73,7 @@ export function AssignmentsContent() {
                         <TableHead>Start Date</TableHead>
                         <TableHead>Assigned Guides</TableHead>
                         <TableHead>Assigned Porters</TableHead>
+                        <TableHead>Assigned Airport Pickup</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -92,6 +94,13 @@ export function AssignmentsContent() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     {assignment.porters.length > 0 ? assignment.porters.map(p => (
                                         <Badge key={p.id} variant="secondary" className="gap-1.5"><Backpack className="h-3 w-3" /> {p.name}</Badge>
+                                    )) : <span className="text-muted-foreground text-xs">None</span>}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
+                                        <Badge key={a.id} variant="secondary" className="gap-1.5"><Plane className="h-3 w-3" /> {a.name}</Badge>
                                     )) : <span className="text-muted-foreground text-xs">None</span>}
                                 </div>
                             </TableCell>
@@ -157,6 +166,14 @@ export function AssignmentsContent() {
                             <div className="flex items-center gap-2 flex-wrap">
                                 {assignment.porters.length > 0 ? assignment.porters.map(p => (
                                     <Badge key={p.id} variant="secondary" className="gap-1.5"><Backpack className="h-3 w-3" /> {p.name}</Badge>
+                                )) : <span className="text-muted-foreground text-xs">None</span>}
+                            </div>
+                        </div>
+                        <div>
+                            <h4 className="font-medium mb-2">Airport Pickup</h4>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
+                                    <Badge key={a.id} variant="secondary" className="gap-1.5"><Plane className="h-3 w-3" /> {a.name}</Badge>
                                 )) : <span className="text-muted-foreground text-xs">None</span>}
                             </div>
                         </div>

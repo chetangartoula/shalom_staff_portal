@@ -45,6 +45,7 @@ type ReportState = {
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl?: string;
+  clientCommunicationMethod?: string; // Added for client communication method
 };
 
 const createInitialSectionState = (id: string, name: string): SectionState => ({
@@ -53,6 +54,7 @@ const createInitialSectionState = (id: string, name: string): SectionState => ({
   rows: [],
   discountType: 'amount',
   discountValue: 0,
+  discountRemarks: '', // Initialize discount remarks
 });
 
 const createInitialReportState = (groupId?: string): ReportState => ({
@@ -67,6 +69,7 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   extraDetails: createInitialSectionState('extraDetails', 'Extra Details'),
   customSections: [],
   serviceCharge: 10,
+  clientCommunicationMethod: '', // Initialize client communication method
 });
 
 
@@ -196,42 +199,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   const handleDetailChange = useCallback((field: keyof ReportState, value: any) => {
       setReport(prev => ({...prev, [field]: value}));
   }, []);
-
-  const handleTrekSelect = useCallback((trekId: string) => {
-    const newSelectedTrek = treks?.find(t => t.id === trekId);
-    if (!newSelectedTrek) return;
-
-    setReport(prev => {
-        const isPax = usePax['permits'] ?? false;
-        const numberValue = isPax ? prev.groupSize : 1;
-        const initialPermits = newSelectedTrek.permits.map(p => ({
-            id: crypto.randomUUID(),
-            description: p.name,
-            rate: p.rate,
-            no: numberValue,
-            times: 1,
-            total: p.rate * numberValue,
-        }));
-
-        const initialExtraDetails = [
-            { id: crypto.randomUUID(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
-            { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
-        ];
-
-        const defaultGroupName = `${newSelectedTrek.name} ${prev.groupId.substring(0, 4)}`;
-
-        return {
-            ...prev,
-            trekId: newSelectedTrek.id,
-            trekName: newSelectedTrek.name,
-            groupName: prev.groupName || defaultGroupName,
-            permits: { ...prev.permits, rows: initialPermits },
-            extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
-        };
-    });
-    setCurrentStep(1);
-  }, [treks, usePax]);
-
+  
   const handleSectionUpdate = useCallback((sectionId: string, updater: (s: SectionState) => SectionState) => {
     setReport(prevReport => {
         const newReport = {...prevReport};
@@ -270,6 +238,45 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
     handleSectionUpdate(sectionId, (section) => ({ ...section, discountValue: value }));
   }, [handleSectionUpdate]);
 
+  // Add a new handler for discount remarks
+  const handleDiscountRemarksChange = useCallback((sectionId: string, remarks: string) => {
+    handleSectionUpdate(sectionId, (section) => ({ ...section, discountRemarks: remarks }));
+  }, [handleSectionUpdate]);
+
+  const handleTrekSelect = useCallback((trekId: string) => {
+    const newSelectedTrek = treks?.find(t => t.id === trekId);
+    if (!newSelectedTrek) return;
+
+    setReport(prev => {
+        const isPax = usePax['permits'] ?? false;
+        const numberValue = isPax ? prev.groupSize : 1;
+        const initialPermits = newSelectedTrek.permits.map(p => ({
+            id: crypto.randomUUID(),
+            description: p.name,
+            rate: p.rate,
+            no: numberValue,
+            times: 1,
+            total: p.rate * numberValue,
+        }));
+
+        const initialExtraDetails = [
+            { id: crypto.randomUUID(), description: 'Satellite device', rate: 0, no: 1, times: 12, total: 0 },
+            { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: 1, times: 0, total: 0 }
+        ];
+
+        const defaultGroupName = `${newSelectedTrek.name} ${prev.groupId.substring(0, 4)}`;
+
+        return {
+            ...prev,
+            trekId: newSelectedTrek.id,
+            trekName: newSelectedTrek.name,
+            groupName: prev.groupName || defaultGroupName,
+            permits: { ...prev.permits, rows: initialPermits },
+            extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
+        };
+    });
+    setCurrentStep(1);
+  }, [treks, usePax]);
 
   const addRow = useCallback((sectionId: string) => {
     const isPax = usePax[sectionId] ?? false;
@@ -433,6 +440,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             onGroupSizeChange={handleGroupSizeChange}
             startDate={report.startDate}
             onStartDateChange={(date) => handleDetailChange('startDate', date)}
+            clientCommunicationMethod={report.clientCommunicationMethod}
+            onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
         />;
     }
     
@@ -442,6 +451,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             onRowChange={handleRowChange}
             onDiscountTypeChange={handleDiscountTypeChange}
             onDiscountValueChange={handleDiscountValueChange}
+            onDiscountRemarksChange={handleDiscountRemarksChange} // Add this prop
             onAddRow={addRow}
             onRemoveRow={removeRow}
             onExportPDF={onExportPDF}
@@ -454,6 +464,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
             setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
             includeServiceChargeInPdf={includeServiceChargeInPdf}
             setIncludeServiceChargeInPdf={setIncludeServiceChargeInPdf}
+            clientCommunicationMethod={report.clientCommunicationMethod} // Add this prop
+            onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)} // Add this prop
         />;
     }
 

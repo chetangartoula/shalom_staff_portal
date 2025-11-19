@@ -10,7 +10,7 @@ interface Params {
 
 export async function GET(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const transactions = getTransactionsByGroupId(groupId);
     return NextResponse.json({ transactions });
   } catch (error) {
@@ -20,7 +20,7 @@ export async function GET(request: Request, { params }: Params) {
 
 export async function POST(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const body = await request.json();
     
     if (!body.amount || !body.type || !body.date) {

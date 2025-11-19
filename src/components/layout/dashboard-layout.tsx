@@ -16,6 +16,7 @@ import {
   Wallet,
   PanelLeftOpen,
   PanelLeftClose,
+  Plane
 } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import {
@@ -44,6 +45,7 @@ const navItems = [
   { href: "/travelers", label: "All Travelers", icon: Users },
   { href: "/guides", label: "Guides", icon: Users2 },
   { href: "/porters", label: "Porters", icon: Backpack },
+  { href: "/airport-pick-up", label: "Airport Pick Up", icon: Plane },
 ];
 
 const NavItem = ({ href, label, icon: Icon, isExpanded }: { href: string; label: string; icon: React.ElementType; isExpanded: boolean; }) => {

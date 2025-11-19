@@ -26,7 +26,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
     const statCards = [
         { title: 'Total Reports', value: stats?.reports ?? 0, icon: "ClipboardList" as IconName, color: 'text-blue-500' },
         { title: 'Total Travelers', value: stats?.travelers ?? 0, icon: "Users" as IconName, color: 'text-green-500' },
-        { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain" as IconName, color: 'text-purple-500' },
+        // { title: 'Available Treks', value: stats?.treks ?? 0, icon: "Mountain" as IconName, color: 'text-purple-500' },
         { title: 'Total Guides', value: stats?.guides ?? 0, icon: "Users2" as IconName, color: 'text-yellow-500' },
         { title: 'Total Porters', value: stats?.porters ?? 0, icon: "Backpack" as IconName, color: 'text-orange-500' },
     ];

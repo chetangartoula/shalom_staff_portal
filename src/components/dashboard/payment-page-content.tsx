@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import * as z from 'zod';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, FileDown } from 'lucide-react';
+import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, FileDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
@@ -20,6 +20,13 @@ import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
 import { DatePicker } from '../ui/shadcn/date-picker';
 import { logoUrl } from '@/components/logo';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/shadcn/popover";
+import { Badge } from "@/components/ui/shadcn/badge";
+import { Checkbox } from "@/components/ui/shadcn/checkbox";
 
 interface PaymentPageContentProps {
     initialReport: Report;
@@ -30,6 +37,7 @@ const transactionSchema = z.object({
     type: z.enum(['payment', 'refund']),
     date: z.date({ required_error: "Transaction date is required." }),
     note: z.string().optional(),
+    mergeGroups: z.array(z.string()).optional(), // New field for merge groups
 });
 
 type TransactionFormValues = z.infer<typeof transactionSchema>;
@@ -42,8 +50,19 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
     const { data: reportData, mutate: mutateReport } = useSWR(`/api/reports/${initialReport.groupId}`, fetcher, { fallbackData: initialReport });
     const { data: transactionData, mutate: mutateTransactions, error: swrError } = useSWR(`/api/transactions/${initialReport.groupId}`, fetcher);
+    const { data: allReportsData } = useSWR('/api/reports?limit=1000', fetcher); // Fetch all reports for merge selection
     
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedReports, setSelectedReports] = useState<{groupId: string, groupName: string}[]>([]);
+
+    // Filter reports for merge selection (exclude current report)
+    const availableReports = allReportsData?.reports?.filter((report: Report) => 
+        report.groupId !== initialReport.groupId &&
+        (report.groupName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+         report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
 
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionSchema),
@@ -52,8 +71,14 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             type: 'payment',
             date: new Date(),
             note: '',
+            mergeGroups: [],
         },
     });
+
+    // Update form when selected reports change
+    useEffect(() => {
+        form.setValue('mergeGroups', selectedReports.map(r => r.groupId));
+    }, [selectedReports]);
 
     const transactionType = form.watch('type');
 
@@ -100,7 +125,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
         const pageLeftMargin = 15;
         const pageRightMargin = 15;
-        const brandColor = [21, 29, 79]; // #151D4F
+        const brandColor: [number, number, number] = [21, 29, 79]; // #151D4F
         let yPos = 20;
 
         // --- Header ---
@@ -119,7 +144,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
         doc.setFontSize(26);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+        doc.setTextColor(...brandColor);
         doc.text("INVOICE", doc.internal.pageSize.width - pageRightMargin, yPos, { align: 'right' });
         
         yPos += 15;
@@ -137,7 +162,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         
         yPos += 6;
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0);
+        doc.setTextColor(0, 0, 0);
         doc.text(reportData.groupName, pageLeftMargin, yPos);
         doc.text(reportData.groupId.substring(0, 13).toUpperCase(), 120, yPos);
         doc.text(format(new Date(), 'PPP'), 160, yPos);
@@ -294,6 +319,95 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
+
+                                {/* Merge Groups Field - NEW */}
+                                <FormField control={form.control} name="mergeGroups" render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Merge Groups</FormLabel>
+                                        <Popover open={open} onOpenChange={setOpen}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className={cn("justify-between", !field.value && "text-muted-foreground")}
+                                                    >
+                                                        {selectedReports.length > 0 
+                                                            ? `${selectedReports.length} group(s) selected` 
+                                                            : "Select groups to merge..."}
+                                                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="p-0" align="start">
+                                                <div className="p-2">
+                                                    <Input
+                                                        placeholder="Search by group name or ID..."
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                        className="mb-2"
+                                                    />
+                                                    <div className="max-h-60 overflow-y-auto">
+                                                        {availableReports.length > 0 ? (
+                                                            availableReports.map((report: Report) => (
+                                                                <div
+                                                                    key={report.groupId}
+                                                                    className="flex items-center space-x-2 py-2 px-1 hover:bg-accent rounded cursor-pointer"
+                                                                    onClick={() => {
+                                                                        const isSelected = selectedReports.some(r => r.groupId === report.groupId);
+                                                                        if (isSelected) {
+                                                                            setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
+                                                                        } else {
+                                                                            setSelectedReports([...selectedReports, { groupId: report.groupId, groupName: report.groupName }]);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Checkbox
+                                                                        checked={selectedReports.some(r => r.groupId === report.groupId)}
+                                                                        className="mr-2"
+                                                                    />
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium text-sm">{report.groupName}</span>
+                                                                        <span className="text-xs text-muted-foreground">{report.groupId}</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="py-6 text-center text-sm text-muted-foreground">
+                                                                No groups found.
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </PopoverContent>
+                                        </Popover>
+                                        {selectedReports.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {selectedReports.map((report) => (
+                                                    <Badge 
+                                                        key={report.groupId} 
+                                                        variant="secondary"
+                                                        className="pr-1"
+                                                    >
+                                                        {report.groupName}
+                                                        <button
+                                                            type="button"
+                                                            className="ml-1 rounded-full hover:bg-secondary-foreground/20"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
+                                                            }}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+
                                 <FormField control={form.control} name="date" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Date</FormLabel>
@@ -301,7 +415,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                 <FormField control={form.control} name="note" render={({ field }) => (
+
+                                <FormField control={form.control} name="note" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Note (Optional)</FormLabel>
                                         <FormControl><Textarea {...field} /></FormControl>

@@ -32,6 +32,7 @@ interface CostTableProps {
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
     onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
     onDiscountValueChange: (sectionId: string, value: number) => void;
+    onDiscountRemarksChange?: (sectionId: string, remarks: string) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     isCustom?: boolean;
@@ -47,6 +48,7 @@ function CostTableComponent({
     onRowChange,
     onDiscountTypeChange,
     onDiscountValueChange,
+    onDiscountRemarksChange = () => {},
     onAddRow,
     onRemoveRow,
     isCustom = false,
@@ -225,6 +227,18 @@ function CostTableComponent({
                                     placeholder="0.00"
                                 />
                             </div>
+                        </div>
+                        {/* Discount Remarks Field */}
+                        <div className="flex items-center justify-between gap-4">
+                            <Label htmlFor={`discount-remarks-${section.id}`} className="shrink-0">Discount Remarks</Label>
+                            <Input 
+                                type="text" 
+                                id={`discount-remarks-${section.id}`} 
+                                value={section.discountRemarks || ''} 
+                                onChange={e => onDiscountRemarksChange(section.id, e.target.value)} 
+                                className="w-full max-w-60"
+                                placeholder="Add remarks for discount..."
+                            />
                         </div>
                         {discountAmount > 0 && (
                             <div className="flex items-center justify-end gap-4 text-sm text-muted-foreground">

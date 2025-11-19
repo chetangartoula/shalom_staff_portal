@@ -1,6 +1,6 @@
 
-import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus } from '@/lib/types';
-import { initialTreks, services as staticServices, initialGuides, initialPorters } from '@/lib/mock-data';
+import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp } from '@/lib/types';
+import { initialTreks, services as staticServices, initialGuides, initialPorters, initialAirportPickUp } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
 import { parseISO, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
@@ -23,11 +23,19 @@ const readDB = () => {
                 services: data.services || [],
                 guides: data.guides || [],
                 porters: data.porters || [],
+                airportPickUp: data.airportPickUp || [], // This will be empty if not in file
                 reports: data.reports || [],
                 travelers: data.travelers || [],
                 assignments: data.assignments || [],
                 transactions: data.transactions || [],
             };
+            
+            // If airportPickUp is empty, initialize it with default data
+            if (cachedDb.airportPickUp.length === 0) {
+                cachedDb.airportPickUp = initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() }));
+                writeDB(cachedDb); // Save the updated data back to file
+            }
+            
             return cachedDb;
         }
     } catch (error) {
@@ -40,12 +48,14 @@ const readDB = () => {
         services: staticServices.map(s => ({ ...s, id: crypto.randomUUID() })),
         guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
         porters: initialPorters.map(p => ({ ...p, id: crypto.randomUUID() })),
+        airportPickUp: initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() })), // This was already correct
         reports: [],
         travelers: [],
         assignments: [],
         transactions: [],
     };
     cachedDb = defaultData;
+    writeDB(cachedDb); // Save the default data to file
     return cachedDb;
 };
 
@@ -126,6 +136,12 @@ export const getGuides = () => {
 export const getPorters = () => {
     const db = getDB();
     return { porters: db.porters };
+}
+
+// Airport Pick Up
+export const getAirportPickUp = () => {
+    const db = getDB();
+    return { airportPickUp: db.airportPickUp };
 }
 
 // Reports
@@ -241,6 +257,7 @@ export const updateAssignments = (groupId: string, guideIds: string[], porterIds
     const db = getDB();
     const assignmentIndex = db.assignments.findIndex((a: any) => a.groupId === groupId);
 
+    // For airport pickup assignments, we're reusing the guideIds field
     const newAssignment = { groupId, guideIds, porterIds };
 
     if (assignmentIndex > -1) {
@@ -257,6 +274,7 @@ export const getAllAssignmentsWithDetails = () => {
     const reportMap = new Map(db.reports.map((r: any) => [r.groupId, r]));
     const guideMap = new Map(db.guides.map((g: any) => [g.id, g]));
     const porterMap = new Map(db.porters.map((p: any) => [p.id, p]));
+    const airportPickUpMap = new Map(db.airportPickUp.map((a: any) => [a.id, a])); // Add this line
 
     return db.assignments.map((assignment: any) => {
         const report = reportMap.get(assignment.groupId);
@@ -267,6 +285,7 @@ export const getAllAssignmentsWithDetails = () => {
             startDate: report?.startDate || null,
             guides: assignment.guideIds.map((id: string) => guideMap.get(id)).filter(Boolean),
             porters: assignment.porterIds.map((id: string) => porterMap.get(id)).filter(Boolean),
+            airportPickUp: assignment.guideIds.map((id: string) => airportPickUpMap.get(id)).filter(Boolean), // Add this line
         };
     });
 }

@@ -16,13 +16,14 @@ import type { CostRow, SectionState } from "@/lib/types";
 import { FileDown, Mail, MessageSquare } from 'lucide-react';
 import { CostTable } from "@/components/dashboard/cost-table";
 import { Checkbox } from '../ui/shadcn/checkbox';
-
+import { Textarea } from "@/components/ui/shadcn/textarea";
 
 interface FinalStepProps {
     extraDetailsState: SectionState;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
     onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
     onDiscountValueChange: (sectionId: string, value: number) => void;
+    onDiscountRemarksChange?: (sectionId: string, remarks: string) => void;
     onAddRow: (sectionId: string) => void;
     onRemoveRow: (id: string, sectionId: string) => void;
     onExportPDF: () => void;
@@ -35,6 +36,8 @@ interface FinalStepProps {
     setServiceCharge: (value: number) => void;
     includeServiceChargeInPdf: boolean;
     setIncludeServiceChargeInPdf: (value: boolean) => void;
+    clientCommunicationMethod?: string;
+    onClientCommunicationMethodChange?: (method: string) => void;
 }
 
 function FinalStepComponent({
@@ -42,6 +45,7 @@ function FinalStepComponent({
     onRowChange,
     onDiscountTypeChange,
     onDiscountValueChange,
+    onDiscountRemarksChange = () => {},
     onAddRow,
     onRemoveRow,
     onExportPDF,
@@ -53,8 +57,33 @@ function FinalStepComponent({
     serviceCharge,
     setServiceCharge,
     includeServiceChargeInPdf,
-    setIncludeServiceChargeInPdf
+    setIncludeServiceChargeInPdf,
+    clientCommunicationMethod = '',
+    onClientCommunicationMethodChange = () => {}
 }: FinalStepProps) {
+
+    // Handle communication method changes
+    const handleCommunicationMethodChange = (method: string, checked: boolean) => {
+        if (!onClientCommunicationMethodChange) return;
+        
+        let newMethods = clientCommunicationMethod ? clientCommunicationMethod.split(',').map(m => m.trim()) : [];
+        
+        if (checked) {
+            if (!newMethods.includes(method)) {
+                newMethods.push(method);
+            }
+        } else {
+            newMethods = newMethods.filter(m => m !== method);
+        }
+        
+        onClientCommunicationMethodChange(newMethods.join(', '));
+    };
+
+    // Check if a method is selected
+    const isMethodSelected = (method: string) => {
+        if (!clientCommunicationMethod) return false;
+        return clientCommunicationMethod.split(',').map(m => m.trim()).includes(method);
+    };
 
     const totalWithService = totalCost * (1 + serviceCharge / 100);
     const costPerPersonWithoutService = groupSize > 0 ? totalCost / groupSize : 0;
@@ -69,48 +98,14 @@ function FinalStepComponent({
                 onRowChange={onRowChange}
                 onDiscountTypeChange={onDiscountTypeChange}
                 onDiscountValueChange={onDiscountValueChange}
+                onDiscountRemarksChange={onDiscountRemarksChange}
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
                 usePax={usePax}
                 onSetUsePax={onSetUsePax}
             />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Client Communication Method</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                        <Checkbox id="send-email" />
-                        <div className="grid gap-1.5 leading-none">
-                            <label
-                            htmlFor="send-email"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                            >
-                            <Mail className="h-4 w-4" /> Client communicated via Email
-                            </label>
-                            <p className="text-sm text-muted-foreground">
-                            Check this box to mark that the client made contact through email.
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <Checkbox id="send-whatsapp" />
-                        <div className="grid gap-1.5 leading-none">
-                            <label
-                            htmlFor="send-whatsapp"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                            >
-                            <MessageSquare className="h-4 w-4" /> Client communicated via WhatsApp
-                            </label>
-                            <p className="text-sm text-muted-foreground">
-                            Check this box to mark that the client made contact through WhatsApp.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
+            
             <Card>
                  <CardHeader>
                     <CardTitle>Final Summary</CardTitle>

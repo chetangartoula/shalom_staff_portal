@@ -210,6 +210,92 @@
       "id": "9c6aeef2-008c-4794-bf7d-44034015d272"
     }
   ],
+  "airportPickUp": [
+    {
+      "name": "Raj Kumar Thapa",
+      "email": "raj.thapa@example.com",
+      "phone": "984-1111111",
+      "status": "Available",
+      "id": "32516c13-24ce-4d9b-8213-b582f23beb93"
+    },
+    {
+      "name": "Suman KC",
+      "email": "suman.kc@example.com",
+      "phone": "984-2222222",
+      "status": "On Duty",
+      "id": "b66f26db-6e60-4b97-aff6-21aba45ad8b4"
+    },
+    {
+      "name": "Bikash Maharjan",
+      "email": "bikash.maharjan@example.com",
+      "phone": "984-3333333",
+      "status": "Available",
+      "id": "9732d7e7-53bb-49b1-a536-66e081f0b6cf"
+    },
+    {
+      "name": "Prakash Shrestha",
+      "email": "prakash.shrestha@example.com",
+      "phone": "984-4444444",
+      "status": "On Leave",
+      "id": "b6e9043b-0525-4a0e-84b4-a0298c778fd2"
+    },
+    {
+      "name": "Deepak Gurung",
+      "email": "deepak.gurung@example.com",
+      "phone": "984-5555555",
+      "status": "On Duty",
+      "id": "86c1cee2-8664-41ec-b795-954fe1de89c0"
+    },
+    {
+      "name": "Ramesh Tamang",
+      "email": "ramesh.tamang@example.com",
+      "phone": "984-6666666",
+      "status": "Available",
+      "id": "775d35eb-5650-44cb-8791-de1d4ccb7a22"
+    },
+    {
+      "name": "Anil Shah",
+      "email": "anil.shah@example.com",
+      "phone": "984-7777777",
+      "status": "Available",
+      "id": "531acb5a-d1be-48a7-b101-a0417f1a41a7"
+    },
+    {
+      "name": "Kiran Thapa",
+      "email": "kiran.thapa@example.com",
+      "phone": "984-8888888",
+      "status": "On Duty",
+      "id": "525b9ca3-6fac-45b2-bf1c-ef83f1458394"
+    },
+    {
+      "name": "Manoj KC",
+      "email": "manoj.kc@example.com",
+      "phone": "984-9999999",
+      "status": "On Leave",
+      "id": "151d7c52-0654-457c-8531-ded0b81571f2"
+    },
+    {
+      "name": "Sandeep Maharjan",
+      "email": "sandeep.maharjan@example.com",
+      "phone": "984-0000000",
+      "status": "Available",
+      "id": "0de53a65-6bcf-474a-aeeb-a424c66d90ca"
+    },
+    {
+      "name": "Nabin Shrestha",
+      "email": "nabin.shrestha@example.com",
+      "phone": "984-1212121",
+      "status": "On Duty",
+      "id": "9b854f9c-21aa-49a3-ac9a-879d3731a221"
+    },
+    {
+      "name": "Dinesh Gurung",
+      "email": "dinesh.gurung@example.com",
+      "phone": "984-3434343",
+      "status": "Available",
+      "id": "33fcc2da-d906-4600-9715-57b483a14d2b"
+    }
+  ],
   "reports": [
     {
       "groupId": "7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
@@ -284,7 +370,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/7efc6d59-c97e-4a87-a9f0-9dad58eb5d0e",
       "paymentDetails": {
         "totalCost": 187.00000000000003,
         "totalPaid": 187,
@@ -381,7 +467,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/0aac067c-b2d7-449c-b21d-06b00578d8dd"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/0aac067c-b2d7-449c-b21d-06b00578d8dd"
     },
     {
       "groupId": "98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0",
@@ -456,7 +542,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0"
     },
     {
       "groupId": "146672a2-b70d-4f4c-ac76-7e52ced2adf1",
@@ -538,7 +624,7 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/146672a2-b70d-4f4c-ac76-7e52ced2adf1"
     },
     {
       "groupId": "22b3078f-6db1-450e-9824-e4bb52a486ec",
@@ -604,7 +690,102 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://6000-firebase-studio-1763217221286.cluster-edb2jv34dnhjisxuq5m7l37ccy.cloudworkstations.dev/report/22b3078f-6db1-450e-9824-e4bb52a486ec"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/22b3078f-6db1-450e-9824-e4bb52a486ec"
+    },
+    {
+      "groupId": "639e1dda-50dd-4e1b-98a5-bf5c14d5cebc",
+      "trekId": "manaslu",
+      "trekName": "Manaslu Circuit Trek",
+      "groupName": "namaste nepal",
+      "groupSize": 1,
+      "startDate": "2025-11-19T12:12:11.581Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "eb26ba12-d708-490c-9125-6f6ba0da05f0",
+            "description": "RMP+GT+MCAP+ACAP",
+            "rate": 160,
+            "no": 1,
+            "times": 1,
+            "total": 160
+          },
+          {
+            "id": "43441281-1245-40e0-9d90-b64064eaaaa1",
+            "description": "Extra days Manaslu permit",
+            "rate": 10,
+            "no": 1,
+            "times": 1,
+            "total": 10
+          },
+          {
+            "id": "44e9d8fa-d79c-420c-8137-d1bfe4bf7361",
+            "description": "RTP+GT+MCAP",
+            "rate": 0,
+            "no": 1,
+            "times": 1,
+            "total": 0
+          },
+          {
+            "id": "ee9d486e-8c4b-4a3d-bed7-384fc5d40417",
+            "description": "Extra days Tsum permit",
+            "rate": 0,
+            "no": 1,
+            "times": 1,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [
+          {
+            "id": "46e8fd7d-524b-4067-8e00-88b604768479",
+            "description": "sdfsfsa",
+            "rate": 300,
+            "no": 1,
+            "times": 1,
+            "total": 300
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "2c16f0b1-cffc-4805-baa4-61aee5d15e70",
+            "description": "Satellite device",
+            "rate": 0,
+            "no": 1,
+            "times": 12,
+            "total": 0
+          },
+          {
+            "id": "be8603b3-6013-4116-bd42-2cb016d3266c",
+            "description": "Adv less",
+            "rate": 0,
+            "no": 1,
+            "times": 0,
+            "total": 0
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "clientCommunicationMethod": "Email, Other:hey",
+      "reportUrl": "http://localhost:3000/report/639e1dda-50dd-4e1b-98a5-bf5c14d5cebc"
     }
   ],
   "travelers": [
@@ -662,7 +843,8 @@
       "groupId": "22b3078f-6db1-450e-9824-e4bb52a486ec",
       "guideIds": [
         "77fc4ef4-efc4-40ba-a90b-e88448f27e6d",
-        "a466c445-adaf-43c0-8d29-34cff1ec0d67"
+        "a466c445-adaf-43c0-8d29-34cff1ec0d67",
+        "32516c13-24ce-4d9b-8213-b582f23beb93"
       ],
       "porterIds": [
         "6d1a4388-edb5-4ed0-8328-f981e670e170",
@@ -742,6 +924,18 @@
       "note": "don't want to go",
       "id": "39eca172-c829-46c7-9635-4bab776a20a2",
       "groupId": "22b3078f-6db1-450e-9824-e4bb52a486ec"
+    },
+    {
+      "amount": 517,
+      "type": "payment",
+      "date": "2025-11-19T12:14:03.748Z",
+      "note": "",
+      "mergeGroups": [
+        "22b3078f-6db1-450e-9824-e4bb52a486ec",
+        "146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+      ],
+      "id": "1296120d-827f-4573-98f9-7ec5d9d8b85d",
+      "groupId": "639e1dda-50dd-4e1b-98a5-bf5c14d5cebc"
     }
   ]
 }

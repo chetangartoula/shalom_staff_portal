@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import useSWR from 'swr';
-import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical } from 'lucide-react';
+import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
@@ -42,7 +42,7 @@ const statusColors: Record<PaymentStatus, string> = {
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export function ReportsContent({ initialData, pageType = 'reports' | 'payments' }: ReportsContentProps) {
+export function ReportsContent({ initialData, pageType = 'reports' }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [reports, setReports] = useState<Report[]>(initialData?.reports || []);
@@ -99,6 +99,10 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
     router.push(`/assignment/${groupId}`);
   };
 
+  const handleAssignAirportPickupClick = (groupId: string) => {
+    router.push(`/airport-pickup-assignment/${groupId}`);
+  };
+
   const handleViewTravelers = (report: Report) => {
     setSelectedReportForTravelers(report);
     setIsTravelerModalOpen(true);
@@ -142,6 +146,9 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
                      </DropdownMenuItem>
                      <DropdownMenuItem onClick={() => handleAssignClick(report.groupId)} disabled={isAssignmentDisabled}>
                        <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                     </DropdownMenuItem>
+                     <DropdownMenuItem onClick={() => handleAssignAirportPickupClick(report.groupId)} disabled={isAssignmentDisabled}>
+                       <Plane className="mr-2 h-4 w-4" /> Assign Airport Pickup
                      </DropdownMenuItem>
                      <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
                        <Edit className="mr-2 h-4 w-4" /> Edit Costing
@@ -265,6 +272,9 @@ export function ReportsContent({ initialData, pageType = 'reports' | 'payments' 
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleAssignClick(report.groupId)} disabled={isAssignmentDisabled}>
                                             <BookUser className="mr-2 h-4 w-4" /> Assign Team
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleAssignAirportPickupClick(report.groupId)} disabled={isAssignmentDisabled}>
+                                            <Plane className="mr-2 h-4 w-4" /> Assign Airport Pickup
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleEditClick(report.groupId)}>
                                             <Edit className="mr-2 h-4 w-4" /> Edit Costing

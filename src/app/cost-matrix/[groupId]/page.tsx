@@ -13,7 +13,7 @@ interface EditCostMatrixPageProps {
 }
 
 export default async function EditCostMatrixPage({ params }: EditCostMatrixPageProps) {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     const initialData = getReportByGroupId(groupId);
     const { treks }: { treks: Trek[] } = getTreks();
     const user = await getUser();

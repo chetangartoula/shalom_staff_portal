@@ -1,6 +1,6 @@
-
 import { NextResponse } from 'next/server';
-import { getReportByGroupId, getAssignmentsByGroupId, getTravelerGroup, getGuides, getPorters } from '../../../data';
+import { getReportByGroupId, getAssignmentsByGroupId, getTravelerGroup, getGuides, getPorters, getAirportPickUp } from '../../../data';
+import type { Guide, Porter, AirportPickUp } from '@/lib/types';
 
 interface Params {
   params: {
@@ -10,7 +10,7 @@ interface Params {
 
 export async function GET(request: Request, { params }: Params) {
   try {
-    const { groupId } = params;
+    const { groupId } = await params; // Await the params object
     
     const report = getReportByGroupId(groupId);
     if (!report) {
@@ -21,9 +21,11 @@ export async function GET(request: Request, { params }: Params) {
     const travelerGroup = getTravelerGroup(groupId);
     const { guides: allGuides } = getGuides();
     const { porters: allPorters } = getPorters();
+    const { airportPickUp: allAirportPickUp } = getAirportPickUp();
 
-    const assignedGuideDetails = assignments?.guideIds.map(id => allGuides.find(g => g.id === id)).filter(Boolean);
-    const assignedPorterDetails = assignments?.porterIds.map(id => allPorters.find(p => p.id === id)).filter(Boolean);
+    const assignedGuideDetails = assignments?.guideIds.map((id: string) => allGuides.find((g: any) => g.id === id)).filter(Boolean);
+    const assignedPorterDetails = assignments?.porterIds.map((id: string) => allPorters.find((p: any) => p.id === id)).filter(Boolean);
+    const assignedAirportPickUpDetails = assignments?.guideIds.map((id: string) => allAirportPickUp.find((a: any) => a.id === id)).filter(Boolean);
     
     return NextResponse.json({
         report: {
@@ -37,6 +39,7 @@ export async function GET(request: Request, { params }: Params) {
         travelers: travelerGroup?.travelers || [],
         guides: assignedGuideDetails || [],
         porters: assignedPorterDetails || [],
+        airportPickUp: assignedAirportPickUpDetails || [],
     });
 
   } catch (error) {

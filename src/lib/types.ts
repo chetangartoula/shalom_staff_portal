@@ -33,6 +33,7 @@ export interface SectionState {
     rows: CostRow[];
     discountType: 'amount' | 'percentage';
     discountValue: number;
+    discountRemarks?: string; // Added for individual discount remarks
 }
 
 export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';
@@ -52,6 +53,16 @@ export interface Porter {
   name: string;
   phone: string;
   status: PorterStatus;
+}
+
+export type AirportPickUpStatus = 'Available' | 'On Duty' | 'On Leave';
+
+export interface AirportPickUp {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: AirportPickUpStatus;
 }
 
 export interface Assignment {
@@ -110,6 +121,7 @@ export interface Report {
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl: string;
+  clientCommunicationMethod?: string; // Added for client communication method
   
   // From augmentation
   joined: number;

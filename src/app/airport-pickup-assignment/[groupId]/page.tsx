@@ -1,17 +1,16 @@
-
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { AssignmentPageContent } from "@/components/dashboard/assignment-page-content";
-import { getReportByGroupId, getGuides, getPorters, getAssignmentsByGroupId } from "@/app/api/data";
+import { AirportPickupAssignmentPageContent } from "@/components/dashboard/airport-pickup-assignment-page-content";
+import { getReportByGroupId, getAirportPickUp, getAssignmentsByGroupId } from "@/app/api/data";
 import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 
-interface AssignmentPageProps {
+interface AirportPickupAssignmentPageProps {
   params: {
     groupId: string;
   };
 }
 
-export default async function AssignmentPage({ params }: AssignmentPageProps) {
+export default async function AirportPickupAssignmentPage({ params }: AirportPickupAssignmentPageProps) {
     const { groupId } = await params; // Await the params object
     const user = await getUser();
     const report = getReportByGroupId(groupId);
@@ -20,18 +19,15 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
         notFound();
     }
     
-    // Fetch all guides and porters, not just available ones, 
-    // so we can see who is currently assigned even if they are now on another tour.
-    const { guides } = getGuides();
-    const { porters } = getPorters();
+    // Fetch all airport pickup personnel
+    const { airportPickUp } = getAirportPickUp();
     const initialAssignments = getAssignmentsByGroupId(groupId);
 
     return (
         <DashboardLayout user={user}>
-            <AssignmentPageContent 
+            <AirportPickupAssignmentPageContent 
                 report={report}
-                allGuides={guides}
-                allPorters={porters}
+                allAirportPickUp={airportPickUp}
                 initialAssignments={initialAssignments}
             />
         </DashboardLayout>
