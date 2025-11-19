@@ -116,7 +116,36 @@ function GroupDetailsStepComponent({
                         </label>
                       </div>
                     </div>
-                    
+                     <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="send-whatsapp" 
+                        checked={isMethodSelected('office')}
+                        onCheckedChange={(checked) => handleCommunicationMethodChange('office', !!checked)}
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor="send-office"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                        >
+                          <MessageSquare className="h-4 w-4" /> Client communicated via Office
+                        </label>
+                      </div>
+                    </div>
+                     <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="send-recomanded" 
+                        checked={isMethodSelected('Other')}
+                        onCheckedChange={(checked) => handleCommunicationMethodChange('Other', !!checked)}
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor="send-recomanded"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                        >
+                          <MessageSquare className="h-4 w-4" /> Recomanded by Guide
+                        </label>
+                      </div>
+                    </div>
                     {/* Additional notes field */}
                     <div className="grid gap-2 mt-4">
                       <Label htmlFor="communication-notes">Remarks / Notes / Reference</Label>
