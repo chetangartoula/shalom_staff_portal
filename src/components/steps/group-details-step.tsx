@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/shadcn
 import { Input } from "@/components/ui/shadcn/input";
 import { Label } from "@/components/ui/shadcn/label";
 import { DatePicker } from "@/components/ui/shadcn/date-picker";
-import { Textarea } from "@/components/ui/shadcn/textarea"; // Add this import
-import { Mail, MessageSquare } from 'lucide-react'; // Add this import
-import { Checkbox } from '@/components/ui/shadcn/checkbox'; // Add this import
+import { Textarea } from "@/components/ui/shadcn/textarea";
+import { Mail, Phone, Building, Users, MessageSquare } from 'lucide-react';
+import { Checkbox } from '@/components/ui/shadcn/checkbox';
 
 interface GroupDetailsStepProps {
   groupName: string;
@@ -14,8 +14,8 @@ interface GroupDetailsStepProps {
   onGroupSizeChange: (size: number) => void;
   startDate: Date | undefined;
   onStartDateChange: (date: Date | undefined) => void;
-  clientCommunicationMethod?: string; // Add this prop
-  onClientCommunicationMethodChange?: (method: string) => void; // Add this prop
+  clientCommunicationMethod?: string;
+  onClientCommunicationMethodChange?: (method: string) => void;
 }
 
 function GroupDetailsStepComponent({
@@ -25,30 +25,30 @@ function GroupDetailsStepComponent({
   onGroupSizeChange,
   startDate,
   onStartDateChange,
-  clientCommunicationMethod = '', // Add this prop
-  onClientCommunicationMethodChange = () => {} // Add this prop
+  clientCommunicationMethod = '',
+  onClientCommunicationMethodChange = () => {}
 }: GroupDetailsStepProps) {
-  // Handle communication method changes
-  const handleCommunicationMethodChange = (method: string, checked: boolean) => {
+  // Handle communication method changes for radio button behavior
+  const handleCommunicationMethodChange = (method: string) => {
     if (!onClientCommunicationMethodChange) return;
     
-    let newMethods = clientCommunicationMethod ? clientCommunicationMethod.split(',').map(m => m.trim()) : [];
-    
-    if (checked) {
-      if (!newMethods.includes(method)) {
-        newMethods.push(method);
-      }
+    // For radio button behavior, we only store the selected method
+    // For "Other" option with notes, we need special handling
+    if (method === 'Other' && clientCommunicationMethod?.startsWith('Other:')) {
+      // If selecting "Other" again and we already have notes, preserve them
+      onClientCommunicationMethodChange(clientCommunicationMethod);
     } else {
-      newMethods = newMethods.filter(m => m !== method);
+      onClientCommunicationMethodChange(method);
     }
-    
-    onClientCommunicationMethodChange(newMethods.join(', '));
   };
 
   // Check if a method is selected
   const isMethodSelected = (method: string) => {
-    if (!clientCommunicationMethod) return false;
-    return clientCommunicationMethod.split(',').map(m => m.trim()).includes(method);
+    if (method === 'Other') {
+      // For "Other" option, check if it's selected either as plain "Other" or with notes
+      return clientCommunicationMethod === 'Other' || clientCommunicationMethod?.startsWith('Other:');
+    }
+    return clientCommunicationMethod === method;
   };
 
   return (
@@ -90,7 +90,7 @@ function GroupDetailsStepComponent({
                       <Checkbox 
                         id="send-email" 
                         checked={isMethodSelected('Email')}
-                        onCheckedChange={(checked) => handleCommunicationMethodChange('Email', !!checked)}
+                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Email')}
                       />
                       <div className="grid gap-1.5 leading-none">
                         <label
@@ -105,44 +105,66 @@ function GroupDetailsStepComponent({
                       <Checkbox 
                         id="send-whatsapp" 
                         checked={isMethodSelected('WhatsApp')}
-                        onCheckedChange={(checked) => handleCommunicationMethodChange('WhatsApp', !!checked)}
+                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('WhatsApp')}
                       />
                       <div className="grid gap-1.5 leading-none">
                         <label
                           htmlFor="send-whatsapp"
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                         >
-                          <MessageSquare className="h-4 w-4" /> Client communicated via WhatsApp
+                          <Phone className="h-4 w-4" /> Client communicated via WhatsApp
                         </label>
                       </div>
                     </div>
                      <div className="flex items-center space-x-3">
                       <Checkbox 
-                        id="send-whatsapp" 
+                        id="send-office" 
                         checked={isMethodSelected('office')}
-                        onCheckedChange={(checked) => handleCommunicationMethodChange('office', !!checked)}
+                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('office')}
                       />
                       <div className="grid gap-1.5 leading-none">
                         <label
                           htmlFor="send-office"
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                         >
-                          <MessageSquare className="h-4 w-4" /> Client communicated via Office
+                          <Building className="h-4 w-4" /> Client communicated via Office
                         </label>
                       </div>
                     </div>
                      <div className="flex items-center space-x-3">
                       <Checkbox 
-                        id="send-recomanded" 
-                        checked={isMethodSelected('Other')}
-                        onCheckedChange={(checked) => handleCommunicationMethodChange('Other', !!checked)}
+                        id="send-recommended" 
+                        checked={isMethodSelected('Recommended by Guide')}
+                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Recommended by Guide')}
                       />
                       <div className="grid gap-1.5 leading-none">
                         <label
-                          htmlFor="send-recomanded"
+                          htmlFor="send-recommended"
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
                         >
-                          <MessageSquare className="h-4 w-4" /> Recomanded by Guide
+                          <Users className="h-4 w-4" /> Recommended by Guide
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <Checkbox 
+                        id="send-other" 
+                        checked={isMethodSelected('Other')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleCommunicationMethodChange('Other');
+                          } else {
+                            // When unchecking, clear the selection
+                            onClientCommunicationMethodChange('');
+                          }
+                        }}
+                      />
+                      <div className="grid gap-1.5 leading-none">
+                        <label
+                          htmlFor="send-other"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                        >
+                          <MessageSquare className="h-4 w-4" /> Other
                         </label>
                       </div>
                     </div>
@@ -152,14 +174,10 @@ function GroupDetailsStepComponent({
                       <Textarea
                         id="communication-notes"
                         placeholder="Add any additional remarks, notes, or references about client communication..."
-                        value={clientCommunicationMethod.includes('Other:') ? clientCommunicationMethod.split('Other:')[1] || '' : ''}
+                        value={clientCommunicationMethod?.startsWith('Other:') ? clientCommunicationMethod.substring(6) : ''}
                         onChange={(e) => {
                           const otherMethod = `Other:${e.target.value}`;
-                          let methods = clientCommunicationMethod ? clientCommunicationMethod.split(',').filter(m => !m.includes('Other:')).map(m => m.trim()) : [];
-                          if (e.target.value) {
-                            methods.push(otherMethod);
-                          }
-                          onClientCommunicationMethodChange(methods.join(', '));
+                          onClientCommunicationMethodChange(otherMethod);
                         }}
                         className="min-h-[100px]"
                       />

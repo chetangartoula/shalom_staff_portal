@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -87,7 +86,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
     <div className="flex min-h-screen w-full bg-muted/40">
       {/* Desktop Sidebar */}
       <aside className={cn(
-        "hidden md:flex flex-col border-r bg-background transition-all duration-300 ease-in-out shadow-lg",
+        "hidden md:flex flex-col border-r bg-background transition-all duration-300 ease-in-out shadow-lg fixed h-full",
         isSidebarExpanded ? "w-64" : "w-20"
       )}>
         <div className={cn(
@@ -103,14 +102,14 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
             {isSidebarExpanded ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
           </Button>
         </div>
-        <nav className="flex-1 space-y-2 p-4">
+        <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
           {navItems.map((item) => (
             <NavItem key={item.href} {...item} isExpanded={isSidebarExpanded} />
           ))}
         </nav>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col md:ml-64">
         <Header user={user} navItems={navItems} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-7xl mx-auto w-full">
