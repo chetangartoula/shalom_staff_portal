@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getUser } from '@/lib/auth';
 import { Button } from "@/components/ui/shadcn/button"
@@ -14,6 +13,7 @@ import { Checkbox } from "@/components/ui/shadcn/checkbox"
 import { Input } from "@/components/ui/shadcn/input"
 import { Label } from '@/components/ui/shadcn/label';
 import { Separator } from '@/components/ui/shadcn/separator';
+import Link from 'next/link';
 
 export default async function SettingsPage() {
     const user = await getUser();
@@ -72,7 +72,21 @@ export default async function SettingsPage() {
                             </CardFooter>
                         </Card>
                     </div>
-                     <div className="lg:col-span-1">
+                     <div className="lg:col-span-1 space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Application</CardTitle>
+                                <CardDescription>Manage application settings and preferences.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-start space-x-3">
+                                    <div className="grid gap-1.5 leading-none">
+                                        <Link href="/pwa-settings" className="text-sm font-medium hover:underline">PWA Settings</Link>
+                                        <p className="text-sm text-muted-foreground">Manage Progressive Web App installation and features.</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                          <Card>
                             <CardHeader>
                                 <CardTitle>Notifications</CardTitle>
