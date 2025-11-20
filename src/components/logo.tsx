@@ -10,7 +10,7 @@ export const Logo = ({ className, width = 256, height = 54 }: { className?: stri
     alt="Shalom Treks Logo"
     width={width}
     height={height}
-    className={cn(className)}
+    className={cn("h-auto", className)}
     priority
   />
 );
