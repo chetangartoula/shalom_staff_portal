@@ -219,19 +219,19 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
   );
 
   const renderDesktopTable = () => (
-    <div className="border rounded-lg hidden lg:block">
-      <Table>
+    <div className="hidden lg:block w-full overflow-x-auto">
+      <Table className="min-w-[1024px] w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="min-w-[150px]">Trek Name</TableHead>
-            <TableHead className="min-w-[120px]">Group Name</TableHead>
-            <TableHead className="min-w-[120px]">Group ID</TableHead>
-            <TableHead className="text-right min-w-[120px]">Total Cost</TableHead>
-            <TableHead className="min-w-[130px]">Payment Status</TableHead>
-            <TableHead className="text-right min-w-[120px]">Balance</TableHead>
-            <TableHead className="text-center min-w-[100px]">Joined/Total</TableHead>
-            <TableHead className="min-w-[120px]">Start Date</TableHead>
-            <TableHead className="text-right min-w-[150px]">Actions</TableHead>
+            <TableHead className="w-[180px] min-w-[150px] max-w-[200px]">Trek Name</TableHead>
+            <TableHead className="w-[120px] min-w-[100px] max-w-[150px]">Group</TableHead>
+            <TableHead className="w-[100px] min-w-[80px]">Group ID</TableHead>
+            <TableHead className="text-right w-[100px] min-w-[90px]">Total</TableHead>
+            <TableHead className="w-[120px] min-w-[100px]">Status</TableHead>
+            <TableHead className="text-right w-[100px] min-w-[90px]">Balance</TableHead>
+            <TableHead className="text-center w-[100px] min-w-[80px]">Travelers</TableHead>
+            <TableHead className="w-[120px] min-w-[100px]">Start Date</TableHead>
+            <TableHead className="text-right w-[140px] min-w-[120px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -239,37 +239,49 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
             const isAssignmentDisabled = report.paymentDetails.paymentStatus === 'unpaid';
             return (
               <TableRow key={report.groupId}>
-                <TableCell className="font-medium max-w-[200px] truncate">{report.trekName}</TableCell>
-                <TableCell className="max-w-[150px] truncate">{report.groupName}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-sm truncate max-w-[80px]" title={report.groupId}>
-                      {report.groupId.substring(0, 8)}...
+                <TableCell className="font-medium truncate" title={report.trekName}>
+                  <div className="max-w-[180px] truncate">{report.trekName}</div>
+                </TableCell>
+                <TableCell className="truncate" title={report.groupName}>
+                  <div className="max-w-[120px] truncate">{report.groupName}</div>
+                </TableCell>
+                <TableCell className="w-[100px]">
+                  <div className="flex items-center gap-1">
+                    <Link href={report.reportUrl} target="_blank" className="text-blue-600 hover:underline font-mono text-xs truncate flex-1" title={report.groupId}>
+                      {report.groupId.substring(0, 6)}...
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopy(report.reportUrl)}>
-                      {copiedId === report.reportUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      <span className="sr-only">Copy Report URL</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={(e) => {
+                      e.stopPropagation();
+                      handleCopy(report.reportUrl);
+                    }}>
+                      {copiedId === report.reportUrl ? 
+                        <Check className="h-3.5 w-3.5 text-green-500" /> : 
+                        <Copy className="h-3.5 w-3.5" />
+                      }
+                      <span className="sr-only">Copy URL</span>
                     </Button>
                   </div>
                 </TableCell>
-                <TableCell className="font-medium text-right">{formatCurrency(report.paymentDetails.totalCost)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn("capitalize", statusColors[report.paymentDetails.paymentStatus])}>
+                <TableCell className="font-medium text-right text-sm">{formatCurrency(report.paymentDetails.totalCost)}</TableCell>
+                <TableCell className="w-[120px]">
+                  <Badge variant="outline" className={cn("capitalize text-xs w-full justify-center", statusColors[report.paymentDetails.paymentStatus])}>
                     {report.paymentDetails.paymentStatus}
                   </Badge>
                 </TableCell>
-                <TableCell className={cn("font-medium text-right", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
+                <TableCell className={cn("font-medium text-right text-sm", report.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
                   {formatCurrency(report.paymentDetails.balance)}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center text-sm">
                   <span className="text-green-600 font-medium">{report.joined}</span>
-                  <span className="text-muted-foreground"> / {report.groupSize}</span>
+                  <span className="text-muted-foreground">/{report.groupSize}</span>
                 </TableCell>
-                <TableCell className="truncate max-w-[120px]">{report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)} className="hidden xl:flex">
-                      <CircleDollarSign className="mr-2 h-4 w-4" /> Manage
+                <TableCell className="text-sm">
+                  {report.startDate ? format(new Date(report.startDate), 'MMM d, yyyy') : 'N/A'}
+                </TableCell>
+                <TableCell className="text-right w-[140px]">
+                  <div className="flex justify-end items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => handleManagePayments(report.groupId)} className="hidden xl:flex h-8">
+                      <CircleDollarSign className="h-3.5 w-3.5 mr-1" /> <span>Manage Payments</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
