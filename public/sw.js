@@ -6,17 +6,10 @@
 const CACHE_NAME = 'shalom-staff-portal-v1.0';
 const DATA_CACHE_NAME = 'shalom-staff-portal-data-v1.0';
 
-// Files to cache
+// Files to cache - reduced for better performance
 const urlsToCache = [
   '/',
   '/dashboard',
-  '/assignments',
-  '/travelers',
-  '/guides',
-  '/porters',
-  '/payments',
-  '/reports',
-  '/settings',
   '/offline.html'
 ];
 
