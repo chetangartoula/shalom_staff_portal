@@ -1,6 +1,6 @@
-
 import { NextResponse } from 'next/server';
-import { getAssignmentsByGroupId, updateAssignments } from '../../data';
+import { getAssignmentsByGroupId, updateAssignments, updateAirportPickupDetails } from '../../data';
+import type { AirportPickUp } from '@/lib/types';
 
 interface Params {
   params: {
@@ -8,8 +8,9 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params: { groupId } }: Params) {
+export async function GET(request: Request, { params }: Params) {
   try {
+    const { groupId } = await params;
     const assignments = getAssignmentsByGroupId(groupId);
     if (assignments) {
       return NextResponse.json(assignments);
@@ -21,14 +22,27 @@ export async function GET(request: Request, { params: { groupId } }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params: { groupId } }: Params) {
+export async function PUT(request: Request, { params }: Params) {
   try {
+    const { groupId } = await params;
     const body = await request.json();
-    const { guideIds, porterIds } = body;
+    const { guideIds, porterIds, airportPickUpDetails } = body;
+    
+    // Update assignments with guide and porter IDs
     const updated = updateAssignments(groupId, guideIds, porterIds);
+    
+    // Update airport pickup details if provided
+    let updatedAirportPickupDetails = null;
+    if (airportPickUpDetails) {
+      updatedAirportPickupDetails = updateAirportPickupDetails(groupId, airportPickUpDetails);
+    }
 
     if (updated) {
-      return NextResponse.json({ message: 'Assignments updated successfully', assignments: updated }, { status: 200 });
+      return NextResponse.json({ 
+        message: 'Assignments updated successfully', 
+        assignments: updated,
+        airportPickUpDetails: updatedAirportPickupDetails
+      }, { status: 200 });
     }
     return NextResponse.json({ message: 'Could not update assignments' }, { status: 400 });
   } catch (error) {

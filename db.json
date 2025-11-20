@@ -908,6 +908,13 @@
         "6d1a4388-edb5-4ed0-8328-f981e670e170",
         "0147a61c-8af0-4fee-ad48-4a101de7fef6"
       ]
+    },
+    {
+      "groupId": "639e1dda-50dd-4e1b-98a5-bf5c14d5cebc",
+      "guideIds": [
+        "32516c13-24ce-4d9b-8213-b582f23beb93"
+      ],
+      "porterIds": []
     }
   ],
   "transactions": [

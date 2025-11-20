@@ -133,14 +133,21 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
 
         const guidesText = details.guides.map(g => `${g.name} (${g.phone})`).join('\n');
         const portersText = details.porters.map(p => `${p.name} (${p.phone})`).join('\n');
-        const airportPickUpText = details.airportPickUp.map(a => `${a.name} (${a.phone})`).join('\n'); // Add this line
+        // Update this to include vehicle details
+        const airportPickUpText = details.airportPickUp.map(a => {
+            let text = `${a.name} (${a.phone})`;
+            if (a.vehicleType || a.licensePlate) {
+                text += ` - ${a.vehicleType || ''}${a.vehicleType && a.licensePlate ? ', ' : ''}${a.licensePlate || ''}`;
+            }
+            return text;
+        }).join('\n');
 
         autoTable(doc, {
             startY: yPos,
             body: [
                 ['Guides', guidesText || 'None'],
                 ['Porters', portersText || 'None'],
-                ['Airport Pickup', airportPickUpText || 'None'], // Add this line
+                ['Airport Pickup', airportPickUpText || 'None'],
             ],
             theme: 'grid',
             styles: { fontSize: 10, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 }, font: 'helvetica' },
@@ -281,14 +288,28 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
                                             ))}
                                         </div>
                                     </div>
-                                    {/* Add this section for airport pickup */}
+                                    {/* Add this section for airport pickup with vehicle details */}
                                     <div className="rounded-lg border p-4">
                                         <h5 className="font-medium flex items-center gap-2 mb-2"><Plane className="h-4 w-4"/> Airport Pickup ({details.airportPickUp.length})</h5>
-                                        <div className="flex flex-col gap-1 text-sm">
+                                        <div className="flex flex-col gap-3 text-sm">
                                             {details.airportPickUp.map(a => (
-                                                <div key={a.id} className="flex justify-between">
-                                                    <span>{a.name}</span>
-                                                    <span className="text-muted-foreground">{a.phone}</span>
+                                                <div key={a.id} className="border-b pb-2 last:border-b-0 last:pb-0">
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">{a.name}</span>
+                                                        <span className="text-muted-foreground">{a.phone}</span>
+                                                    </div>
+                                                    {(a.vehicleType || a.licensePlate) && (
+                                                        <div className="text-xs text-muted-foreground mt-1">
+                                                            {a.vehicleType && <div>Vehicle: {a.vehicleType}</div>}
+                                                            {a.licensePlate && <div>Plate: {a.licensePlate}</div>}
+                                                        </div>
+                                                    )}
+                                                    {(a.driverName || a.driverContact) && (
+                                                        <div className="text-xs text-muted-foreground mt-1">
+                                                            {a.driverName && <div>Driver: {a.driverName}</div>}
+                                                            {a.driverContact && <div>Contact: {a.driverContact}</div>}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

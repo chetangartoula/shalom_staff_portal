@@ -63,6 +63,10 @@ export interface AirportPickUp {
   email: string;
   phone: string;
   status: AirportPickUpStatus;
+  vehicleType?: string;
+  licensePlate?: string;
+  driverName?: string;
+  driverContact?: string;
 }
 
 export interface Assignment {

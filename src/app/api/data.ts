@@ -288,6 +288,14 @@ export const updateAssignments = (groupId: string, guideIds: string[], porterIds
     return newAssignment;
 }
 
+// Add a new function to update airport pickup details
+export const updateAirportPickupDetails = (groupId: string, airportPickUpDetails: any[]) => {
+    const db = getDB();
+    // In a full implementation, you would save these details to the database
+    // For now, we're just returning the details as they would be saved
+    return airportPickUpDetails;
+}
+
 export const getAllAssignmentsWithDetails = () => {
     const db = getDB();
     const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, r]));

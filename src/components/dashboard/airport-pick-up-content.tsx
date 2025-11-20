@@ -62,6 +62,8 @@ export function AirportPickUpContent() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Phone Number</TableHead>
+                    <TableHead>Vehicle Type</TableHead>
+                    <TableHead>License Plate</TableHead>
                     <TableHead>Status</TableHead>
                 </TableRow>
             </TableHeader>
@@ -71,6 +73,8 @@ export function AirportPickUpContent() {
                     <TableCell className="font-medium">{person.name}</TableCell>
                     <TableCell>{person.email}</TableCell>
                     <TableCell>{person.phone}</TableCell>
+                    <TableCell>{person.vehicleType || 'N/A'}</TableCell>
+                    <TableCell>{person.licensePlate || 'N/A'}</TableCell>
                     <TableCell>
                         <Badge className={`${statusColors[person.status]} font-semibold`} variant="outline">
                             {person.status}
@@ -79,7 +83,7 @@ export function AirportPickUpContent() {
                 </TableRow>
                 )) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                     {searchTerm || statusFilter !== 'all' ? `No personnel found for the current filters.` : "No airport pick up personnel data available."}
                     </TableCell>
                 </TableRow>
@@ -110,6 +114,18 @@ export function AirportPickUpContent() {
               <span className="text-muted-foreground">Phone</span>
               <span className="font-medium">{person.phone}</span>
             </div>
+            {person.vehicleType && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Vehicle</span>
+                <span className="font-medium">{person.vehicleType}</span>
+              </div>
+            )}
+            {person.licensePlate && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Plate</span>
+                <span className="font-medium">{person.licensePlate}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}

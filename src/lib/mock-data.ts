@@ -71,16 +71,16 @@ export const initialPorters: Omit<Porter, 'id'>[] = [
 ];
 
 export const initialAirportPickUp: Omit<AirportPickUp, 'id'>[] = [
-  { name: 'Raj Kumar Thapa', email: 'raj.thapa@example.com', phone: '984-1111111', status: 'Available' },
-  { name: 'Suman KC', email: 'suman.kc@example.com', phone: '984-2222222', status: 'On Duty' },
-  { name: 'Bikash Maharjan', email: 'bikash.maharjan@example.com', phone: '984-3333333', status: 'Available' },
-  { name: 'Prakash Shrestha', email: 'prakash.shrestha@example.com', phone: '984-4444444', status: 'On Leave' },
-  { name: 'Deepak Gurung', email: 'deepak.gurung@example.com', phone: '984-5555555', status: 'On Duty' },
-  { name: 'Ramesh Tamang', email: 'ramesh.tamang@example.com', phone: '984-6666666', status: 'Available' },
-  { name: 'Anil Shah', email: 'anil.shah@example.com', phone: '984-7777777', status: 'Available' },
-  { name: 'Kiran Thapa', email: 'kiran.thapa@example.com', phone: '984-8888888', status: 'On Duty' },
-  { name: 'Manoj KC', email: 'manoj.kc@example.com', phone: '984-9999999', status: 'On Leave' },
-  { name: 'Sandeep Maharjan', email: 'sandeep.maharjan@example.com', phone: '984-0000000', status: 'Available' },
-  { name: 'Nabin Shrestha', email: 'nabin.shrestha@example.com', phone: '984-1212121', status: 'On Duty' },
-  { name: 'Dinesh Gurung', email: 'dinesh.gurung@example.com', phone: '984-3434343', status: 'Available' },
+  { name: 'Raj Kumar Thapa', email: 'raj.thapa@example.com', phone: '984-1111111', status: 'Available', vehicleType: 'Toyota HiAce', licensePlate: 'BA 1 PA 1234', driverName: 'Raj Kumar Thapa', driverContact: '984-1111111' },
+  { name: 'Suman KC', email: 'suman.kc@example.com', phone: '984-2222222', status: 'On Duty', vehicleType: 'Ford Transit', licensePlate: 'BA 2 PA 5678', driverName: 'Suman KC', driverContact: '984-2222222' },
+  { name: 'Bikash Maharjan', email: 'bikash.maharjan@example.com', phone: '984-3333333', status: 'Available', vehicleType: 'Mercedes Sprinter', licensePlate: 'BA 3 PA 9012', driverName: 'Bikash Maharjan', driverContact: '984-3333333' },
+  { name: 'Prakash Shrestha', email: 'prakash.shrestha@example.com', phone: '984-4444444', status: 'On Leave', vehicleType: 'Nissan Urvan', licensePlate: 'BA 4 PA 3456', driverName: 'Prakash Shrestha', driverContact: '984-4444444' },
+  { name: 'Deepak Gurung', email: 'deepak.gurung@example.com', phone: '984-5555555', status: 'On Duty', vehicleType: 'Toyota HiAce', licensePlate: 'BA 5 PA 7890', driverName: 'Deepak Gurung', driverContact: '984-5555555' },
+  { name: 'Ramesh Tamang', email: 'ramesh.tamang@example.com', phone: '984-6666666', status: 'Available', vehicleType: 'Ford Transit', licensePlate: 'BA 6 PA 2345', driverName: 'Ramesh Tamang', driverContact: '984-6666666' },
+  { name: 'Anil Shah', email: 'anil.shah@example.com', phone: '984-7777777', status: 'Available', vehicleType: 'Mercedes Sprinter', licensePlate: 'BA 7 PA 6789', driverName: 'Anil Shah', driverContact: '984-7777777' },
+  { name: 'Kiran Thapa', email: 'kiran.thapa@example.com', phone: '984-8888888', status: 'On Duty', vehicleType: 'Nissan Urvan', licensePlate: 'BA 8 PA 1234', driverName: 'Kiran Thapa', driverContact: '984-8888888' },
+  { name: 'Manoj KC', email: 'manoj.kc@example.com', phone: '984-9999999', status: 'On Leave', vehicleType: 'Toyota HiAce', licensePlate: 'BA 9 PA 5678', driverName: 'Manoj KC', driverContact: '984-9999999' },
+  { name: 'Sandeep Maharjan', email: 'sandeep.maharjan@example.com', phone: '984-0000000', status: 'Available', vehicleType: 'Ford Transit', licensePlate: 'BA 10 PA 9012', driverName: 'Sandeep Maharjan', driverContact: '984-0000000' },
+  { name: 'Nabin Shrestha', email: 'nabin.shrestha@example.com', phone: '984-1212121', status: 'On Duty', vehicleType: 'Mercedes Sprinter', licensePlate: 'BA 11 PA 3456', driverName: 'Nabin Shrestha', driverContact: '984-1212121' },
+  { name: 'Dinesh Gurung', email: 'dinesh.gurung@example.com', phone: '984-3434343', status: 'Available', vehicleType: 'Nissan Urvan', licensePlate: 'BA 12 PA 7890', driverName: 'Dinesh Gurung', driverContact: '984-3434343' },
 ];

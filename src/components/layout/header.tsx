@@ -6,6 +6,7 @@ import {
   Settings,
   LifeBuoy,
   Menu,
+  User as UserIcon,
   X
 } from "lucide-react"
 
@@ -109,7 +110,7 @@ export function Header({ user, navItems }: HeaderProps) {
                 className="overflow-hidden rounded-full"
             >
                 <div className="w-full h-full flex items-center justify-center bg-secondary text-primary font-bold">
-                {user ? getUserInitials(user.name) : <Users className="h-5 w-5" />}
+                {user ? getUserInitials(user.name) : <UserIcon className="h-5 w-5" />}
                 </div>
             </Button>
             </DropdownMenuTrigger>

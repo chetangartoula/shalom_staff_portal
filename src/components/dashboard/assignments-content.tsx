@@ -74,6 +74,7 @@ export function AssignmentsContent() {
                         <TableHead>Assigned Guides</TableHead>
                         <TableHead>Assigned Porters</TableHead>
                         <TableHead>Assigned Airport Pickup</TableHead>
+                        <TableHead>Vehicle Details</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -98,10 +99,39 @@ export function AssignmentsContent() {
                                 </div>
                             </TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex flex-col gap-1">
                                     {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
-                                        <Badge key={a.id} variant="secondary" className="gap-1.5"><Plane className="h-3 w-3" /> {a.name}</Badge>
+                                        <div key={a.id} className="flex flex-col">
+                                            <Badge variant="secondary" className="gap-1.5 self-start"><Plane className="h-3 w-3" /> {a.name}</Badge>
+                                            {(a.vehicleType || a.licensePlate) && (
+                                                <div className="text-xs text-muted-foreground ml-5">
+                                                    {a.vehicleType && <span>{a.vehicleType}</span>}
+                                                    {a.vehicleType && a.licensePlate && <span>, </span>}
+                                                    {a.licensePlate && <span>{a.licensePlate}</span>}
+                                                </div>
+                                            )}
+                                        </div>
                                     )) : <span className="text-muted-foreground text-xs">None</span>}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="flex flex-col gap-1">
+                                    {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
+                                        <div key={a.id} className="flex flex-col">
+                                            {(a.vehicleType || a.licensePlate || a.driverName || a.driverContact) ? (
+                                                <div className="text-xs">
+                                                    {a.vehicleType && <div><span className="font-medium">Vehicle:</span> {a.vehicleType}</div>}
+                                                    {a.licensePlate && <div><span className="font-medium">Plate:</span> {a.licensePlate}</div>}
+                                                    {a.driverName && <div><span className="font-medium">Driver:</span> {a.driverName}</div>}
+                                                    {a.driverContact && <div><span className="font-medium">Contact:</span> {a.driverContact}</div>}
+                                                </div>
+                                            ) : (
+                                                <span className="text-muted-foreground text-xs">No vehicle details</span>
+                                            )}
+                                        </div>
+                                    )) : (
+                                        <span className="text-muted-foreground text-xs">No airport pickup assigned</span>
+                                    )}
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
@@ -145,43 +175,74 @@ export function AssignmentsContent() {
                                         <UserCheck className="mr-2 h-4 w-4" /> View for Guide
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
-                            </DropdownMenu>
+                        </DropdownMenu>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Start Date</span>
+                        <span>{assignment.startDate ? format(new Date(assignment.startDate), 'PPP') : 'N/A'}</span>
+                    </div>
+                     <div>
+                        <h4 className="font-medium mb-2">Guides</h4>
+                         <div className="flex items-center gap-2 flex-wrap">
+                            {assignment.guides.length > 0 ? assignment.guides.map(g => (
+                                <Badge key={g.id} variant="secondary" className="gap-1.5"><Users className="h-3 w-3" /> {g.name}</Badge>
+                            )) : <span className="text-muted-foreground text-xs">None</span>}
                         </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Start Date</span>
-                            <span>{assignment.startDate ? format(new Date(assignment.startDate), 'PPP') : 'N/A'}</span>
+                    </div>
+                    <div>
+                        <h4 className="font-medium mb-2">Porters</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {assignment.porters.length > 0 ? assignment.porters.map(p => (
+                                <Badge key={p.id} variant="secondary" className="gap-1.5"><Backpack className="h-3 w-3" /> {p.name}</Badge>
+                            )) : <span className="text-muted-foreground text-xs">None</span>}
                         </div>
-                         <div>
-                            <h4 className="font-medium mb-2">Guides</h4>
-                             <div className="flex items-center gap-2 flex-wrap">
-                                {assignment.guides.length > 0 ? assignment.guides.map(g => (
-                                    <Badge key={g.id} variant="secondary" className="gap-1.5"><Users className="h-3 w-3" /> {g.name}</Badge>
-                                )) : <span className="text-muted-foreground text-xs">None</span>}
-                            </div>
+                    </div>
+                    <div>
+                        <h4 className="font-medium mb-2">Airport Pickup</h4>
+                        <div className="flex flex-col gap-2">
+                            {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
+                                <div key={a.id} className="flex flex-col">
+                                    <Badge variant="secondary" className="gap-1.5 self-start"><Plane className="h-3 w-3" /> {a.name}</Badge>
+                                    {(a.vehicleType || a.licensePlate) && (
+                                        <div className="text-xs text-muted-foreground ml-5">
+                                            {a.vehicleType && <span>{a.vehicleType}</span>}
+                                            {a.vehicleType && a.licensePlate && <span>, </span>}
+                                            {a.licensePlate && <span>{a.licensePlate}</span>}
+                                        </div>
+                                    )}
+                                </div>
+                            )) : <span className="text-muted-foreground text-xs">None</span>}
                         </div>
+                    </div>
+                    {/* Vehicle Details Section for Mobile */}
+                    {assignment.airportPickUp.length > 0 && (
                         <div>
-                            <h4 className="font-medium mb-2">Porters</h4>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                {assignment.porters.length > 0 ? assignment.porters.map(p => (
-                                    <Badge key={p.id} variant="secondary" className="gap-1.5"><Backpack className="h-3 w-3" /> {p.name}</Badge>
-                                )) : <span className="text-muted-foreground text-xs">None</span>}
+                            <h4 className="font-medium mb-2">Vehicle Details</h4>
+                            <div className="flex flex-col gap-2">
+                                {assignment.airportPickUp.map(a => (
+                                    <div key={a.id} className="flex flex-col border-l-2 border-muted pl-2">
+                                        {(a.vehicleType || a.licensePlate || a.driverName || a.driverContact) ? (
+                                            <div className="text-xs space-y-1">
+                                                {a.vehicleType && <div><span className="font-medium">Vehicle:</span> {a.vehicleType}</div>}
+                                                {a.licensePlate && <div><span className="font-medium">Plate:</span> {a.licensePlate}</div>}
+                                                {a.driverName && <div><span className="font-medium">Driver:</span> {a.driverName}</div>}
+                                                {a.driverContact && <div><span className="font-medium">Contact:</span> {a.driverContact}</div>}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">No vehicle details available</span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div>
-                            <h4 className="font-medium mb-2">Airport Pickup</h4>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                {assignment.airportPickUp.length > 0 ? assignment.airportPickUp.map(a => (
-                                    <Badge key={a.id} variant="secondary" className="gap-1.5"><Plane className="h-3 w-3" /> {a.name}</Badge>
-                                )) : <span className="text-muted-foreground text-xs">None</span>}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-    );
+                    )}
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+);
 
     return (
         <>

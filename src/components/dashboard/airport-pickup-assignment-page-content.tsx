@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/shadcn/button';
@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/shadcn/checkbox';
 import { Label } from '@/components/ui/shadcn/label';
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
-import { Loader2, Save, Search, User, X, Plane } from 'lucide-react';
+import { Loader2, Save, Search, User, X, Plane, Car } from 'lucide-react';
 import type { AirportPickUp, Assignment } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -25,17 +25,52 @@ interface AirportPickupAssignmentPageContentProps {
     initialAssignments: Assignment | null;
 }
 
+interface VehicleDetails {
+    vehicleType?: string;
+    licensePlate?: string;
+    driverName?: string;
+    driverContact?: string;
+}
+
 export function AirportPickupAssignmentPageContent({ report, allAirportPickUp, initialAssignments }: AirportPickupAssignmentPageContentProps) {
     const [selectedAirportPickUpIds, setSelectedAirportPickUpIds] = useState<string[]>(initialAssignments?.guideIds || []); // Using guideIds for consistency
     const [airportPickUpSearch, setAirportPickUpSearch] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [vehicleDetails, setVehicleDetails] = useState<Record<string, VehicleDetails>>({});
     const { toast } = useToast();
     const router = useRouter();
+
+    // Initialize vehicle details when airport pickup personnel are selected
+    useEffect(() => {
+        const initialVehicleDetails: Record<string, VehicleDetails> = {};
+        selectedAirportPickUpIds.forEach(id => {
+            const airportPickUp = allAirportPickUp.find(ap => ap.id === id);
+            if (airportPickUp) {
+                initialVehicleDetails[id] = {
+                    vehicleType: airportPickUp.vehicleType || '',
+                    licensePlate: airportPickUp.licensePlate || '',
+                    driverName: airportPickUp.driverName || airportPickUp.name || '',
+                    driverContact: airportPickUp.driverContact || airportPickUp.phone || ''
+                };
+            }
+        });
+        setVehicleDetails(prev => ({ ...prev, ...initialVehicleDetails }));
+    }, [selectedAirportPickUpIds, allAirportPickUp]);
 
     const handleAirportPickUpSelect = (airportPickUpId: string) => {
         setSelectedAirportPickUpIds(prev =>
             prev.includes(airportPickUpId) ? prev.filter(id => id !== airportPickUpId) : [...prev, airportPickUpId]
         );
+    };
+
+    const handleVehicleDetailChange = (airportPickUpId: string, field: keyof VehicleDetails, value: string) => {
+        setVehicleDetails(prev => ({
+            ...prev,
+            [airportPickUpId]: {
+                ...prev[airportPickUpId],
+                [field]: value
+            }
+        }));
     };
 
     const isAirportPickUpAssigned = (airportPickUpId: string) => selectedAirportPickUpIds.includes(airportPickUpId);
@@ -55,10 +90,26 @@ export function AirportPickupAssignmentPageContent({ report, allAirportPickUp, i
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            // Prepare vehicle details for selected airport pickups
+            const selectedAirportPickUpsWithDetails = selectedAirportPickUp.map(ap => {
+                const vehicleDetail = vehicleDetails[ap.id] || {};
+                return {
+                    ...ap,
+                    vehicleType: vehicleDetail.vehicleType || ap.vehicleType || '',
+                    licensePlate: vehicleDetail.licensePlate || ap.licensePlate || '',
+                    driverName: vehicleDetail.driverName || ap.name,
+                    driverContact: vehicleDetail.driverContact || ap.phone
+                };
+            });
+
             const response = await fetch(`/api/assignments/${report.groupId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ guideIds: selectedAirportPickUpIds, porterIds: initialAssignments?.porterIds || [] }), // Keep existing porter assignments
+                body: JSON.stringify({ 
+                    guideIds: selectedAirportPickUpIds, 
+                    porterIds: initialAssignments?.porterIds || [],
+                    airportPickUpDetails: selectedAirportPickUpsWithDetails
+                }), // Keep existing porter assignments
             });
 
             if (!response.ok) {
@@ -159,6 +210,65 @@ export function AirportPickupAssignmentPageContent({ report, allAirportPickUp, i
                     getStatus={getStatusBadge}
                 />
             </div>
+
+            {/* Vehicle Details Section */}
+            {selectedAirportPickUp.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Car className="h-5 w-5" /> Vehicle Details
+                        </CardTitle>
+                        <CardDescription>
+                            Provide vehicle information for the selected airport pickup personnel
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {selectedAirportPickUp.map((airportPickUp) => (
+                            <div key={airportPickUp.id} className="border rounded-lg p-4">
+                                <h3 className="font-semibold mb-3">{airportPickUp.name}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <Label htmlFor={`vehicleType-${airportPickUp.id}`}>Vehicle Type</Label>
+                                        <Input
+                                            id={`vehicleType-${airportPickUp.id}`}
+                                            value={vehicleDetails[airportPickUp.id]?.vehicleType || ''}
+                                            onChange={(e) => handleVehicleDetailChange(airportPickUp.id, 'vehicleType', e.target.value)}
+                                            placeholder="e.g., Toyota HiAce"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor={`licensePlate-${airportPickUp.id}`}>License Plate</Label>
+                                        <Input
+                                            id={`licensePlate-${airportPickUp.id}`}
+                                            value={vehicleDetails[airportPickUp.id]?.licensePlate || ''}
+                                            onChange={(e) => handleVehicleDetailChange(airportPickUp.id, 'licensePlate', e.target.value)}
+                                            placeholder="e.g., BA 1 PA 1234"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor={`driverName-${airportPickUp.id}`}>Driver Name</Label>
+                                        <Input
+                                            id={`driverName-${airportPickUp.id}`}
+                                            value={vehicleDetails[airportPickUp.id]?.driverName || ''}
+                                            onChange={(e) => handleVehicleDetailChange(airportPickUp.id, 'driverName', e.target.value)}
+                                            placeholder="Driver's name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor={`driverContact-${airportPickUp.id}`}>Driver Contact</Label>
+                                        <Input
+                                            id={`driverContact-${airportPickUp.id}`}
+                                            value={vehicleDetails[airportPickUp.id]?.driverContact || ''}
+                                            onChange={(e) => handleVehicleDetailChange(airportPickUp.id, 'driverContact', e.target.value)}
+                                            placeholder="Driver's contact number"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
