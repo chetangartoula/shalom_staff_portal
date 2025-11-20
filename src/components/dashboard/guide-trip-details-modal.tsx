@@ -82,7 +82,7 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         const { default: autoTable } = await import('jspdf-autotable');
         
         const doc = new jsPDF();
-        const brandColor = [21, 29, 79]; // #151D4F
+        const brandColor: [number, number, number] = [21, 29, 79]; // #151D4F
         const pageLeftMargin = 14;
         const pageRightMargin = 14;
         const pageTopMargin = 20;
@@ -191,13 +191,13 @@ export default function GuideTripDetailsModal({ isOpen, onClose, assignment }: G
         yPos += 7;
 
         const travelerCols = ["Profile", "Name", "Nationality", "Passport No.", "Phone", "Emergency Contact"];
-        const travelerRows = details.travelers.map(t => [
+        const travelerRows: string[][] = details.travelers.map(t => [
             '', // Placeholder for image
-            t.name,
-            t.nationality,
-            t.passportNumber,
-            t.phone,
-            t.emergencyContact
+            String(t.name || 'N/A'),
+            String(t.nationality || 'N/A'),
+            String(t.passportNumber || 'N/A'),
+            String(t.phone || 'N/A'),
+            String(t.emergencyContact || 'N/A')
         ]);
 
         autoTable(doc, {

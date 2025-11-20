@@ -431,25 +431,29 @@ export function ComprehensiveReportsContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Traveler Reports</h1>
-        <p className="text-muted-foreground text-sm md:text-base">
+        <h1 className="text-2xl font-bold tracking-tight">Traveler Reports</h1>
+        <p className="text-muted-foreground text-sm">
           View detailed information about individual travelers and generate comprehensive reports.
         </p>
       </div>
       
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div className="relative w-full sm:w-auto">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div className="relative w-full md:w-auto">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search travelers..."
-            className="w-full sm:w-[300px] pl-8"
+            className="w-full md:w-[250px] lg:w-[300px] pl-9 pr-4 py-2"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleDownloadSelected} disabled={Object.keys(selectedItems).filter(id => selectedItems[id]).length === 0}>
+          <Button 
+            onClick={handleDownloadSelected} 
+            disabled={Object.keys(selectedItems).filter(id => selectedItems[id]).length === 0}
+            className="w-full md:w-auto"
+          >
             <FileDown className="mr-2 h-4 w-4" />
             Download Selected
           </Button>
@@ -462,7 +466,72 @@ export function ComprehensiveReportsContent() {
           <CardDescription>Comprehensive information about individual travelers including their group associations, payment history, and documentation.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg">
+          {/* Mobile view - cards for small screens */}
+          <div className="lg:hidden space-y-4">
+            {filteredTravelers.length > 0 ? filteredTravelers.map((traveler: EnrichedTraveler) => (
+              <div key={`${traveler.id}-${traveler.groupId}`} className="border rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedItems[`${traveler.id}-${traveler.groupId}`] || false}
+                      onChange={() => handleSelectItem(`${traveler.id}-${traveler.groupId}`)}
+                      className="mt-1"
+                    />
+                    <div>
+                      <h3 className="font-medium">{traveler.name}</h3>
+                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                        {traveler.reports && traveler.reports.length > 0 
+                          ? traveler.reports.map((report: Report) => report.groupName).join(', ') 
+                          : 'No groups'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport(traveler)}>
+                    <FileDown className="h-4 w-4" />
+                    <span className="sr-only">Download Report</span>
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Phone</p>
+                    <p>{traveler.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Email</p>
+                    <p className="truncate max-w-[150px]">{traveler.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Passport</p>
+                    <p>{traveler.passportNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Balance</p>
+                    <p className={cn("font-medium", 
+                      traveler.reports && traveler.reports.some((report: Report) => 
+                        report?.paymentDetails?.balance > 0
+                      ) ? 'text-red-600' : 'text-green-600')}>
+                      {traveler.reports && traveler.reports.length > 0 
+                        ? formatCurrency(
+                            traveler.reports.reduce((sum: number, report: Report) => 
+                              sum + (report?.paymentDetails?.balance || 0), 0
+                            )
+                          ) 
+                        : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No travelers found.
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop view - table for larger screens */}
+          <div className="hidden lg:block border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -483,13 +552,13 @@ export function ComprehensiveReportsContent() {
                       }}
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Groups</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Passport</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="min-w-[120px]">Name</TableHead>
+                  <TableHead className="min-w-[150px] hidden md:table-cell">Groups</TableHead>
+                  <TableHead className="min-w-[120px] hidden sm:table-cell">Phone</TableHead>
+                  <TableHead className="min-w-[150px] hidden lg:table-cell">Email</TableHead>
+                  <TableHead className="min-w-[120px] hidden md:table-cell">Passport</TableHead>
+                  <TableHead className="min-w-[100px]">Balance</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -502,16 +571,16 @@ export function ComprehensiveReportsContent() {
                         onChange={() => handleSelectItem(`${traveler.id}-${traveler.groupId}`)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{traveler.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium max-w-[150px] truncate">{traveler.name}</TableCell>
+                    <TableCell className="max-w-[200px] truncate hidden md:table-cell">
                       {traveler.reports && traveler.reports.length > 0 
                         ? traveler.reports.map((report: Report) => report.groupName).join(', ') 
                         : 'N/A'}
                     </TableCell>
-                    <TableCell>{traveler.phone || 'N/A'}</TableCell>
-                    <TableCell>{traveler.email || 'N/A'}</TableCell>
-                    <TableCell>{traveler.passportNumber || 'N/A'}</TableCell>
-                    <TableCell className={cn("font-medium", 
+                    <TableCell className="truncate max-w-[120px] hidden sm:table-cell">{traveler.phone || 'N/A'}</TableCell>
+                    <TableCell className="truncate max-w-[150px] hidden lg:table-cell">{traveler.email || 'N/A'}</TableCell>
+                    <TableCell className="truncate max-w-[120px] hidden md:table-cell">{traveler.passportNumber || 'N/A'}</TableCell>
+                    <TableCell className={cn("font-medium truncate max-w-[100px]", 
                       traveler.reports && traveler.reports.some((report: Report) => 
                         report?.paymentDetails?.balance > 0
                       ) ? 'text-red-600' : 'text-green-600')}>
@@ -526,6 +595,7 @@ export function ComprehensiveReportsContent() {
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm" onClick={() => handleDownloadReport(traveler)}>
                         <FileDown className="h-4 w-4" />
+                        <span className="sr-only">Download Report</span>
                       </Button>
                     </TableCell>
                   </TableRow>
