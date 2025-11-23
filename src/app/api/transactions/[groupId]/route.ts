@@ -8,7 +8,7 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params; // Await the params object
     const transactions = getTransactionsByGroupId(groupId);
@@ -18,13 +18,16 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function POST(request: Request, { params }: Params) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ groupId: string }> }
+) {
   try {
     const { groupId } = await params; // Await the params object
     const body = await request.json();
-    
+
     if (!body.amount || !body.type || !body.date) {
-        return NextResponse.json({ message: 'Invalid transaction data submitted.' }, { status: 400 });
+      return NextResponse.json({ message: 'Invalid transaction data submitted.' }, { status: 400 });
     }
 
     const newTransaction = addTransaction(groupId, body);

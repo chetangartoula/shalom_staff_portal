@@ -7,7 +7,7 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params; // Await the params object
     const report = getReportByGroupId(groupId);
@@ -20,15 +20,15 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params; // Await the params object
     const body = await request.json();
     const updated = updateReport(groupId, body);
 
     if (updated) {
-       const fullReport = getReportByGroupId(groupId);
-       return NextResponse.json({ message: 'Report updated successfully', report: fullReport }, { status: 200 });
+      const fullReport = getReportByGroupId(groupId);
+      return NextResponse.json({ message: 'Report updated successfully', report: fullReport }, { status: 200 });
     }
     return NextResponse.json({ message: 'Report not found' }, { status: 404 });
   } catch (error) {

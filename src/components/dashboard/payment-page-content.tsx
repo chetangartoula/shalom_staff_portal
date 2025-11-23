@@ -1,46 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Save, PlusCircle, MinusCircle, Wallet, ArrowLeft, Search, FileDown } from 'lucide-react';
+import { Loader2, Wallet, ArrowLeft, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { useToast } from '@/hooks/use-toast';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/shadcn/form";
-import { Input } from "@/components/ui/shadcn/input";
-import { Textarea } from "@/components/ui/shadcn/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/shadcn/toggle-group";
 import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import useSWR from 'swr';
-import { DatePicker } from '../ui/shadcn/date-picker';
 import { logoUrl } from '@/components/logo';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/shadcn/popover";
-import { Badge } from "@/components/ui/shadcn/badge";
-import { Checkbox } from "@/components/ui/shadcn/checkbox";
+import { TransactionForm } from './transaction-form';
 
 interface PaymentPageContentProps {
     initialReport: Report;
 }
-
-const transactionSchema = z.object({
-    amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
-    type: z.enum(['payment', 'refund']),
-    date: z.date({ required_error: "Transaction date is required." }),
-    note: z.string().optional(),
-    mergeGroups: z.array(z.string()).optional(), // New field for merge groups
-});
-
-type TransactionFormValues = z.infer<typeof transactionSchema>;
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -52,18 +28,6 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: transactionData, mutate: mutateTransactions, error: swrError } = useSWR(`/api/transactions/${initialReport.groupId}`, fetcher);
     const { data: allReportsData } = useSWR('/api/reports?limit=1000', fetcher); // Fetch all reports for merge selection
     const { data: allTransactionsData } = useSWR('/api/transactions/all?all=true', fetcher); // Fetch all transactions for merged group calculations
-    
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [open, setOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedReports, setSelectedReports] = useState<{groupId: string, groupName: string}[]>([]);
-
-    // Filter reports for merge selection (exclude current report)
-    const availableReports = allReportsData?.reports?.filter((report: Report) => 
-        report.groupId !== initialReport.groupId &&
-        (report.groupName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         report.groupId.toLowerCase().includes(searchTerm.toLowerCase()))
-    ) || [];
 
     // Calculate total amount from merged groups
     const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
@@ -82,71 +46,12 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
     };
 
-    const form = useForm<TransactionFormValues>({
-        resolver: zodResolver(transactionSchema),
-        defaultValues: {
-            amount: 0,
-            type: 'payment',
-            date: new Date(),
-            note: '',
-            mergeGroups: [],
-        },
-    });
-
-    // Update form when selected reports change
-    useEffect(() => {
-        const mergeGroups = selectedReports.map(r => r.groupId);
-        form.setValue('mergeGroups', mergeGroups);
-        
-        // Automatically calculate and set the amount based on merged groups
-        const mergedTotal = calculateMergedGroupsTotal(mergeGroups);
-        if (mergedTotal > 0 && mergeGroups.length > 0) {
-            form.setValue('amount', mergedTotal);
-        }
-    }, [selectedReports]);
-
-    const transactionType = form.watch('type');
-    const mergeGroupsValue = form.watch('mergeGroups');
-    
-    // Update amount when mergeGroups change
-    useEffect(() => {
-        const mergedTotal = calculateMergedGroupsTotal(mergeGroupsValue);
-        if (mergedTotal > 0 && mergeGroupsValue && mergeGroupsValue.length > 0) {
-            form.setValue('amount', mergedTotal);
-        }
-    }, [mergeGroupsValue]);
-
-    const onSubmit = async (values: TransactionFormValues) => {
-        if (!reportData) return;
-        setIsSubmitting(true);
-
-        try {
-            const response = await fetch(`/api/transactions/${reportData.groupId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save transaction');
-            }
-            toast({ title: 'Success', description: 'Transaction added successfully.' });
-            form.reset({ amount: 0, type: 'payment', date: new Date(), note: '' });
-            await mutateTransactions(); // Re-fetch transactions
-            await mutateReport(); // Re-fetch report to update payment details
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: (error as Error).message });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-    
     const isLoadingTransactions = !transactionData && !swrError;
     const transactions: Transaction[] = transactionData?.transactions || [];
     const paymentDetails: PaymentDetails | undefined = reportData?.paymentDetails;
 
     const isFullyPaid = paymentDetails?.paymentStatus === 'fully paid' || paymentDetails?.paymentStatus === 'overpaid';
-    const isPaymentDisabled = isFullyPaid && transactionType === 'payment';
+    const isPaymentDisabled = isFullyPaid;
 
     const handleDownloadInvoice = async (transaction?: Transaction) => {
         if (!reportData || !paymentDetails) return;
@@ -165,7 +70,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         // --- Header ---
         const logoWidth = 50;
         const logoHeight = (logoWidth * 54) / 256;
-        
+
         const response = await fetch(logoUrl);
         const blob = await response.blob();
         const reader = new FileReader();
@@ -180,7 +85,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...brandColor);
         doc.text("INVOICE", doc.internal.pageSize.width - pageRightMargin, yPos, { align: 'right' });
-        
+
         yPos += 15;
 
         doc.setDrawColor(200);
@@ -193,14 +98,14 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.text("BILL TO", pageLeftMargin, yPos);
         doc.text("INVOICE #", 120, yPos);
         doc.text("DATE", 160, yPos);
-        
+
         yPos += 6;
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         doc.text(reportData.groupName, pageLeftMargin, yPos);
         doc.text(reportData.groupId.substring(0, 13).toUpperCase(), 120, yPos);
         doc.text(format(new Date(), 'PPP'), 160, yPos);
-        
+
         yPos += 5;
         doc.text(reportData.trekName, pageLeftMargin, yPos);
         yPos += 15;
@@ -215,7 +120,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             ],
             theme: 'plain',
             styles: { fontSize: 12, font: 'helvetica' },
-            columnStyles: { 
+            columnStyles: {
                 0: { fontStyle: 'bold', halign: 'right' },
                 1: { fontStyle: 'bold', halign: 'right' }
             },
@@ -240,7 +145,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             doc.setFont('helvetica', 'bold');
             doc.text(tableTitle, pageLeftMargin, yPos);
             yPos += 8;
-            
+
             autoTable(doc, {
                 startY: yPos,
                 head: [['Date', 'Type', 'Note', 'Amount']],
@@ -288,14 +193,14 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         } else {
             footerY = finalY + 30 > footerY ? pageHeight - 20 : finalY + 30;
         }
-        
+
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text("Thank you for your business!", doc.internal.pageSize.width / 2, footerY, { align: 'center' });
 
 
         // If downloading individual transaction, name the file with transaction ID
-        const filename = transaction 
+        const filename = transaction
             ? `invoice-${reportData.groupId.substring(0, 8)}-${transaction.id.substring(0, 8)}.pdf`
             : `invoice-${reportData.groupId.substring(0, 8)}.pdf`;
         doc.save(filename);
@@ -303,7 +208,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
     return (
         <div className="space-y-6">
-             <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
                 <Button variant="outline" size="icon" onClick={() => router.back()} className="shrink-0">
                     <ArrowLeft className="h-4 w-4" />
                     <span className="sr-only">Go back</span>
@@ -315,7 +220,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     </p>
                 </div>
             </div>
-            
+
             <Card>
                 <CardHeader>
                     <CardTitle>Financial Summary</CardTitle>
@@ -337,6 +242,18 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                             </p>
                         </div>
                     </div>
+                    <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-1">
+                            <span>Payment Progress</span>
+                            <span className="font-medium">{Math.min(100, Math.round(((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100))}%</span>
+                        </div>
+                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-green-600 transition-all duration-500 ease-in-out"
+                                style={{ width: `${Math.min(100, ((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100)}%` }}
+                            />
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -344,163 +261,27 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                 {/* Add Transaction Form */}
                 <Card>
                     <CardHeader>
-                         <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
+                        <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
                     </CardHeader>
                     <CardContent>
-                        <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                                <FormField
-                                    control={form.control}
-                                    name="type"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <ToggleGroup
-                                                    type="single"
-                                                    variant="outline"
-                                                    value={field.value}
-                                                    onValueChange={field.onChange}
-                                                    className="w-full grid grid-cols-2"
-                                                >
-                                                    <ToggleGroupItem value="payment" className="gap-2 data-[state=on]:bg-green-100 dark:data-[state=on]:bg-green-900/50 dark:data-[state=on]:text-green-300 data-[state=on]:text-green-800">
-                                                        <PlusCircle className="h-4 w-4" /> Payment
-                                                    </ToggleGroupItem>
-                                                    <ToggleGroupItem value="refund" className="gap-2 data-[state=on]:bg-red-100 dark:data-[state=on]:bg-red-900/50 dark:data-[state=on]:text-red-300 data-[state=on]:text-red-800">
-                                                        <MinusCircle className="h-4 w-4" /> Refund
-                                                    </ToggleGroupItem>
-                                                </ToggleGroup>
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField control={form.control} name="amount" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Amount</FormLabel>
-                                        <FormControl><Input type="number" step="0.01" {...field} disabled={isPaymentDisabled} /></FormControl>
-                                        {isPaymentDisabled && <p className="text-sm text-yellow-600">This trip is fully paid. No more payments can be added.</p>}
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-
-                                {/* Merge Groups Field - NEW */}
-                                <FormField control={form.control} name="mergeGroups" render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Merge Groups</FormLabel>
-                                        <Popover open={open} onOpenChange={setOpen}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button
-                                                        variant="outline"
-                                                        role="combobox"
-                                                        className={cn("justify-between", !field.value && "text-muted-foreground")}
-                                                    >
-                                                        {selectedReports.length > 0 
-                                                            ? `${selectedReports.length} group(s) selected` 
-                                                            : "Select groups to merge..."}
-                                                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="p-0" align="start">
-                                                <div className="p-2">
-                                                    <Input
-                                                        placeholder="Search by group name or ID..."
-                                                        value={searchTerm}
-                                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                                        className="mb-2"
-                                                    />
-                                                    <div className="max-h-60 overflow-y-auto">
-                                                        {availableReports.length > 0 ? (
-                                                            availableReports.map((report: Report) => (
-                                                                <div
-                                                                    key={report.groupId}
-                                                                    className="flex items-center space-x-2 py-2 px-1 hover:bg-accent rounded cursor-pointer"
-                                                                    onClick={() => {
-                                                                        const isSelected = selectedReports.some(r => r.groupId === report.groupId);
-                                                                        if (isSelected) {
-                                                                            setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
-                                                                        } else {
-                                                                            setSelectedReports([...selectedReports, { groupId: report.groupId, groupName: report.groupName }]);
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <Checkbox
-                                                                        checked={selectedReports.some(r => r.groupId === report.groupId)}
-                                                                        className="mr-2"
-                                                                    />
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-medium text-sm">{report.groupName}</span>
-                                                                        <span className="text-xs text-muted-foreground">{report.groupId}</span>
-                                                                    </div>
-                                                                </div>
-                                                            ))
-                                                        ) : (
-                                                            <div className="py-6 text-center text-sm text-muted-foreground">
-                                                                No groups found.
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </PopoverContent>
-                                        </Popover>
-                                        {selectedReports.length > 0 && (
-                                            <div className="flex flex-wrap gap-2 mt-2">
-                                                {selectedReports.map((report) => (
-                                                    <Badge 
-                                                        key={report.groupId} 
-                                                        variant="secondary"
-                                                        className="pr-1"
-                                                    >
-                                                        {report.groupName}
-                                                        <button
-                                                            type="button"
-                                                            className="ml-1 rounded-full hover:bg-secondary-foreground/20"
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
-                                                            }}
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        )}
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-
-                                <FormField control={form.control} name="date" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Date</FormLabel>
-                                        <FormControl><DatePicker date={field.value} setDate={field.onChange} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-
-                                <FormField control={form.control} name="note" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Note (Optional)</FormLabel>
-                                        <FormControl><Textarea {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}/>
-                                <Button type="submit" disabled={isSubmitting || isPaymentDisabled} className="w-full">
-                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    <Save className="mr-2 h-4 w-4" /> Save Transaction
-                                </Button>
-                            </form>
-                        </Form>
+                        <TransactionForm
+                            groupId={reportData.groupId}
+                            onSuccess={() => {
+                                mutateTransactions();
+                                mutateReport();
+                            }}
+                            isPaymentDisabled={isPaymentDisabled}
+                        />
                     </CardContent>
                 </Card>
 
                 {/* Transaction History */}
                 <Card>
-                     <CardHeader>
+                    <CardHeader>
                         <h4 className="font-semibold text-lg">Transaction History</h4>
                     </CardHeader>
                     <CardContent>
-                        <div className="border rounded-lg max-h-[380px] overflow-y-auto">
+                        <div className="border rounded-lg max-h-[380px] overflow-y-auto overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -518,9 +299,9 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                         transactions.map(t => (
                                             <TableRow key={t.id}>
                                                 <TableCell>{format(parseISO(t.date), 'PPP')}</TableCell>
-                                                <TableCell className={cn("capitalize", 
-                                                    t.note && t.note.includes('Balance Due') ? 'text-yellow-600' : 
-                                                    t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
+                                                <TableCell className={cn("capitalize",
+                                                    t.note && t.note.includes('Balance Due') ? 'text-yellow-600' :
+                                                        t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
                                                     {t.note && t.note.includes('Balance Due') ? 'Unpaid' : t.type}
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>

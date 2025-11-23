@@ -8,10 +8,10 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params; // Await the params object
-    
+
     const report = getReportByGroupId(groupId);
     if (!report) {
       return NextResponse.json({ message: 'Report not found' }, { status: 404 });
@@ -26,20 +26,20 @@ export async function GET(request: Request, { params }: Params) {
     const assignedGuideDetails = assignments?.guideIds.map((id: string) => allGuides.find((g: any) => g.id === id)).filter(Boolean);
     const assignedPorterDetails = assignments?.porterIds.map((id: string) => allPorters.find((p: any) => p.id === id)).filter(Boolean);
     const assignedAirportPickUpDetails = assignments?.guideIds.map((id: string) => allAirportPickUp.find((a: any) => a.id === id)).filter(Boolean);
-    
+
     return NextResponse.json({
-        report: {
-            trekName: report.trekName,
-            groupName: report.groupName,
-            startDate: report.startDate,
-            groupSize: report.groupSize,
-            permits: report.permits,
-            services: report.services,
-        },
-        travelers: travelerGroup?.travelers || [],
-        guides: assignedGuideDetails || [],
-        porters: assignedPorterDetails || [],
-        airportPickUp: assignedAirportPickUpDetails || [],
+      report: {
+        trekName: report.trekName,
+        groupName: report.groupName,
+        startDate: report.startDate,
+        groupSize: report.groupSize,
+        permits: report.permits,
+        services: report.services,
+      },
+      travelers: travelerGroup?.travelers || [],
+      guides: assignedGuideDetails || [],
+      porters: assignedPorterDetails || [],
+      airportPickUp: assignedAirportPickUpDetails || [],
     });
 
   } catch (error) {

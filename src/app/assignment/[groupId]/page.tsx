@@ -6,20 +6,20 @@ import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 
 interface AssignmentPageProps {
-  params: {
-    groupId: string;
-  };
+    params: Promise<{
+        groupId: string;
+    }>;
 }
 
 export default async function AssignmentPage({ params }: AssignmentPageProps) {
-    const { groupId } = await params; // Await the params object
+    const { groupId } = await params;
     const user = await getUser();
     const report = getReportByGroupId(groupId);
-    
+
     if (!report) {
         notFound();
     }
-    
+
     // Fetch all guides and porters, not just available ones, 
     // so we can see who is currently assigned even if they are now on another tour.
     const { guides } = getGuides();
@@ -28,7 +28,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
 
     return (
         <DashboardLayout user={user}>
-            <AssignmentPageContent 
+            <AssignmentPageContent
                 report={report}
                 allGuides={guides}
                 allPorters={porters}

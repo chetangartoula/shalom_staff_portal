@@ -6,23 +6,23 @@ import { notFound } from "next/navigation";
 import { getUser } from "@/lib/auth";
 
 interface PaymentPageProps {
-  params: {
+  params: Promise<{
     groupId: string;
-  };
+  }>;
 }
 
 export default async function PaymentPage({ params }: PaymentPageProps) {
-    const { groupId } = await params; // Await the params object
-    const user = await getUser();
-    const report = getReportByGroupId(groupId);
-    
-    if (!report) {
-        notFound();
-    }
+  const { groupId } = await params;
+  const user = await getUser();
+  const report = getReportByGroupId(groupId);
 
-    return (
-        <DashboardLayout user={user}>
-            <PaymentPageContent initialReport={report} />
-        </DashboardLayout>
-    );
+  if (!report) {
+    notFound();
+  }
+
+  return (
+    <DashboardLayout user={user}>
+      <PaymentPageContent initialReport={report} />
+    </DashboardLayout>
+  );
 }

@@ -7,15 +7,15 @@ import { notFound } from 'next/navigation';
 import type { User } from '@/lib/auth';
 
 interface ExtraServicesPageProps {
-  searchParams: {
+  searchParams: Promise<{
     groupId?: string;
-  };
+  }>;
 }
 
 export default async function ExtraServicesPage({ searchParams }: ExtraServicesPageProps) {
   const user: User | null = await getUser();
-  const { groupId } = searchParams;
-  
+  const { groupId } = await searchParams;
+
   let initialData = null;
   if (groupId) {
     initialData = getReportByGroupId(groupId);
@@ -23,7 +23,7 @@ export default async function ExtraServicesPage({ searchParams }: ExtraServicesP
       notFound();
     }
   }
-  
+
   return (
     <DashboardLayout user={user}>
       <ExtraServicesClientPage user={user} initialData={initialData} />

@@ -28,12 +28,12 @@ export interface CostRow {
 }
 
 export interface SectionState {
-    id: string;
-    name: string;
-    rows: CostRow[];
-    discountType: 'amount' | 'percentage';
-    discountValue: number;
-    discountRemarks?: string; // Added for individual discount remarks
+  id: string;
+  name: string;
+  rows: CostRow[];
+  discountType: 'amount' | 'percentage';
+  discountValue: number;
+  discountRemarks?: string; // Added for individual discount remarks
 }
 
 export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';
@@ -128,11 +128,17 @@ export interface Report {
   serviceCharge: number;
   reportUrl: string;
   clientCommunicationMethod?: string; // Added for client communication method
-  
+  createdBy?: string; // Added for tracking who created the quotation
+
+  // Overall discount fields
+  overallDiscountType?: 'amount' | 'percentage';
+  overallDiscountValue?: number;
+  overallDiscountRemarks?: string;
+
   // From augmentation
   joined: number;
   pending: number;
   paymentDetails: PaymentDetails;
 }
 
-    
+

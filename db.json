@@ -376,7 +376,8 @@
         "totalPaid": 187,
         "balance": 2.842170943040401e-14,
         "paymentStatus": "fully paid"
-      }
+      },
+      "createdBy": "Charlie Brown"
     },
     {
       "groupId": "0aac067c-b2d7-449c-b21d-06b00578d8dd",
@@ -467,7 +468,8 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://shalom-staff-portal.vercel.app/report/0aac067c-b2d7-449c-b21d-06b00578d8dd"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/0aac067c-b2d7-449c-b21d-06b00578d8dd",
+      "createdBy": "Bob Williams"
     },
     {
       "groupId": "98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0",
@@ -542,7 +544,8 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://shalom-staff-portal.vercel.app/report/98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/98c9ca14-77aa-4aa7-8e3a-13c0f1fa8ad0",
+      "createdBy": "David Miller"
     },
     {
       "groupId": "146672a2-b70d-4f4c-ac76-7e52ced2adf1",
@@ -624,7 +627,8 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://shalom-staff-portal.vercel.app/report/146672a2-b70d-4f4c-ac76-7e52ced2adf1"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/146672a2-b70d-4f4c-ac76-7e52ced2adf1",
+      "createdBy": "Bob Williams"
     },
     {
       "groupId": "22b3078f-6db1-450e-9824-e4bb52a486ec",
@@ -690,7 +694,8 @@
       },
       "customSections": [],
       "serviceCharge": 10,
-      "reportUrl": "https://shalom-staff-portal.vercel.app/report/22b3078f-6db1-450e-9824-e4bb52a486ec"
+      "reportUrl": "https://shalom-staff-portal.vercel.app/report/22b3078f-6db1-450e-9824-e4bb52a486ec",
+      "createdBy": "Charlie Brown"
     },
     {
       "groupId": "639e1dda-50dd-4e1b-98a5-bf5c14d5cebc",
@@ -823,6 +828,84 @@
         "totalPaid": 517,
         "balance": 0,
         "paymentStatus": "fully paid"
+      },
+      "createdBy": "Alice Johnson"
+    },
+    {
+      "groupId": "c6698184-87ce-48a9-9547-1019302ad7ba",
+      "trekId": "manaslu",
+      "trekName": "Manaslu Circuit Trek",
+      "groupName": "Manaslu Circuit Trek c669",
+      "groupSize": 1,
+      "startDate": "2025-11-22T15:07:48.554Z",
+      "permits": {
+        "id": "permits",
+        "name": "Permits & Food",
+        "rows": [
+          {
+            "id": "a8c80989-0c5e-43e8-8293-41c842546273",
+            "description": "RMP+GT+MCAP+ACAP",
+            "rate": 160,
+            "no": 1,
+            "times": 1,
+            "total": 160
+          },
+          {
+            "id": "4ee35bd5-c73c-4d4e-a68e-fd8d35c0dd1f",
+            "description": "RMP+GT+MCAP+ACAP",
+            "rate": 160,
+            "no": 1,
+            "times": 1,
+            "total": 160
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "services": {
+        "id": "services",
+        "name": "Services",
+        "rows": [],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "extraDetails": {
+        "id": "extraDetails",
+        "name": "Extra Details",
+        "rows": [
+          {
+            "id": "c0088069-f4bd-4991-b6fc-063f7bc2e5e9",
+            "description": "Satellite device",
+            "rate": 30,
+            "no": 1,
+            "times": 12,
+            "total": 360
+          },
+          {
+            "id": "9748b5f1-8f68-4aaf-bdf7-ddf4603214bc",
+            "description": "Satellite device",
+            "rate": 30,
+            "no": 1,
+            "times": 12,
+            "total": 360
+          }
+        ],
+        "discountType": "amount",
+        "discountValue": 0,
+        "discountRemarks": ""
+      },
+      "customSections": [],
+      "serviceCharge": 10,
+      "clientCommunicationMethod": "",
+      "reportUrl": "http://localhost:3000/report/c6698184-87ce-48a9-9547-1019302ad7ba",
+      "createdBy": "Alice Johnson",
+      "paymentDetails": {
+        "totalCost": 572,
+        "totalPaid": 0,
+        "balance": 572,
+        "paymentStatus": "unpaid"
       }
     }
   ],
@@ -1030,6 +1113,14 @@
       "mergeGroups": [],
       "id": "1918cf5d-9cf2-43ef-b4a3-1410364f51db",
       "groupId": "639e1dda-50dd-4e1b-98a5-bf5c14d5cebc"
+    },
+    {
+      "amount": 572,
+      "type": "payment",
+      "date": "2025-11-23T08:26:54.496Z",
+      "note": "Extra services added - Balance Due",
+      "id": "e9a6bbf9-73cc-43a4-93d6-e8815a430c25",
+      "groupId": "c6698184-87ce-48a9-9547-1019302ad7ba"
     }
   ]
 }

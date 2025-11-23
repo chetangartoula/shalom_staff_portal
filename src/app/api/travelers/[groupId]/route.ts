@@ -16,7 +16,10 @@ async function sha256(str: string): Promise<string> {
   return hashHex;
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ groupId: string }> }
+) {
   try {
     const { groupId } = await params; // Await the params object
     const travelerGroup = getTravelerGroup(groupId);
@@ -31,28 +34,31 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params }: Params) {
-    try {
-        const { groupId } = await params; // Await the params object
-        const body = await request.json();
-        let { traveler: submittedTraveler } = body;
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ groupId: string }> }
+) {
+  try {
+    const { groupId } = await params; // Await the params object
+    const body = await request.json();
+    let { traveler: submittedTraveler } = body;
 
-        if (!submittedTraveler || !submittedTraveler.passportNumber || !submittedTraveler.phone) {
-            return NextResponse.json({ message: 'Invalid traveler data submitted. Passport and phone are required.' }, { status: 400 });
-        }
-        
-        const uniqueString = `${submittedTraveler.passportNumber.trim()}-${submittedTraveler.phone.trim()}`;
-        const travelerId = await sha256(uniqueString);
-        submittedTraveler.id = travelerId;
-
-        const updatedGroup = updateTravelerGroup(groupId, submittedTraveler);
-
-        if (updatedGroup) {
-            return NextResponse.json({ message: 'Traveler details updated successfully', data: updatedGroup }, { status: 200 });
-        }
-        return NextResponse.json({ message: 'Error saving traveler details' }, { status: 500 });
-
-    } catch (error) {
-        return NextResponse.json({ message: 'Error saving traveler details', error: (error as Error).message }, { status: 500 });
+    if (!submittedTraveler || !submittedTraveler.passportNumber || !submittedTraveler.phone) {
+      return NextResponse.json({ message: 'Invalid traveler data submitted. Passport and phone are required.' }, { status: 400 });
     }
+
+    const uniqueString = `${submittedTraveler.passportNumber.trim()}-${submittedTraveler.phone.trim()}`;
+    const travelerId = await sha256(uniqueString);
+    submittedTraveler.id = travelerId;
+
+    const updatedGroup = updateTravelerGroup(groupId, submittedTraveler);
+
+    if (updatedGroup) {
+      return NextResponse.json({ message: 'Traveler details updated successfully', data: updatedGroup }, { status: 200 });
+    }
+    return NextResponse.json({ message: 'Error saving traveler details' }, { status: 500 });
+
+  } catch (error) {
+    return NextResponse.json({ message: 'Error saving traveler details', error: (error as Error).message }, { status: 500 });
+  }
 }
