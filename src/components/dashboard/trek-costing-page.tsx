@@ -95,9 +95,10 @@ interface TrekCostingPageProps {
   initialData?: any;
   treks?: Trek[];
   user?: User | null;
+  onTrekSelect?: (trekId: string) => void; // Add this line
 }
 
-function TrekCostingPageComponent({ initialData, treks = [], user = null }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect }: TrekCostingPageProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -245,18 +246,25 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   }, []);
 
   const handleTrekSelect = useCallback((trekId: string) => {
+    // If we have a callback, use it instead of the default behavior
+    if (onTrekSelect) {
+      onTrekSelect(trekId);
+      return;
+    }
+    
+    // Default behavior (keep existing logic for backward compatibility)
     const newSelectedTrek = treks?.find(t => t.id === trekId);
     if (!newSelectedTrek) return;
 
     setReport(prev => {
-      const initialPermits = newSelectedTrek.permits.map(p => ({
+      const initialPermits = newSelectedTrek.permits?.map(p => ({
         id: crypto.randomUUID(),
         description: p.name,
         rate: p.rate,
         no: prev.groupSize,
         times: 1,
         total: p.rate * prev.groupSize,
-      }));
+      })) || [];
 
       const initialExtraDetails = [
         { id: crypto.randomUUID(), description: 'Satellite device', rate: 0, no: prev.groupSize, times: 12, total: 0 },
@@ -275,7 +283,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       };
     });
     setCurrentStep(1);
-  }, [treks]);
+  }, [treks, onTrekSelect]);
 
   const addRow = useCallback((sectionId: string) => {
     const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: report.groupSize, times: 1, total: 0 };
@@ -420,7 +428,21 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
 
   const renderStepContent = () => {
     if (isLoading) return <LoadingStep />;
-    if (currentStep === 0 && !initialData) return <SelectTrekStep treks={treks} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
+    
+    // Show trek selection step if:
+    // 1. We're on step 0 AND
+    // 2. We don't have initialData (meaning we're creating a new report, not editing)
+    if (currentStep === 0 && !initialData) {
+      return <SelectTrekStep treks={treks || []} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
+    }
+    
+    // If we have initialData but are on step 0, it means we've selected a trek
+    // and should move to the group details step
+    if (currentStep === 0 && initialData && initialData.trekId) {
+      // Don't render anything, just move to the next step
+      setTimeout(() => setCurrentStep(1), 0);
+      return <LoadingStep />;
+    }
 
     // Adjust step index for rendering, since step 0 is trek selection
     const stepIndex = initialData ? currentStep : currentStep - 1;
@@ -494,6 +516,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
   };
 
   const breadcrumbItems = useMemo(() => {
+    // If we're on step 0 and don't have initialData, we're selecting a trek
     if (currentStep === 0 && !initialData) return [{ label: "Select Trek", isCurrent: true, stepIndex: 0 }];
 
     const steps = [
@@ -505,8 +528,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null }: Trek
       }))
     ];
 
-    if (initialData) {
-      steps.shift(); // Remove the "Trek" step if we are editing
+    // If we have initialData but no groupId, we're creating a new report
+    // In this case, we should show the trek name as the first step
+    if (initialData && !initialData.groupId) {
+      // Don't remove the trek step, but adjust the step indices
+    } else if (initialData && initialData.groupId) {
+      // If we're editing an existing report, remove the "Trek" step
+      steps.shift();
     }
 
     return steps;
