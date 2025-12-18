@@ -149,3 +149,26 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
     throw error;
   }
 }
+
+// Post groups and package data
+export async function postGroupsAndPackage(data: any): Promise<any> {
+  try {
+    const response = await fetch(`${BASE_URL}/staff/groups-and-package/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    const responseData = await response.json();
+    return responseData;
+  } catch (error) {
+    console.error('Error posting groups and package:', error);
+    throw error;
+  }
+}

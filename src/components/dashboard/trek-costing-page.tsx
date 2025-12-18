@@ -31,6 +31,7 @@ import type { Trek, CostRow, SectionState } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import type { User } from "@/lib/auth";
+import { postGroupsAndPackage } from '@/lib/api-service';
 
 type ReportState = {
   groupId: string;
@@ -412,11 +413,50 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [savedReportUrl, toast]);
 
   const handleFinish = useCallback(async () => {
-    const success = await handleSaveOrUpdate();
-    if (success) {
+    setIsSaving(true);
+    
+    try {
+      // Prepare the payload structure as specified
+      const payload = {
+        package: {
+          name: report.groupName || `${report.trekName} ${report.groupId.substring(0, 4)}`,
+          total_space: report.groupSize,
+          start_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          end_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          trip: parseInt(report.trekId || '0')
+        },
+        status: "draft",
+        permits: [],
+        services: [],
+        extra_services: [],
+        service_discount: "0",
+        service_discount_type: "amount",
+        service_discount_remarks: "",
+        extra_service_discount: "0",
+        extra_service_discount_type: "amount",
+        extra_service_discount_remarks: "",
+        permit_discount: "0",
+        permit_discount_type: "amount",
+        permit_discount_remarks: "",
+        overall_discount: "0",
+        overall_discount_type: "amount",
+        overall_discount_remarks: ""
+      };
+
+      // Make the API call
+      const response = await postGroupsAndPackage(payload);
+      
+      // Show success message
+      toast({ title: "Success!", description: "Report has been saved successfully." });
+      
+      // Navigate to reports page
       router.push('/reports');
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: (error as Error).message || "Failed to save report" });
+    } finally {
+      setIsSaving(false);
     }
-  }, [handleSaveOrUpdate, router]);
+  }, [report, router, toast]);
 
   const allCostingStepsMetadata = useMemo(() => [
     { id: 'group-details', name: 'Group Details' },
@@ -466,31 +506,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
     if (activeStepData.id === 'final') {
       return <FinalStep
-        extraDetailsState={report.extraDetails}
-        onRowChange={handleRowChange}
-        onDiscountTypeChange={handleDiscountTypeChange}
-        onDiscountValueChange={handleDiscountValueChange}
-        onDiscountRemarksChange={handleDiscountRemarksChange}
-        onAddRow={addRow}
-        onRemoveRow={removeRow}
-        onExportPDF={onExportPDF}
-        onExportExcel={onExportExcel}
-        totalCost={totalCost}
-        subtotalBeforeOverallDiscount={subtotalBeforeOverallDiscount}
-        overallDiscountType={report.overallDiscountType}
-        overallDiscountValue={report.overallDiscountValue}
-        overallDiscountAmount={overallDiscountAmount}
-        overallDiscountRemarks={report.overallDiscountRemarks}
-        onOverallDiscountTypeChange={handleOverallDiscountTypeChange}
-        onOverallDiscountValueChange={handleOverallDiscountValueChange}
-        onOverallDiscountRemarksChange={handleOverallDiscountRemarksChange}
-        groupSize={report.groupSize}
-        serviceCharge={report.serviceCharge}
-        setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
-        includeServiceChargeInPdf={includeServiceChargeInPdf}
-        setIncludeServiceChargeInPdf={setIncludeServiceChargeInPdf}
-        clientCommunicationMethod={report.clientCommunicationMethod}
-        onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
+        isSubmitting={isSaving}
+        onSubmit={handleFinish}
       />;
     }
 
