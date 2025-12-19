@@ -140,41 +140,51 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
         return;
       }
       try {
-        const response = await fetch(`/api/travelers/${groupId}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.travelers && data.travelers.length) {
-            const existingTravelers = data.travelers.map((t: any) => ({
-              ...t,
-              dateOfBirth: t.dateOfBirth ? new Date(t.dateOfBirth) : undefined,
-              passportExpiryDate: t.passportExpiryDate ? new Date(t.passportExpiryDate) : undefined,
-            }));
-             
-            const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
-              if (existingTravelers[index]) {
-                  const existing = existingTravelers[index];
-                  return { 
-                      ...defaultTraveler,
-                      ...existing, 
-                      id: defaultTraveler.id,
-                      // If a record exists, we can assume a passport photo was uploaded.
-                      // We pass a dummy file to satisfy the validation on load.
-                      // The user can still upload a new one.
-                      passportPhoto: existing.passportNumber ? new File([], "dummy.jpg") : undefined
-                  };
-              }
-              return defaultTraveler;
-            });
-            
-            form.reset({ travelers: mergedTravelers });
-            const prefilledAccordionIds = mergedTravelers
-              .filter((t) => t.name)
-              .map((t) => t.id!);
-            setOpenedAccordions(prefilledAccordionIds);
+        // Import the fetchTravelers function dynamically to avoid server-side issues
+        const { fetchTravelers } = await import('@/lib/api-service');
+        const data = await fetchTravelers(groupId);
+        
+        if (data && data.length > 0) {
+          const existingTravelers = data.map((t: any) => ({
+            id: t.id.toString(),
+            name: t.full_name || "",
+            phone: t.phone_number || "",
+            email: t.email || "",
+            address: t.address || "",
+            passportNumber: t.passport_number || "",
+            emergencyContact: t.emergency_contact_name || t.emergency_contact_phone || "",
+            nationality: t.nationality || "",
+            profilePicture: t.profile_pic || "",
+            passportPhoto: t.passport_photo ? new File([], "passport.jpg") : undefined, // Dummy file for validation
+            visaPhoto: t.visa_photo ? new File([], "visa.jpg") : undefined,
+            travelPolicyId: t.traval_policy_document ? new File([], "policy.pdf") : undefined,
+            travelInsurance: t.traval_insurance_document ? new File([], "insurance.pdf") : undefined,
+          }));
+           
+          const mergedTravelers = defaultTravelers.map((defaultTraveler, index) => {
+            if (existingTravelers[index]) {
+                const existing = existingTravelers[index];
+                return { 
+                    ...defaultTraveler,
+                    ...existing, 
+                    id: defaultTraveler.id,
+                    // If a record exists, we can assume a passport photo was uploaded.
+                    // We pass a dummy file to satisfy the validation on load.
+                    // The user can still upload a new one.
+                    passportPhoto: existing.passportNumber ? new File([], "dummy.jpg") : undefined
+                };
+            }
+            return defaultTraveler;
+          });
+          
+          form.reset({ travelers: mergedTravelers });
+          const prefilledAccordionIds = mergedTravelers
+            .filter((t) => t.name)
+            .map((t) => t.id!);
+          setOpenedAccordions(prefilledAccordionIds);
 
-          } else {
-            form.reset({ travelers: defaultTravelers });
-          }
+        } else {
+          form.reset({ travelers: defaultTravelers });
         }
       } catch (error) {
         console.error("Failed to fetch traveler data", error);
@@ -235,50 +245,84 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
     }
     
     try {
-        const payload: Record<string, any> = { ...validationResult.data };
+        // Create FormData for multipart/form-data submission
+        const formData = new FormData();
+        
+        // Add text fields
+        formData.append('full_name', validationResult.data.name || '');
+        formData.append('phone_number', validationResult.data.phone || '');
+        formData.append('email', validationResult.data.email || '');
+        formData.append('address', validationResult.data.address || '');
+        formData.append('passport_number', validationResult.data.passportNumber || '');
+        formData.append('emergency_contact_name', validationResult.data.emergencyContact || '');
+        formData.append('emergency_contact_phone', validationResult.data.emergencyContact || '');
+        formData.append('nationality', validationResult.data.nationality || '');
+        formData.append('package', groupId || '');
 
-        const passportFile = payload.passportPhoto?.[0];
-        if (passportFile instanceof File) {
-            payload.passportPhoto = await fileToDataURL(passportFile);
+        // Handle file uploads
+        const handleFileUpload = async (file: File | undefined, fieldName: string) => {
+            if (file) {
+                formData.append(fieldName, file);
+            } else {
+                formData.append(fieldName, '');
+            }
+        };
+
+        // Handle each file field
+        if (validationResult.data.passportPhoto && validationResult.data.passportPhoto[0] instanceof File) {
+            await handleFileUpload(validationResult.data.passportPhoto[0], 'passport_photo');
+        }
+        
+        if (validationResult.data.visaPhoto && validationResult.data.visaPhoto[0] instanceof File) {
+            await handleFileUpload(validationResult.data.visaPhoto[0], 'visa_photo');
+        }
+        
+        if (validationResult.data.travelPolicyId && validationResult.data.travelPolicyId[0] instanceof File) {
+            await handleFileUpload(validationResult.data.travelPolicyId[0], 'traval_policy_document');
+        }
+        
+        if (validationResult.data.travelInsurance && validationResult.data.travelInsurance[0] instanceof File) {
+            await handleFileUpload(validationResult.data.travelInsurance[0], 'traval_insurance_document');
         }
 
-        const visaFile = payload.visaPhoto?.[0];
-        if (visaFile instanceof File) {
-            payload.visaPhoto = await fileToDataURL(visaFile);
+        // Handle profile picture (convert data URL to Blob if needed)
+        if (validationResult.data.profilePicture) {
+            // If it's a data URL, convert it to a Blob
+            if (validationResult.data.profilePicture.startsWith('data:')) {
+                const response = await fetch(validationResult.data.profilePicture);
+                const blob = await response.blob();
+                const file = new File([blob], 'profile_picture.jpg', { type: 'image/jpeg' });
+                formData.append('profile_pic', file);
+            } else {
+                formData.append('profile_pic', '');
+            }
+        } else {
+            formData.append('profile_pic', '');
         }
 
-        const travelPolicyIdFile = payload.travelPolicyId?.[0];
-        if (travelPolicyIdFile instanceof File) {
-            payload.travelPolicyId = await fileToDataURL(travelPolicyIdFile);
+        // Submit the form data
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/staff/create-traveler/`, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to submit traveler details: ${response.status} ${response.statusText}`);
         }
 
-        const travelInsuranceFile = payload.travelInsurance?.[0];
-        if (travelInsuranceFile instanceof File) {
-            payload.travelInsurance = await fileToDataURL(travelInsuranceFile);
-        }
-
-      const response = await fetch(`/api/travelers/${groupId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ traveler: payload }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit traveler details");
-      }
-
-      toast({
-        title: "Details Saved!",
-        description: `Information for Traveler ${travelerIndex + 1} has been saved.`,
-      });
+        toast({
+            title: "Details Saved!",
+            description: `Information for Traveler ${travelerIndex + 1} has been saved.`,
+        });
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "Could not save traveler details. Please try again.",
-      });
+        console.error("Error saving traveler:", error);
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: error instanceof Error ? error.message : "Could not save traveler details. Please try again.",
+        });
     } finally {
-      setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: false }));
+        setIsSubmitting((prev) => ({ ...prev, [travelerClientId]: false }));
     }
   };
 

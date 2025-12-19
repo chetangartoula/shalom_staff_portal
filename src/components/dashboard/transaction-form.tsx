@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,7 +21,14 @@ import { Badge } from "@/components/ui/shadcn/badge";
 import { Checkbox } from "@/components/ui/shadcn/checkbox";
 import { cn } from '@/lib/utils';
 import type { Report, Transaction } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchMergePackages, updateMergePackages, makePayment, type APIPaymentRequest } from '@/lib/api-service';
+
+// Define interface for merged package
+interface MergedPackage {
+  id: number;
+  name: string;
+}
 
 const transactionSchema = z.object({
     amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
@@ -40,17 +47,56 @@ interface TransactionFormProps {
     isPaymentDisabled?: boolean;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisabled = false }: TransactionFormProps) {
     const { toast } = useToast();
+    const queryClient = useQueryClient();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [open, setOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedReports, setSelectedReports] = useState<{ groupId: string, groupName: string }[]>([]);
 
-    const { data: allReportsData } = useSWR('/api/reports?limit=1000', fetcher);
-    const { data: allTransactionsData } = useSWR('/api/transactions/all?all=true', fetcher);
+    // Fetch all reports for merge selection
+    const { data: allReportsData, isLoading: isLoadingReports } = useQuery<{ reports: Report[] }, Error>({
+        queryKey: ['allReports'],
+        queryFn: async () => {
+            const response = await fetch('/api/reports?limit=1000');
+            if (!response.ok) {
+                throw new Error('Failed to fetch reports');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        retry: 2
+    });
+
+    // Fetch all transactions for merged group calculations
+    const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
+        queryKey: ['allTransactions'],
+        queryFn: async () => {
+            const response = await fetch('/api/transactions/all?all=true');
+            if (!response.ok) {
+                throw new Error('Failed to fetch all transactions');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        retry: 2
+    });
+
+    // Fetch current merge packages for this group
+    const { data: mergePackagesData } = useQuery<MergedPackage[], Error>({
+        queryKey: ['mergePackages', groupId],
+        queryFn: async () => {
+            try {
+                return await fetchMergePackages(groupId);
+            } catch (error) {
+                console.error('Failed to fetch merge packages, using empty array:', error);
+                return [];
+            }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
 
     // Filter reports for merge selection (exclude current report)
     const availableReports = allReportsData?.reports?.filter((report: Report) =>
@@ -104,18 +150,82 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
         }
     }, [mergeGroupsValue]);
 
+    // Set initial selected reports based on merge packages data
+    useEffect(() => {
+        if (mergePackagesData && allReportsData?.reports) {
+            // Convert merged package IDs to strings to match report IDs
+            const mergedPackageIds = mergePackagesData.map(pkg => pkg.id.toString());
+            
+            const initialSelected = allReportsData.reports
+                .filter(report => mergedPackageIds.includes(report.groupId))
+                .map(report => ({ groupId: report.groupId, groupName: report.groupName }));
+            setSelectedReports(initialSelected);
+        }
+    }, [mergePackagesData, allReportsData]);
+
+    // Function to update merge packages in real-time
+    const updateMergePackagesRealTime = useCallback(async (selectedGroupIds: string[]) => {
+        try {
+            const mergePackageIds = selectedGroupIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+            await updateMergePackages(groupId, mergePackageIds);
+            
+            // Invalidate and refetch merge packages to keep cache consistent
+            queryClient.invalidateQueries({ queryKey: ['mergePackages', groupId] });
+        } catch (error) {
+            console.error('Failed to update merge packages:', error);
+            toast({ 
+                variant: 'destructive', 
+                title: 'Error', 
+                description: 'Failed to update merged groups. Please try again.' 
+            });
+        }
+    }, [groupId, queryClient, toast]);
+
+    // Handle selection/deselection of reports with real-time API update
+    const handleReportSelection = async (report: { groupId: string, groupName: string }) => {
+        const isSelected = selectedReports.some(r => r.groupId === report.groupId);
+        let newSelectedReports;
+        
+        if (isSelected) {
+            // Deselect report
+            newSelectedReports = selectedReports.filter(r => r.groupId !== report.groupId);
+        } else {
+            // Select report
+            newSelectedReports = [...selectedReports, report];
+        }
+        
+        setSelectedReports(newSelectedReports);
+        
+        // Immediately update merge packages in the backend
+        const selectedGroupIds = newSelectedReports.map(r => r.groupId);
+        await updateMergePackagesRealTime(selectedGroupIds);
+    };
+
+    // Handle removal of a selected report with real-time API update
+    const handleRemoveSelectedReport = async (reportGroupId: string) => {
+        const newSelectedReports = selectedReports.filter(r => r.groupId !== reportGroupId);
+        setSelectedReports(newSelectedReports);
+        
+        // Immediately update merge packages in the backend
+        const selectedGroupIds = newSelectedReports.map(r => r.groupId);
+        await updateMergePackagesRealTime(selectedGroupIds);
+    };
+
     const onSubmit = async (values: TransactionFormValues) => {
         setIsSubmitting(true);
         try {
-            const response = await fetch(`/api/transactions/${groupId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to save transaction');
-            }
+            // Prepare payment data for the new API endpoint
+            const paymentData: APIPaymentRequest = {
+                package_id: groupId,
+                amount: values.amount,
+                remarks: values.note || '',
+                payment_type: values.type === 'payment' ? 'pay' : 'refund',
+                date: values.date.toISOString().split('T')[0] // Format as YYYY-MM-DD
+            };
+
+            // Make payment via the new API endpoint
+            await makePayment(paymentData);
+
             toast({ title: 'Success', description: 'Transaction added successfully.' });
             form.reset({ amount: 0, type: 'payment', date: new Date(), note: '' });
             if (onSuccess) onSuccess();
@@ -189,19 +299,16 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
                                         className="mb-2"
                                     />
                                     <div className="max-h-60 overflow-y-auto">
-                                        {availableReports.length > 0 ? (
+                                        {isLoadingReports ? (
+                                            <div className="py-6 text-center text-sm text-muted-foreground">
+                                                Loading groups...
+                                            </div>
+                                        ) : availableReports.length > 0 ? (
                                             availableReports.map((report: Report) => (
                                                 <div
                                                     key={report.groupId}
                                                     className="flex items-center space-x-2 py-2 px-1 hover:bg-accent rounded cursor-pointer"
-                                                    onClick={() => {
-                                                        const isSelected = selectedReports.some(r => r.groupId === report.groupId);
-                                                        if (isSelected) {
-                                                            setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
-                                                        } else {
-                                                            setSelectedReports([...selectedReports, { groupId: report.groupId, groupName: report.groupName }]);
-                                                        }
-                                                    }}
+                                                    onClick={() => handleReportSelection({ groupId: report.groupId, groupName: report.groupName })}
                                                 >
                                                     <Checkbox
                                                         checked={selectedReports.some(r => r.groupId === report.groupId)}
@@ -236,7 +343,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
                                             className="ml-1 rounded-full hover:bg-secondary-foreground/20"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                setSelectedReports(selectedReports.filter(r => r.groupId !== report.groupId));
+                                                handleRemoveSelectedReport(report.groupId);
                                             }}
                                         >
                                             ×

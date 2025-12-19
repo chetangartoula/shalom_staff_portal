@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useCallback } from 'react';
 import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
 import type { Trek } from "@/lib/types";
@@ -81,7 +80,6 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
   if (selectedTrekId) {
     initialData.trekId = selectedTrekId;
     
-    // Add permits data if available
     if (permits && permits.length > 0) {
       initialData.permits = {
         id: 'permits',
@@ -100,7 +98,6 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
       };
     }
     
-    // Add services data if available
     if (services && services.length > 0) {
       initialData.services = {
         id: 'services',
@@ -119,7 +116,6 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
       };
     }
     
-    // Add extra services data if available
     if (extraServices && extraServices.length > 0) {
       initialData.extraDetails = {
         id: 'extraDetails',
@@ -136,7 +132,6 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
               total: param.rate * extraService.times
             }));
           } else {
-            // If no params, create a single row with the service name
             return {
               id: extraService.id,
               description: extraService.serviceName,

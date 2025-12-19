@@ -1121,6 +1121,30 @@
       "note": "Extra services added - Balance Due",
       "id": "e9a6bbf9-73cc-43a4-93d6-e8815a430c25",
       "groupId": "c6698184-87ce-48a9-9547-1019302ad7ba"
+    },
+    {
+      "amount": 1200,
+      "type": "payment",
+      "date": "2025-12-19T18:15:00.000Z",
+      "note": "stupid ",
+      "mergeGroups": [
+        "36",
+        "38"
+      ],
+      "id": "57166d42-42c4-4af9-83ae-359300959794",
+      "groupId": "41"
+    },
+    {
+      "amount": 100,
+      "type": "payment",
+      "date": "2025-12-19T15:37:37.816Z",
+      "note": "",
+      "mergeGroups": [
+        "38",
+        "39"
+      ],
+      "id": "d2e74872-d604-4fae-a138-16eb595d96cb",
+      "groupId": "36"
     }
   ]
 }

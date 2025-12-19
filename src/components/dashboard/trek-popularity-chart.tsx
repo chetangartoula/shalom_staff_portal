@@ -1,13 +1,10 @@
-
 "use client";
 
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { Loader2 } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const COLORS = [
     'hsl(var(--chart-1))', 
@@ -18,7 +15,24 @@ const COLORS = [
 ];
 
 export function TrekPopularityChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/trek-popularity', fetcher);
+    // Use React Query to fetch trek popularity data
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['trekPopularity'],
+        queryFn: async () => {
+            try {
+                const response = await fetch('/api/stats/trek-popularity');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch trek popularity data');
+                }
+                return response.json();
+            } catch (error) {
+                console.error('Error fetching trek popularity data:', error);
+                throw error;
+            }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
 
     const chartData = data?.chartData || [];
     

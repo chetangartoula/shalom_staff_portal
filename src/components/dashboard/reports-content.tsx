@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Loader2, Copy, Check, Edit, Users, BookUser, CircleDollarSign, MoreVertical, Plane, PlusSquare } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
@@ -55,11 +55,10 @@ const statusColors: Record<PaymentStatus, string> = {
   'overpaid': "text-purple-600 border-purple-600/50 bg-purple-500/5"
 };
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function ReportsContent({ initialData, pageType = 'reports' }: ReportsContentProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [reports, setReports] = useState<Report[]>(initialData?.reports || []);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -79,17 +78,38 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
   const [selectedReportForOTP, setSelectedReportForOTP] = useState<Report | null>(null);
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
 
-  const endpoint = searchTerm
-    ? `/api/reports?search=${encodeURIComponent(searchTerm)}&page=${page}&limit=10`
-    : `/api/reports?page=${page}&limit=10`;
   // Reset to first page when search term changes
   useEffect(() => {
     setPage(1);
   }, [searchTerm]);
 
-  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
-    fallbackData: page === 1 ? initialData : undefined,
-    keepPreviousData: true,
+  // Build query parameters
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: '10'
+    });
+    
+    if (searchTerm) {
+      params.set('search', searchTerm);
+    }
+    
+    return params.toString();
+  }, [page, searchTerm]);
+
+  // Use React Query for fetching reports data
+  const { data, error, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['reports', { page, searchTerm }],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports?${queryParams}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reports');
+      }
+      return response.json();
+    },
+    placeholderData: (prevData) => prevData,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 2
   });
 
   useEffect(() => {
@@ -194,6 +214,11 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
   const handleQuickPay = (report: Report) => {
     setSelectedReportForPayment(report);
     setIsPaymentModalOpen(true);
+  };
+
+  const handleTransactionSuccess = () => {
+    // Invalidate queries to refetch updated data
+    queryClient.invalidateQueries({ queryKey: ['reports'] });
   };
 
   const cardTitle = pageType === 'payments' ? 'Payment Status' : 'All Reports';
@@ -407,7 +432,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
             onClose={() => setIsPaymentModalOpen(false)}
             report={selectedReportForPayment}
             onSuccess={() => {
-              mutate(); // Trigger re-fetch
+              refetch(); // Trigger re-fetch
             }}
           />
         )}

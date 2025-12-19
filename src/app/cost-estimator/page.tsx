@@ -1,7 +1,7 @@
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import type { Trek } from "@/lib/types";
 import { ClientCostEstimator } from '@/components/cost-estimator/client-component';
-import { initialTreks } from '@/lib/mock-data-client';
+import { initialTreks } from '@/lib/mock-data';
 
 interface User {
   name: string;

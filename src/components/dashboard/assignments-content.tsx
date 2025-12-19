@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/shadcn/input';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, Porter, AirportPickUp } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,10 +31,20 @@ interface Assignment {
     airportPickUp: AirportPickUp[];
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function AssignmentsContent() {
-    const { data, error } = useSWR('/api/assignments', fetcher);
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['assignments'],
+        queryFn: async () => {
+            const response = await fetch('/api/assignments');
+            if (!response.ok) {
+                throw new Error('Failed to fetch assignments');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
+    
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,7 +65,7 @@ export function AssignmentsContent() {
         setIsModalOpen(true);
     };
 
-    if (!data && !error) {
+    if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 

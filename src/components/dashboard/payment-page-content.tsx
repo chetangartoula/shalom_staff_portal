@@ -10,24 +10,105 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from '@/hooks/use-toast';
 import type { Report, Transaction, PaymentDetails } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
+
+// Define interface for payment detail API response
+interface PaymentDetail {
+  id: number;
+  amount: number;
+  payment_method: string;
+  payment_types: string;
+  remarks: string;
+  date: string;
+}
+
+interface PaymentDetailResponse {
+  total_amount: number;
+  payments: PaymentDetail[];
+  total_paid: number;
+  total_refund: number;
+  balance: number;
+}
 
 interface PaymentPageContentProps {
     initialReport: Report;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { toast } = useToast();
     const router = useRouter();
+    const queryClient = useQueryClient();
 
-    const { data: reportData, mutate: mutateReport } = useSWR(`/api/reports/${initialReport.groupId}`, fetcher, { fallbackData: initialReport });
-    const { data: transactionData, mutate: mutateTransactions, error: swrError } = useSWR(`/api/transactions/${initialReport.groupId}`, fetcher);
-    const { data: allReportsData } = useSWR('/api/reports?limit=1000', fetcher); // Fetch all reports for merge selection
-    const { data: allTransactionsData } = useSWR('/api/transactions/all?all=true', fetcher); // Fetch all transactions for merged group calculations
+    // React Query hooks for fetching data
+    const { data: reportData, isLoading: isLoadingReport, error: reportError } = useQuery<Report, Error>({
+        queryKey: ['report', initialReport.groupId],
+        queryFn: async () => {
+            const response = await fetch(`/api/reports/${initialReport.groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch report');
+            }
+            return response.json();
+        },
+        initialData: initialReport,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
+
+    // Fetch payment details from the new API endpoint
+    const { data: paymentDetailData, isLoading: isLoadingPaymentDetails } = useQuery<PaymentDetailResponse, Error>({
+        queryKey: ['paymentDetails', initialReport.groupId],
+        queryFn: async () => {
+            const response = await fetch(`/api/payment-details/${initialReport.groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch payment details');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 2, // 2 minutes
+        retry: 2
+    });
+
+    const { data: transactionData, isLoading: isLoadingTransactions, error: transactionError } = useQuery<{ transactions: Transaction[] }, Error>({
+        queryKey: ['transactions', initialReport.groupId],
+        queryFn: async () => {
+            const response = await fetch(`/api/transactions/${initialReport.groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch transactions');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 2, // 2 minutes
+        retry: 2
+    });
+
+    // Fetch all reports and transactions for merge calculations
+    const { data: allReportsData } = useQuery<{ reports: Report[] }, Error>({
+        queryKey: ['allReports'],
+        queryFn: async () => {
+            const response = await fetch('/api/reports?limit=1000');
+            if (!response.ok) {
+                throw new Error('Failed to fetch all reports');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        retry: 2
+    });
+
+    const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
+        queryKey: ['allTransactions'],
+        queryFn: async () => {
+            const response = await fetch('/api/transactions/all?all=true');
+            if (!response.ok) {
+                throw new Error('Failed to fetch all transactions');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 10, // 10 minutes
+        retry: 2
+    });
 
     // Calculate total amount from merged groups
     const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
@@ -46,9 +127,24 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
     };
 
-    const isLoadingTransactions = !transactionData && !swrError;
-    const transactions: Transaction[] = transactionData?.transactions || [];
-    const paymentDetails: PaymentDetails | undefined = reportData?.paymentDetails;
+    // Use payment details from the new API if available, otherwise fallback to report data
+    const paymentDetails: PaymentDetails | undefined = paymentDetailData ? {
+        totalCost: paymentDetailData.total_amount,
+        totalPaid: paymentDetailData.total_paid,
+        balance: paymentDetailData.balance,
+        paymentStatus: paymentDetailData.balance <= 0 ? 'fully paid' : paymentDetailData.total_paid > 0 ? 'partially paid' : 'unpaid'
+    } : reportData?.paymentDetails;
+
+    const transactions: Transaction[] = paymentDetailData 
+        ? paymentDetailData.payments.map(payment => ({
+            id: payment.id.toString(),
+            groupId: initialReport.groupId,
+            amount: payment.amount,
+            type: payment.payment_types === 'pay' ? 'payment' : 'refund',
+            date: payment.date,
+            note: payment.remarks
+        }))
+        : transactionData?.transactions || [];
 
     const isFullyPaid = paymentDetails?.paymentStatus === 'fully paid' || paymentDetails?.paymentStatus === 'overpaid';
     const isPaymentDisabled = isFullyPaid;
@@ -206,6 +302,14 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.save(filename);
     };
 
+    // Handle successful transaction submission
+    const handleTransactionSuccess = () => {
+        // Invalidate queries to refetch updated data
+        queryClient.invalidateQueries({ queryKey: ['transactions', initialReport.groupId] });
+        queryClient.invalidateQueries({ queryKey: ['report', initialReport.groupId] });
+        queryClient.invalidateQueries({ queryKey: ['paymentDetails', initialReport.groupId] });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -226,34 +330,42 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     <CardTitle>Financial Summary</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
-                        <div className="text-center">
-                            <p className="text-sm text-muted-foreground">Total Cost</p>
-                            <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>
+                    {(isLoadingPaymentDetails || isLoadingReport) ? (
+                        <div className="flex justify-center items-center h-24">
+                            <Loader2 className="h-6 w-6 animate-spin" />
                         </div>
-                        <div className="text-center">
-                            <p className="text-sm text-muted-foreground">Total Paid</p>
-                            <p className="text-2xl font-bold text-green-600">{formatCurrency(paymentDetails?.totalPaid ?? 0)}</p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-sm text-muted-foreground">Balance Due</p>
-                            <p className={cn("text-2xl font-bold", (paymentDetails?.balance ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>
-                                {formatCurrency(paymentDetails?.balance ?? 0)}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        <div className="flex justify-between text-sm mb-1">
-                            <span>Payment Progress</span>
-                            <span className="font-medium">{Math.min(100, Math.round(((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100))}%</span>
-                        </div>
-                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-green-600 transition-all duration-500 ease-in-out"
-                                style={{ width: `${Math.min(100, ((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100)}%` }}
-                            />
-                        </div>
-                    </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
+                                <div className="text-center">
+                                    <p className="text-sm text-muted-foreground">Total Cost</p>
+                                    <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-muted-foreground">Total Paid</p>
+                                    <p className="text-2xl font-bold text-green-600">{formatCurrency(paymentDetails?.totalPaid ?? 0)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-muted-foreground">Balance Due</p>
+                                    <p className={cn("text-2xl font-bold", (paymentDetails?.balance ?? 0) > 0 ? 'text-red-600' : 'text-green-600')}>
+                                        {formatCurrency(paymentDetails?.balance ?? 0)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span>Payment Progress</span>
+                                    <span className="font-medium">{Math.min(100, Math.round(((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100))}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-green-600 transition-all duration-500 ease-in-out"
+                                        style={{ width: `${Math.min(100, ((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100)}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </CardContent>
             </Card>
 
@@ -266,10 +378,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     <CardContent>
                         <TransactionForm
                             groupId={reportData.groupId}
-                            onSuccess={() => {
-                                mutateTransactions();
-                                mutateReport();
-                            }}
+                            onSuccess={handleTransactionSuccess}
                             isPaymentDisabled={isPaymentDisabled}
                         />
                     </CardContent>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2, FileDown, Users } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
@@ -30,10 +30,26 @@ interface ComprehensiveData {
   timestamp: string;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function ComprehensiveReportsContent() {
-  const { data, error, isLoading } = useSWR<ComprehensiveData>('/api/comprehensive-reports', fetcher);
+  // Use React Query to fetch comprehensive reports data
+  const { data, error, isLoading } = useQuery<ComprehensiveData>({
+    queryKey: ['comprehensiveReports'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/comprehensive-reports');
+        if (!response.ok) {
+          throw new Error('Failed to fetch comprehensive reports data');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching comprehensive reports data:', error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
   
@@ -235,25 +251,42 @@ export function ComprehensiveReportsContent() {
           yPos = pageTopMargin;
         }
         
-        // Add group header
+        // Group name and dates
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text(`Group ${index + 1}: ${report.groupName}`, pageLeftMargin, yPos);
+        doc.text(`${report.trekName} - ${report.groupName}`, pageLeftMargin, yPos);
         yPos += 7;
         
-        // Group details in table format
-        const groupDetails = [
-          ['Trek Name:', report.trekName],
-          ['Start Date:', report.startDate ? format(new Date(report.startDate), 'PPP') : 'N/A'],
-          ['Group Size:', report.groupSize.toString()]
+        const groupDates = `Start: ${format(new Date(report.startDate), 'MMM dd, yyyy')} | End: ${format(new Date(report.endDate), 'MMM dd, yyyy')}`;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(groupDates, pageLeftMargin, yPos);
+        yPos += 10;
+        
+        // Payment information
+        const travelerTransactions = transactionsMap.get(report.groupId) || [];
+        const totalPaid = travelerTransactions
+          .filter((t: any) => t.type === 'payment')
+          .reduce((sum: number, t: any) => sum + t.amount, 0);
+          
+        const totalRefunded = travelerTransactions
+          .filter((t: any) => t.type === 'refund')
+          .reduce((sum: number, t: any) => sum + t.amount, 0);
+          
+        const netPayment = totalPaid - totalRefunded;
+        
+        const paymentInfo = [
+          ['Total Paid:', formatCurrency(totalPaid)],
+          ['Total Refunded:', formatCurrency(totalRefunded)],
+          ['Net Payment:', formatCurrency(netPayment)]
         ];
         
         autoTable(doc, {
           startY: yPos,
-          body: groupDetails,
+          body: paymentInfo,
           theme: 'grid',
           styles: { 
-            fontSize: 9, 
+            fontSize: 10, 
             font: 'helvetica',
             cellPadding: 2
           },
@@ -261,164 +294,27 @@ export function ComprehensiveReportsContent() {
             0: { 
               fontStyle: 'bold', 
               halign: 'left',
-              cellWidth: 25
+              cellWidth: 35
             },
             1: { 
-              halign: 'left'
+              halign: 'right'
             }
           },
-          margin: { left: pageLeftMargin + 5, right: pageRightMargin },
+          margin: { left: pageLeftMargin + 10, right: pageRightMargin },
           tableWidth: 'auto'
         });
         yPos = (doc as any).lastAutoTable.finalY + 10;
-      });
-      
-      yPos += 5;
-    }
-    
-    // Check if we need a new page for payment history
-    if (yPos > pageHeight - 150) {
-      doc.addPage();
-      yPos = pageTopMargin;
-    }
-    
-    // --- Payment History Section ---
-    if (traveler.transactions && traveler.transactions.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text("Payment History", pageLeftMargin, yPos);
-      yPos += 10;
-      
-      const transactionCols = ["Date", "Type", "Amount", "Note"];
-      const transactionRows = traveler.transactions.map((t: { date: string; type: string; amount: number; note?: string }) => [
-        format(new Date(t.date), 'MMM dd, yyyy'),
-        t.type.charAt(0).toUpperCase() + t.type.slice(1),
-        formatCurrency(t.amount),
-        t.note || 'N/A'
-      ]);
-      
-      autoTable(doc, {
-        startY: yPos,
-        head: [transactionCols],
-        body: transactionRows,
-        theme: 'striped',
-        headStyles: { 
-          fillColor: brandColor, 
-          font: 'helvetica',
-          fontSize: 10
-        },
-        styles: { 
-          font: 'helvetica', 
-          fontSize: 9,
-          cellPadding: 4
-        },
-        margin: { left: pageLeftMargin, right: pageRightMargin },
-        tableWidth: 'auto'
-      });
-      yPos = (doc as any).lastAutoTable.finalY + 15;
-    }
-    
-    // Check if we need a new page for financial summary
-    if (yPos > pageHeight - 100) {
-      doc.addPage();
-      yPos = pageTopMargin;
-    }
-    
-    // --- Financial Summary Section ---
-    if (traveler.reports && traveler.reports.length > 0) {
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text("Financial Summary", pageLeftMargin, yPos);
-      yPos += 10;
-      
-      // Create summary for each group
-      traveler.reports.forEach((report: any, index: number) => {
-        if (report.paymentDetails) {
-          // Group header for financial summary
-          doc.setFontSize(11);
-          doc.setFont('helvetica', 'bold');
-          doc.text(`${report.groupName}`, pageLeftMargin + 5, yPos);
-          yPos += 7;
-          
-          // Financial data for this group
-          const financialData = [
-            ['Total Cost:', formatCurrency(report.paymentDetails.totalCost || 0)],
-            ['Total Paid:', formatCurrency(report.paymentDetails.totalPaid || 0)],
-            ['Balance Due:', formatCurrency(report.paymentDetails.balance || 0)]
-          ];
-          
-          autoTable(doc, {
-            startY: yPos,
-            body: financialData,
-            theme: 'grid',
-            styles: { 
-              fontSize: 10, 
-              font: 'helvetica',
-              cellPadding: 3
-            },
-            columnStyles: { 
-              0: { 
-                fontStyle: 'bold', 
-                halign: 'left',
-                cellWidth: 30
-              },
-              1: { 
-                fontStyle: 'bold', 
-                halign: 'right',
-                cellWidth: 25
-              }
-            },
-            margin: { left: pageLeftMargin + 10, right: pageRightMargin },
-            tableWidth: 'wrap'
-          });
-          yPos = (doc as any).lastAutoTable.finalY + 10;
+        
+        // Add some spacing between groups
+        if (index < (traveler.reports?.length || 0) - 1) {
+          yPos += 10;
         }
       });
-      
-      yPos += 10;
     }
     
-    // --- Footer ---
-    const footerY = pageHeight - pageBottomMargin;
-    
-    // Footer divider
-    doc.setDrawColor(200);
-    doc.setLineWidth(0.2);
-    doc.line(pageLeftMargin, footerY - 15, pageWidth - pageRightMargin, footerY - 15);
-    
-    // Footer content
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text("Generated on: " + format(new Date(), 'PPP'), pageLeftMargin, footerY);
-    doc.text("Confidential - Traveler Report", pageWidth / 2, footerY, { align: 'center' });
-    doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - pageRightMargin, footerY, { align: 'right' });
-    
-    // Save the document
-    const filename = `traveler-${traveler.name.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`;
-    doc.save(filename);
+    // Save the PDF
+    doc.save(`traveler-report-${traveler.name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   };
-
-  const handleDownloadSelected = async () => {
-    // For now, we'll just download the first selected item
-    // In a full implementation, we would create a combined report
-    const selectedIds = Object.keys(selectedItems).filter(id => selectedItems[id]);
-    if (selectedIds.length > 0) {
-      // Find the first selected item and its type
-      // This is a simplified implementation
-      alert(`Downloading report for ${selectedIds.length} selected travelers. In a full implementation, this would generate individual reports for each.`);
-    }
-  };
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <p className="text-red-500">Error loading data. Please try again later.</p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -428,187 +324,128 @@ export function ComprehensiveReportsContent() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center text-destructive p-8">
+        Failed to load comprehensive reports data.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Traveler Reports</h1>
-        <p className="text-muted-foreground text-sm">
-          View detailed information about individual travelers and generate comprehensive reports.
-        </p>
-      </div>
-      
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div className="relative w-full md:w-auto">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search travelers..."
-            className="w-full md:w-[250px] lg:w-[300px] pl-9 pr-4 py-2"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Comprehensive Reports</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Detailed overview of all travelers, groups, and transactions
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleDownloadSelected} 
-            disabled={Object.keys(selectedItems).filter(id => selectedItems[id]).length === 0}
-            className="w-full md:w-auto"
-          >
-            <FileDown className="mr-2 h-4 w-4" />
-            Download Selected
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search travelers, groups, or treks..."
+              className="w-full sm:w-[300px] pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle>Travelers</CardTitle>
-          <CardDescription>Comprehensive information about individual travelers including their group associations, payment history, and documentation.</CardDescription>
+          <CardTitle>Traveler Overview</CardTitle>
+          <CardDescription>
+            Detailed information about travelers and their group associations
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Mobile view - cards for small screens */}
-          <div className="lg:hidden space-y-4">
-            {filteredTravelers.length > 0 ? filteredTravelers.map((traveler: EnrichedTraveler) => (
-              <div key={`${traveler.id}-${traveler.groupId}`} className="border rounded-lg p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedItems[`${traveler.id}-${traveler.groupId}`] || false}
-                      onChange={() => handleSelectItem(`${traveler.id}-${traveler.groupId}`)}
-                      className="mt-1"
-                    />
-                    <div>
-                      <h3 className="font-medium">{traveler.name}</h3>
-                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                        {traveler.reports && traveler.reports.length > 0 
-                          ? traveler.reports.map((report: Report) => report.groupName).join(', ') 
-                          : 'No groups'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleDownloadReport(traveler)}>
-                    <FileDown className="h-4 w-4" />
-                    <span className="sr-only">Download Report</span>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Phone</p>
-                    <p>{traveler.phone || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Email</p>
-                    <p className="truncate max-w-[150px]">{traveler.email || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Passport</p>
-                    <p>{traveler.passportNumber || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Balance</p>
-                    <p className={cn("font-medium", 
-                      traveler.reports && traveler.reports.some((report: Report) => 
-                        report?.paymentDetails?.balance > 0
-                      ) ? 'text-red-600' : 'text-green-600')}>
-                      {traveler.reports && traveler.reports.length > 0 
-                        ? formatCurrency(
-                            traveler.reports.reduce((sum: number, report: Report) => 
-                              sum + (report?.paymentDetails?.balance || 0), 0
-                            )
-                          ) 
-                        : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-8 text-muted-foreground">
-                No travelers found.
-              </div>
-            )}
-          </div>
-          
-          {/* Desktop view - table for larger screens */}
-          <div className="hidden lg:block border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <input 
-                      type="checkbox" 
-                      checked={filteredTravelers.length > 0 && filteredTravelers.every((t: any) => selectedItems[`${t.id}-${t.groupId}`])}
-                      onChange={() => {
-                        if (filteredTravelers.every((t: any) => selectedItems[`${t.id}-${t.groupId}`])) {
-                          // Deselect all
-                          const newSelections = {...selectedItems};
-                          filteredTravelers.forEach((t: any) => delete newSelections[`${t.id}-${t.groupId}`]);
-                          setSelectedItems(newSelections);
-                        } else {
-                          // Select all
-                          handleSelectAll(filteredTravelers);
-                        }
-                      }}
-                    />
-                  </TableHead>
-                  <TableHead className="min-w-[120px]">Name</TableHead>
-                  <TableHead className="min-w-[150px] hidden md:table-cell">Groups</TableHead>
-                  <TableHead className="min-w-[120px] hidden sm:table-cell">Phone</TableHead>
-                  <TableHead className="min-w-[150px] hidden lg:table-cell">Email</TableHead>
-                  <TableHead className="min-w-[120px] hidden md:table-cell">Passport</TableHead>
-                  <TableHead className="min-w-[100px]">Balance</TableHead>
-                  <TableHead className="text-right min-w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTravelers.length > 0 ? filteredTravelers.map((traveler: EnrichedTraveler) => (
-                  <TableRow key={`${traveler.id}-${traveler.groupId}`}>
-                    <TableCell>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedItems[`${traveler.id}-${traveler.groupId}`] || false}
-                        onChange={() => handleSelectItem(`${traveler.id}-${traveler.groupId}`)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium max-w-[150px] truncate">{traveler.name}</TableCell>
-                    <TableCell className="max-w-[200px] truncate hidden md:table-cell">
-                      {traveler.reports && traveler.reports.length > 0 
-                        ? traveler.reports.map((report: Report) => report.groupName).join(', ') 
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell className="truncate max-w-[120px] hidden sm:table-cell">{traveler.phone || 'N/A'}</TableCell>
-                    <TableCell className="truncate max-w-[150px] hidden lg:table-cell">{traveler.email || 'N/A'}</TableCell>
-                    <TableCell className="truncate max-w-[120px] hidden md:table-cell">{traveler.passportNumber || 'N/A'}</TableCell>
-                    <TableCell className={cn("font-medium truncate max-w-[100px]", 
-                      traveler.reports && traveler.reports.some((report: Report) => 
-                        report?.paymentDetails?.balance > 0
-                      ) ? 'text-red-600' : 'text-green-600')}>
-                      {traveler.reports && traveler.reports.length > 0 
-                        ? formatCurrency(
-                            traveler.reports.reduce((sum: number, report: Report) => 
-                              sum + (report?.paymentDetails?.balance || 0), 0
-                            )
-                          ) 
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="outline" size="sm" onClick={() => handleDownloadReport(traveler)}>
-                        <FileDown className="h-4 w-4" />
-                        <span className="sr-only">Download Report</span>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )) : (
+          {filteredTravelers.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
-                      No travelers found.
-                    </TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Groups</TableHead>
+                    <TableHead>Payments</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredTravelers.map((traveler) => {
+                    const totalPaid = traveler.transactions
+                      ?.filter((t: any) => t.type === 'payment')
+                      .reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+                      
+                    const totalRefunded = traveler.transactions
+                      ?.filter((t: any) => t.type === 'refund')
+                      .reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+                      
+                    const netPayment = totalPaid - totalRefunded;
+                    
+                    return (
+                      <TableRow key={`${traveler.id}-${traveler.groupId}`}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>{traveler.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div>{traveler.phone}</div>
+                            <div className="text-muted-foreground">{traveler.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {traveler.reports && traveler.reports.length > 0 ? (
+                            <div className="space-y-1">
+                              {traveler.reports.map((report: any) => (
+                                <Badge key={report.groupId} variant="secondary" className="text-xs">
+                                  {report.trekName} - {report.groupName}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">No group associations</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className={netPayment >= 0 ? "text-green-600" : "text-red-600"}>
+                              {formatCurrency(netPayment)}
+                            </div>
+                            <div className="text-muted-foreground text-xs">
+                              Paid: {formatCurrency(totalPaid)} | Refunded: {formatCurrency(totalRefunded)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleDownloadReport(traveler)}
+                            className="gap-1"
+                          >
+                            <FileDown className="h-3 w-3" />
+                            <span className="hidden sm:inline">Download</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+              {searchTerm ? `No travelers found for "${searchTerm}".` : "No traveler data available."}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

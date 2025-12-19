@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,13 +8,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { Input } from '@/components/ui/shadcn/input';
 import type { Traveler } from '@/lib/types';
-import useSWR from 'swr';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { useQuery } from '@tanstack/react-query';
 
 export function TravelersContent() {
-  const { data, error } = useSWR('/api/travelers/all', fetcher);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Use React Query to fetch travelers from the real API
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['travelers'],
+    queryFn: async () => {
+      try {
+        // Dynamically import the fetchTravelers function to avoid server-side issues
+        const { fetchTravelers } = await import('@/lib/api-service');
+        
+        // Since we need all travelers, we'll need to fetch them differently
+        // For now, let's fetch from the existing API endpoint but plan to update it
+        const response = await fetch('/api/travelers/all');
+        if (!response.ok) {
+          throw new Error('Failed to fetch travelers');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching travelers:', error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2
+  });
 
   const travelers: Traveler[] = data?.travelers || [];
 
@@ -29,7 +49,7 @@ export function TravelersContent() {
     );
   }, [searchTerm, travelers]);
 
-  if (!data && !error) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 

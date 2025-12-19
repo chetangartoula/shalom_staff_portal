@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getReportByGroupId, updateReport } from '../../data';
+import { fetchGroupAndPackageById } from '@/lib/api-service';
 
 interface Params {
   params: {
@@ -10,11 +11,28 @@ interface Params {
 export async function GET(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params; // Await the params object
-    const report = getReportByGroupId(groupId);
-    if (report) {
-      return NextResponse.json(report);
+    
+    // Fetch from the real API
+    try {
+      const report = await fetchGroupAndPackageById(groupId);
+      
+      // Add the full URL to the reportUrl field
+      const baseUrl = `${new URL(request.url).protocol}//${new URL(request.url).host}`;
+      const fullReport = {
+        ...report,
+        reportUrl: `${baseUrl}${report.reportUrl}`
+      };
+      
+      return NextResponse.json(fullReport);
+    } catch (apiError) {
+      console.error('Error fetching from API, falling back to mock data:', apiError);
+      // Fallback to mock data if API fails
+      const report = getReportByGroupId(groupId);
+      if (report) {
+        return NextResponse.json(report);
+      }
+      return NextResponse.json({ message: 'Report not found' }, { status: 404 });
     }
-    return NextResponse.json({ message: 'Report not found' }, { status: 404 });
   } catch (error) {
     return NextResponse.json({ message: 'Error fetching report', error: (error as Error).message }, { status: 500 });
   }

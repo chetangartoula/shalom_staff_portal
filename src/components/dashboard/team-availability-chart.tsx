@@ -1,15 +1,12 @@
-
 "use client";
 
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '../ui/shadcn/badge';
 import { cn } from '@/lib/utils';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const statusColors: Record<string, {tw: string, hex: string}> = {
     Available: { tw: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400", hex: "#22c55e" },
@@ -19,7 +16,24 @@ const statusColors: Record<string, {tw: string, hex: string}> = {
 
 
 export function TeamAvailabilityChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/team-status', fetcher);
+    // Use React Query to fetch team status data
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['teamStatus'],
+        queryFn: async () => {
+            try {
+                const response = await fetch('/api/stats/team-status');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch team status data');
+                }
+                return response.json();
+            } catch (error) {
+                console.error('Error fetching team status data:', error);
+                throw error;
+            }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
 
     const chartData = data?.chartData || [];
 

@@ -539,6 +539,8 @@ export function ExtraServicesClientPage({ user, initialData }: { user: User | nu
         setIncludeServiceChargeInPdf={setIncludeServiceChargeInPdf}
         clientCommunicationMethod={report.clientCommunicationMethod}
         onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
+        isSubmitting={isSaving}
+        onSubmit={handleFinish}
       />;
     }
 

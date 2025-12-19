@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -8,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, GuideStatus } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchGuides } from '@/lib/api-service';
 import { Button } from '../ui/shadcn/button';
 import {
   DropdownMenu,
@@ -20,8 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 const statusColors: Record<GuideStatus, string> = {
     Available: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400",
     'On Tour': "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -29,9 +27,20 @@ const statusColors: Record<GuideStatus, string> = {
 };
 
 export function GuidesContent() {
-  const { data, error } = useSWR('/api/guides', fetcher);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | GuideStatus>('all');
+  
+  // React Query hook for fetching guides
+  const { data, error, isLoading } = useQuery<{ guides: Guide[] }, Error>({
+    queryKey: ['guides'],
+    queryFn: async () => {
+      const result = await fetchGuides();
+      return result;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2, // Retry failed requests up to 2 times
+  });
   
   const guides: Guide[] = data?.guides || [];
 
@@ -47,7 +56,7 @@ export function GuidesContent() {
     });
   }, [searchTerm, guides, statusFilter]);
   
-  if (!data && !error) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 

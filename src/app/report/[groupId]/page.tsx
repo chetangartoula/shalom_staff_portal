@@ -4,6 +4,7 @@ import React from "react";
 import { useParams, notFound } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Loader2, Check, Copy } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
 
 import { Button } from "@/components/ui/shadcn/button";
 import {
@@ -13,15 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/shadcn/card";
 import { useToast } from "@/hooks/use-toast";
-import useSWR from 'swr';
 import { Logo } from "@/components/logo";
-
-const fetcher = (url: string) => fetch(url).then(res => {
-    if (!res.ok) {
-        throw new Error('Could not fetch report details');
-    }
-    return res.json();
-});
 
 // Dynamically import the form component with SSR turned off
 const TravelerForm = dynamic(() => import('@/components/dashboard/traveler-form'), {
@@ -41,7 +34,30 @@ export default function ReportPage() {
   
   const [isCopied, setIsCopied] = React.useState(false);
 
-  const { data: report, error } = useSWR(groupId ? `/api/reports/${groupId}` : null, fetcher);
+  // Use React Query to fetch report details
+  const { data: report, error, isLoading } = useQuery({
+    queryKey: ['report', groupId],
+    queryFn: async () => {
+      if (!groupId) return null;
+      
+      try {
+        const response = await fetch(`/api/reports/${groupId}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            notFound();
+          }
+          throw new Error('Could not fetch report details');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching report details:', error);
+        throw error;
+      }
+    },
+    enabled: !!groupId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2
+  });
 
   const handleCopy = () => {
     if (!groupId) return;
@@ -63,12 +79,20 @@ export default function ReportPage() {
     throw error;
   }
 
-  if (!report) {
+  if (isLoading) {
      return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
              <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
      )
+  }
+
+  if (!report) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+        <p className="text-muted-foreground">No report data available.</p>
+      </div>
+    );
   }
 
   return (

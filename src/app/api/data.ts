@@ -1,6 +1,6 @@
 
 import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp, Assignment } from '@/lib/types';
-import { initialTreks, services as staticServices, initialGuides, initialPorters, initialAirportPickUp } from '@/lib/mock-data';
+import { initialAirportPickUp } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
 import { parseISO, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';

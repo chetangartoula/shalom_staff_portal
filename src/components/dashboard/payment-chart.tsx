@@ -1,14 +1,11 @@
-
 "use client";
 
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const chartConfig = {
     payments: {
@@ -22,7 +19,24 @@ const chartConfig = {
 };
 
 export function PaymentChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/payments', fetcher);
+    // Use React Query to fetch payment data
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['paymentAnalytics'],
+        queryFn: async () => {
+            try {
+                const response = await fetch('/api/stats/payments');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch payment data');
+                }
+                return response.json();
+            } catch (error) {
+                console.error('Error fetching payment data:', error);
+                throw error;
+            }
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
 
     if (isLoading) {
         return <PaymentChartSkeleton />;
