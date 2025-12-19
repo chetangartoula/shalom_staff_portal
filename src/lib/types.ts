@@ -2,6 +2,7 @@
 export interface Permit {
   name: string;
   rate: number;
+  times: number;
 }
 
 export interface Trek {

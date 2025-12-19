@@ -153,6 +153,9 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
 // Post groups and package data
 export async function postGroupsAndPackage(data: any): Promise<any> {
   try {
+    // Log the payload for debugging
+    console.log('Sending payload to API:', JSON.stringify(data, null, 2));
+    
     const response = await fetch(`${BASE_URL}/staff/groups-and-package/`, {
       method: 'POST',
       headers: {
@@ -162,7 +165,17 @@ export async function postGroupsAndPackage(data: any): Promise<any> {
     });
     
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
+      // Try to parse the error response for more details
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        console.log('API Error Response:', errorData);
+        errorMessage = errorData.message || errorData.detail || JSON.stringify(errorData) || errorMessage;
+      } catch (parseError) {
+        // If we can't parse the error response, use the status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
     
     const responseData = await response.json();

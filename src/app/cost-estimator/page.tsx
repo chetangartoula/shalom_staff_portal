@@ -1,17 +1,25 @@
-
-import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
-import { getTreks } from '@/app/api/data';
-import { getUser } from '@/lib/auth';
 import type { Trek } from "@/lib/types";
+import { ClientCostEstimator } from '@/components/cost-estimator/client-component';
+import { initialTreks } from '@/lib/mock-data-client';
 
-export default async function NewCostReportPage() {
-  const { treks }: { treks: Trek[] } = getTreks();
-  const user = await getUser();
-  
+interface User {
+  name: string;
+  email: string;
+  role: string;
+}
+
+// Mock user data to pass to client component
+const mockUser: User = {
+  name: 'Admin User',
+  email: 'admin@shalom.com',
+  role: 'Admin',
+};
+
+export default function NewCostReportPage() {
   return (
-    <DashboardLayout user={user}>
-      <TrekCostingPage treks={treks} user={user} />
+    <DashboardLayout user={mockUser}>
+      <ClientCostEstimator initialTreks={initialTreks} user={mockUser} />
     </DashboardLayout>
   );
 }

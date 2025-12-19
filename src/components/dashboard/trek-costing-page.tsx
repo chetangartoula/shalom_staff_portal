@@ -416,6 +416,42 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     setIsSaving(true);
     
     try {
+      // Transform permits data
+      const permitsData = report.permits.rows.map(row => ({
+        name: row.description,
+        rate: row.rate,
+        numbers: row.no,
+        times: row.times
+      }));
+
+      // Transform services data
+      const servicesData = report.services.rows.map(row => ({
+        name: row.description,
+        rate: row.rate,
+        numbers: row.no,
+        times: row.times
+      }));
+
+      // Transform extra services data
+      // Group extra details by description to match the required structure
+      const extraServicesMap = new Map();
+      report.extraDetails.rows.forEach(row => {
+        if (!extraServicesMap.has(row.description)) {
+          extraServicesMap.set(row.description, {
+            service_name: row.description,
+            params: []
+          });
+        }
+        extraServicesMap.get(row.description).params.push({
+          name: row.description,
+          rate: row.rate,
+          numbers: row.no,
+          times: row.times
+        });
+      });
+
+      const extraServicesData = Array.from(extraServicesMap.values());
+
       // Prepare the payload structure as specified
       const payload = {
         package: {
@@ -426,21 +462,21 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           trip: parseInt(report.trekId || '0')
         },
         status: "draft",
-        permits: [],
-        services: [],
-        extra_services: [],
-        service_discount: "0",
-        service_discount_type: "amount",
-        service_discount_remarks: "",
-        extra_service_discount: "0",
-        extra_service_discount_type: "amount",
-        extra_service_discount_remarks: "",
-        permit_discount: "0",
-        permit_discount_type: "amount",
-        permit_discount_remarks: "",
-        overall_discount: "0",
-        overall_discount_type: "amount",
-        overall_discount_remarks: ""
+        permits: permitsData,
+        services: servicesData,
+        extra_services: extraServicesData,
+        service_discount: report.services.discountValue || 0,
+        service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
+        service_discount_remarks: report.services.discountRemarks || "",
+        extra_service_discount: report.extraDetails.discountValue || 0,
+        extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
+        extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
+        permit_discount: report.permits.discountValue || 0,
+        permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
+        permit_discount_remarks: report.permits.discountRemarks || "",
+        overall_discount: report.overallDiscountValue || 0,
+        overall_discount_type: report.overallDiscountType === 'percentage' ? 'percentage' : 'flat',
+        overall_discount_remarks: report.overallDiscountRemarks || ""
       };
 
       // Make the API call
@@ -505,10 +541,37 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }
 
     if (activeStepData.id === 'final') {
-      return <FinalStep
-        isSubmitting={isSaving}
-        onSubmit={handleFinish}
-      />;
+      return (
+        <FinalStep
+          extraDetailsState={report.extraDetails}
+          onRowChange={handleRowChange}
+          onDiscountTypeChange={handleDiscountTypeChange}
+          onDiscountValueChange={handleDiscountValueChange}
+          onDiscountRemarksChange={handleDiscountRemarksChange}
+          onAddRow={addRow}
+          onRemoveRow={removeRow}
+          onExportPDF={onExportPDF}
+          onExportExcel={onExportExcel}
+          totalCost={totalCost}
+          subtotalBeforeOverallDiscount={subtotalBeforeOverallDiscount}
+          overallDiscountType={report.overallDiscountType}
+          overallDiscountValue={report.overallDiscountValue}
+          overallDiscountAmount={overallDiscountAmount}
+          overallDiscountRemarks={report.overallDiscountRemarks}
+          onOverallDiscountTypeChange={handleOverallDiscountTypeChange}
+          onOverallDiscountValueChange={handleOverallDiscountValueChange}
+          onOverallDiscountRemarksChange={handleOverallDiscountRemarksChange}
+          groupSize={report.groupSize}
+          serviceCharge={report.serviceCharge}
+          setServiceCharge={(value) => handleDetailChange('serviceCharge', value)}
+          includeServiceChargeInPdf={includeServiceChargeInPdf}
+          setIncludeServiceChargeInPdf={setIncludeServiceChargeInPdf}
+          clientCommunicationMethod={report.clientCommunicationMethod}
+          onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
+          isSubmitting={isSaving}
+          onSubmit={handleFinish}
+        />
+      );
     }
 
     if (activeStepData.id === 'permits' || activeStepData.id === 'services' || report.customSections.some(cs => cs.id === activeStepData.id)) {

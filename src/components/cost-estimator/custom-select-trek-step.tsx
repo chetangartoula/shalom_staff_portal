@@ -1,24 +1,19 @@
-import React, { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/shadcn/card";
 import { Input } from "@/components/ui/shadcn/input";
 import { cn } from "@/lib/utils";
 import type { Trek } from "@/lib/types";
 import { Mountain, Search } from 'lucide-react';
-import { Logo } from '../logo';
 
-interface SelectTrekStepProps {
+interface CustomSelectTrekStepProps {
   treks: Trek[];
   selectedTrekId: string | null;
   onSelectTrek: (id: string) => void;
+  onTrekSelectNotify: (id: string) => void; // New prop to notify when a trek is selected
 }
 
-function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
+export function CustomSelectTrekStep({ treks, selectedTrekId, onSelectTrek, onTrekSelectNotify }: CustomSelectTrekStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Debug logging
-  useEffect(() => {
-    console.log('SelectTrekStep mounted with treks:', treks?.length);
-  }, [treks]);
 
   const filteredTreks = useMemo(() => {
     if (!searchTerm) return treks;
@@ -27,6 +22,13 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
       trek.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, treks]);
+
+  const handleSelectTrek = (id: string) => {
+    // Call the original onSelectTrek function
+    onSelectTrek(id);
+    // Notify our component about the selection
+    onTrekSelectNotify(id);
+  };
 
   return (
     <div className="text-center">
@@ -52,7 +54,7 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
                   "cursor-pointer text-left hover:shadow-lg transition-all duration-200 border-2",
                   selectedTrekId === trek.id ? "border-primary" : "border-transparent"
                 )}
-                onClick={() => onSelectTrek(trek.id)}
+                onClick={() => handleSelectTrek(trek.id)}
               >
                 <CardContent className="p-4 flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-lg mt-1">
@@ -74,5 +76,3 @@ function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: Select
     </div>
   );
 };
-
-export const SelectTrekStep = memo(SelectTrekStepComponent);
