@@ -142,6 +142,8 @@ export interface Report {
   joined: number;
   pending: number;
   paymentDetails: PaymentDetails;
+  isExtraInvoice?: boolean; // Flag to distinguish extra invoices from standard groups
+  parentGroupId?: string; // Reference to the parent group ID for extra invoices
 }
 
 

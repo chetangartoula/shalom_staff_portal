@@ -530,9 +530,11 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
 
 // Fetch a single group and package from the real API
 // Helper to transform API response to Report type
-function transformAPIGroupToReport(item: APIGroupAndPackage): Report {
+function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boolean = false, parentGroupId?: string): Report {
   return {
-    groupId: item.id.toString(),
+    isExtraInvoice,
+    parentGroupId,
+    groupId: isExtraInvoice ? (item.package?.id?.toString() || item.id.toString()) : item.id.toString(),
     trekId: item.package?.trip?.toString() || '0',
     trekName: item.package?.name || 'Unknown Trek',
     groupName: item.package?.name || 'Unknown Group',
@@ -629,9 +631,33 @@ export async function fetchGroupAndPackageById(id: string): Promise<Report> {
 export async function fetchExtraInvoicesByGroupId(groupId: string): Promise<Report[]> {
   try {
     const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/extra-invoice/${groupId}/`);
-    return data.map(item => transformAPIGroupToReport(item));
+    return data.map(item => transformAPIGroupToReport(item, true, groupId));
   } catch (error) {
     console.error('Error fetching extra invoices:', error);
+    throw error;
+  }
+}
+
+// Fetch a single extra invoice by package ID from the parent group's extra invoices list
+export async function fetchExtraInvoiceByInvoiceId(packageId: string, parentGroupId?: string): Promise<Report> {
+  try {
+    // Use the parent group ID to fetch the list of extra invoices
+    const groupIdToFetch = parentGroupId || packageId;
+    const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/extra-invoice/${groupIdToFetch}/`);
+
+    if (data && data.length > 0) {
+      // Find the invoice with matching package ID
+      const matchingInvoice = data.find(item => item.package?.id?.toString() === packageId);
+      if (matchingInvoice) {
+        return transformAPIGroupToReport(matchingInvoice, true, parentGroupId);
+      }
+      // If no match found but we have data, return the first one
+      return transformAPIGroupToReport(data[0], true, parentGroupId);
+    }
+
+    throw new Error('No extra invoices found');
+  } catch (error) {
+    console.error('Error fetching extra invoice by package ID:', error);
     throw error;
   }
 }
@@ -696,6 +722,29 @@ export async function updateGroupsAndPackage(id: string, data: any): Promise<any
     const responseData = await response.json();
     return responseData;
   } catch (error) {
+    throw error;
+  }
+}
+
+// Update an extra invoice using PUT method (uses package ID)
+export async function updateExtraInvoice(packageId: string, data: any): Promise<any> {
+  try {
+    const response = await fetch(`${BASE_URL}/staff/extra-invoice/package/${packageId}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || errorData.detail || `Failed to update extra invoice (Status: ${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating extra invoice:', error);
     throw error;
   }
 }

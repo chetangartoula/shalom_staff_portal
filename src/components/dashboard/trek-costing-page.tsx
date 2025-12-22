@@ -31,7 +31,7 @@ import type { Trek, CostRow, SectionState } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import type { User } from "@/lib/auth";
-import { postGroupsAndPackage, updateGroupsAndPackage } from '@/lib/api-service';
+import { postGroupsAndPackage, updateGroupsAndPackage, updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
 
 type ReportState = {
   groupId: string;
@@ -50,6 +50,8 @@ type ReportState = {
   overallDiscountType: 'amount' | 'percentage';
   overallDiscountValue: number;
   overallDiscountRemarks: string;
+  isExtraInvoice?: boolean;
+  isNew?: boolean;
 };
 
 const createInitialSectionState = (id: string, name: string): SectionState => ({
@@ -77,6 +79,8 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   overallDiscountType: 'amount',
   overallDiscountValue: 0,
   overallDiscountRemarks: '',
+  isExtraInvoice: false,
+  isNew: false,
 });
 
 // Helper functions for group name generation
@@ -195,8 +199,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         return fullReport;
       });
 
-      // Only set step to 0 if we don't already have a currentStep set
-      setCurrentStep(prev => prev === 0 && report.trekId ? prev : 0);
+      // Special handling for new extra invoices - start at trek selection if no trekId
+      if (initialData.isNew && !initialData.trekId) {
+        setCurrentStep(0);
+      } else {
+        // Only set step to 0 if we don't already have a currentStep set
+        setCurrentStep(prev => prev === 0 && (report.trekId || initialData.trekId) ? prev : 0);
+      }
     }
   }, [initialData, report.trekId]);
 
@@ -485,7 +494,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
     return {
       package: {
-        name: report.groupName || `${report.trekName} ${report.groupId.substring(0, 4)}`,
+        name: report.groupName || `${report.trekName} ${report.groupId.length > 4 ? report.groupId.substring(0, 4) : report.groupId}`,
         total_space: report.groupSize,
         start_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         end_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -518,15 +527,23 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
     try {
       let response;
-      if (isUpdate) {
-        response = await updateGroupsAndPackage(report.groupId, payload);
+      if (isUpdate && !initialData.isNew) {
+        if (report.isExtraInvoice) {
+          response = await updateExtraInvoice(report.groupId, payload);
+        } else {
+          response = await updateGroupsAndPackage(report.groupId, payload);
+        }
       } else {
-        response = await postGroupsAndPackage(payload);
+        if (report.isExtraInvoice) {
+          response = await postExtraInvoice(report.groupId, payload);
+        } else {
+          response = await postGroupsAndPackage(payload);
+        }
       }
 
       toast({
         title: "Success!",
-        description: `Report has been ${isUpdate ? 'updated' : 'saved'} successfully.`
+        description: `Report has been ${isUpdate && !initialData.isNew ? 'updated' : 'saved'} successfully.`
       });
 
       if (shouldNavigate) {
@@ -798,7 +815,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
               <div className="flex gap-2 w-full sm:w-auto">
                 {/* For other steps, show Save and Next buttons */}
                 {!isReadOnly && (
-                  <Button onClick={handleSaveOrUpdate} disabled={isSaving} className="flex-1">
+                  <Button onClick={() => handleSaveOrUpdate(false)} disabled={isSaving} className="flex-1">
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <Save className="mr-2 h-4 w-4" /> Save
                   </Button>

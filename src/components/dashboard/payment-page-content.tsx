@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Wallet, ArrowLeft, FileDown, Eye, Pencil } from 'lucide-react';
+import { Loader2, Wallet, ArrowLeft, FileDown, Eye, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
 import { handleExportPDF } from '@/lib/export';
+import Link from 'next/link';
 import {
     Dialog,
     DialogContent,
@@ -382,7 +383,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     };
 
     const handleEditInvoice = (invoice: Report) => {
-        router.push(`/cost-matrix/${invoice.groupId}`);
+        router.push(`/cost-matrix/${invoice.groupId}?parentId=${initialReport.groupId}&isExtra=true`);
     };
 
     const renderBreakdownTable = (section: SectionState) => {
@@ -519,9 +520,16 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
 
                     {/* Extra Invoices Section */}
                     <Card className="h-full">
-                        <CardHeader>
-                            <h4 className="font-semibold text-lg">Extra Invoices / Additional Services</h4>
-                            <CardDescription>Breakdown of additional services</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <h4 className="font-semibold text-lg">Extra Invoices / Additional Services</h4>
+                                <CardDescription>Breakdown of additional services</CardDescription>
+                            </div>
+                            <Button size="sm" asChild>
+                                <Link href={`/cost-matrix/new?parentId=${initialReport.groupId}&isExtra=true`}>
+                                    <Plus className="h-4 w-4 mr-1" /> Add Service
+                                </Link>
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <div className="border rounded-lg overflow-x-auto">
@@ -552,8 +560,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                                             <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)} className="h-8 w-8 p-0" title="View Details">
                                                                 <Eye className="h-3.5 w-3.5" />
                                                             </Button>
-                                                            <Button variant="outline" size="sm" onClick={() => handleEditInvoice(invoice)} className="h-8 w-8 p-0" title="Edit">
-                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            <Button variant="outline" size="sm" asChild className="h-8 w-8 p-0" title="Edit">
+                                                                <Link href={`/cost-matrix/${invoice.groupId}?parentId=${initialReport.groupId}&isExtra=true`}>
+                                                                    <Pencil className="h-3.5 w-3.5" />
+                                                                </Link>
                                                             </Button>
                                                             <Button variant="outline" size="sm" onClick={() => handleDownloadExtraInvoice(invoice)} className="h-8 w-8 p-0" title="Download PDF">
                                                                 <FileDown className="h-3.5 w-3.5" />
