@@ -2,34 +2,44 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Wallet, ArrowLeft, FileDown } from 'lucide-react';
+import { Loader2, Wallet, ArrowLeft, FileDown, Eye, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/shadcn/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/shadcn/table";
 import { useToast } from '@/hooks/use-toast';
-import type { Report, Transaction, PaymentDetails } from '@/lib/types';
+import type { Report, Transaction, PaymentDetails, Trek, SectionState } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
+import { handleExportPDF } from '@/lib/export';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/shadcn/dialog";
+import { Badge } from "@/components/ui/shadcn/badge";
+import { Separator } from "@/components/ui/shadcn/separator";
 
 // Define interface for payment detail API response
 interface PaymentDetail {
-  id: number;
-  amount: number;
-  payment_method: string;
-  payment_types: string;
-  remarks: string;
-  date: string;
+    id: number;
+    amount: number;
+    payment_method: string;
+    payment_types: string;
+    remarks: string;
+    date: string;
 }
 
 interface PaymentDetailResponse {
-  total_amount: number;
-  payments: PaymentDetail[];
-  total_paid: number;
-  total_refund: number;
-  balance: number;
+    total_amount: number;
+    payments: PaymentDetail[];
+    total_paid: number;
+    total_refund: number;
+    balance: number;
 }
 
 interface PaymentPageContentProps {
@@ -40,6 +50,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { toast } = useToast();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const [selectedInvoice, setSelectedInvoice] = useState<Report | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     // React Query hooks for fetching data
     const { data: reportData, isLoading: isLoadingReport, error: reportError } = useQuery<Report, Error>({
@@ -66,7 +78,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             }
             return response.json();
         },
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 30, // 30 seconds - reduced from 2 minutes to ensure fresher data
         retry: 2
     });
 
@@ -79,7 +91,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
             }
             return response.json();
         },
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 30, // 30 seconds - reduced from 2 minutes to ensure fresher data
         retry: 2
     });
 
@@ -110,6 +122,28 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         retry: 2
     });
 
+    const { data: extraInvoices, isLoading: isLoadingExtraInvoices } = useQuery<Report[], Error>({
+        queryKey: ['extraInvoices', initialReport.groupId],
+        queryFn: async () => {
+            const response = await fetch(`/api/extra-invoices/${initialReport.groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch extra invoices');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 5,
+        retry: 2
+    });
+
+    const calculateSectionTotals = (section: SectionState) => {
+        const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
+        const discountAmount = section.discountType === 'percentage'
+            ? (subtotal * (section.discountValue / 100))
+            : section.discountValue;
+        const total = subtotal - discountAmount;
+        return { subtotal, total, discountAmount };
+    };
+
     // Calculate total amount from merged groups
     const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
         if (!mergeGroups || mergeGroups.length === 0 || !allTransactionsData) {
@@ -128,21 +162,31 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     };
 
     // Use payment details from the new API if available, otherwise fallback to report data
-    const paymentDetails: PaymentDetails | undefined = paymentDetailData ? {
+    const paymentDetails: (PaymentDetails & { totalRefund: number }) | undefined = paymentDetailData ? {
         totalCost: paymentDetailData.total_amount,
         totalPaid: paymentDetailData.total_paid,
-        balance: paymentDetailData.balance,
-        paymentStatus: paymentDetailData.balance <= 0 ? 'fully paid' : paymentDetailData.total_paid > 0 ? 'partially paid' : 'unpaid'
-    } : reportData?.paymentDetails;
+        totalRefund: paymentDetailData.total_refund || 0,
+        balance: paymentDetailData.balance, // Use balance directly from API
+        paymentStatus: (() => {
+            const epsilon = 0.01; // Tolerance for floating point inaccuracies
 
-    const transactions: Transaction[] = paymentDetailData 
+            if (paymentDetailData.total_paid === 0) return 'unpaid';
+            if (Math.abs(paymentDetailData.balance) <= epsilon || paymentDetailData.balance < 0) {
+                return paymentDetailData.total_paid > paymentDetailData.total_amount ? 'overpaid' : 'fully paid';
+            }
+            return 'partially paid';
+        })()
+    } : (reportData?.paymentDetails ? { ...reportData.paymentDetails, totalRefund: 0 } : undefined);
+
+    const transactions: Transaction[] = paymentDetailData
         ? paymentDetailData.payments.map(payment => ({
             id: payment.id.toString(),
             groupId: initialReport.groupId,
             amount: payment.amount,
             type: payment.payment_types === 'pay' ? 'payment' : 'refund',
             date: payment.date,
-            note: payment.remarks
+            note: payment.remarks,
+            paymentMethod: payment.payment_method // Map payment method
         }))
         : transactionData?.transactions || [];
 
@@ -302,6 +346,90 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         doc.save(filename);
     };
 
+    const handleDownloadExtraInvoice = async (extraInvoice: Report) => {
+        try {
+            const selectedTrek: Trek = {
+                id: extraInvoice.trekId,
+                name: extraInvoice.trekName,
+                description: '',
+                permits: []
+            };
+
+            // Map Report to ReportState format expected by handleExportPDF
+            const reportForExport = {
+                ...extraInvoice,
+                startDate: extraInvoice.startDate ? new Date(extraInvoice.startDate) : undefined
+            };
+
+            await handleExportPDF({
+                selectedTrek,
+                report: reportForExport as any,
+                calculateSectionTotals,
+                userName: 'Staff',
+                includeServiceCharge: true
+            });
+
+            toast({ title: "Success", description: "Extra invoice has been exported." });
+        } catch (err) {
+            console.error(err);
+            toast({ variant: "destructive", title: "Error", description: "Could not export extra invoice." });
+        }
+    };
+
+    const handleViewInvoice = (invoice: Report) => {
+        setSelectedInvoice(invoice);
+        setIsViewModalOpen(true);
+    };
+
+    const handleEditInvoice = (invoice: Report) => {
+        router.push(`/cost-matrix/${invoice.groupId}`);
+    };
+
+    const renderBreakdownTable = (section: SectionState) => {
+        if (!section.rows || section.rows.length === 0) return null;
+        const { subtotal, total, discountAmount } = calculateSectionTotals(section);
+
+        return (
+            <div className="mb-6">
+                <h5 className="font-semibold text-sm mb-2 text-primary">{section.name}</h5>
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/50">
+                            <TableHead className="h-8 text-xs">Description</TableHead>
+                            <TableHead className="h-8 text-xs text-right">Rate</TableHead>
+                            <TableHead className="h-8 text-xs text-right">No</TableHead>
+                            <TableHead className="h-8 text-xs text-right">Total</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {section.rows.map((row) => (
+                            <TableRow key={row.id}>
+                                <TableCell className="py-2 text-sm">{row.description}</TableCell>
+                                <TableCell className="py-2 text-sm text-right">{formatCurrency(row.rate)}</TableCell>
+                                <TableCell className="py-2 text-sm text-right">{row.no}</TableCell>
+                                <TableCell className="py-2 text-sm text-right">{formatCurrency(row.total)}</TableCell>
+                            </TableRow>
+                        ))}
+                        {section.discountValue > 0 && (
+                            <TableRow className="border-t-2">
+                                <TableCell colSpan={3} className="py-1 text-xs text-right text-muted-foreground">
+                                    {section.discountType === 'percentage' ? `Discount (${section.discountValue}%)` : 'Discount'}
+                                </TableCell>
+                                <TableCell className="py-1 text-xs text-right text-red-600">
+                                    -{formatCurrency(discountAmount)}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        <TableRow className="font-semibold">
+                            <TableCell colSpan={3} className="py-2 text-sm text-right">Section Total</TableCell>
+                            <TableCell className="py-2 text-sm text-right">{formatCurrency(total)}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        );
+    };
+
     // Handle successful transaction submission
     const handleTransactionSuccess = () => {
         // Invalidate queries to refetch updated data
@@ -336,7 +464,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border rounded-lg p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 border rounded-lg p-4">
                                 <div className="text-center">
                                     <p className="text-sm text-muted-foreground">Total Cost</p>
                                     <p className="text-2xl font-bold">{formatCurrency(paymentDetails?.totalCost ?? 0)}</p>
@@ -344,6 +472,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                 <div className="text-center">
                                     <p className="text-sm text-muted-foreground">Total Paid</p>
                                     <p className="text-2xl font-bold text-green-600">{formatCurrency(paymentDetails?.totalPaid ?? 0)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-muted-foreground">Total Refund</p>
+                                    <p className="text-2xl font-bold text-amber-600">{formatCurrency(paymentDetails?.totalRefund ?? 0)}</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-sm text-muted-foreground">Balance Due</p>
@@ -355,12 +487,12 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                             <div className="mt-4">
                                 <div className="flex justify-between text-sm mb-1">
                                     <span>Payment Progress</span>
-                                    <span className="font-medium">{Math.min(100, Math.round(((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100))}%</span>
+                                    <span className="font-medium">{Math.min(100, Math.max(0, Math.round((((paymentDetails?.totalPaid ?? 0) - (paymentDetails?.totalRefund ?? 0)) / (paymentDetails?.totalCost || 1)) * 100)))}%</span>
                                 </div>
                                 <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-green-600 transition-all duration-500 ease-in-out"
-                                        style={{ width: `${Math.min(100, ((paymentDetails?.totalPaid ?? 0) / (paymentDetails?.totalCost || 1)) * 100)}%` }}
+                                        style={{ width: `${Math.min(100, Math.max(0, (((paymentDetails?.totalPaid ?? 0) - (paymentDetails?.totalRefund ?? 0)) / (paymentDetails?.totalCost || 1)) * 100))}%` }}
                                     />
                                 </div>
                             </div>
@@ -369,33 +501,91 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Add Transaction Form */}
-                <Card>
-                    <CardHeader>
-                        <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
-                    </CardHeader>
-                    <CardContent>
-                        <TransactionForm
-                            groupId={reportData.groupId}
-                            onSuccess={handleTransactionSuccess}
-                            isPaymentDisabled={isPaymentDisabled}
-                        />
-                    </CardContent>
-                </Card>
+            <div className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* Add Transaction Form */}
+                    <Card className="h-full">
+                        <CardHeader>
+                            <h4 className="font-semibold text-lg flex items-center gap-2"><Wallet className="h-5 w-5" /> Add New Transaction</h4>
+                        </CardHeader>
+                        <CardContent>
+                            <TransactionForm
+                                groupId={reportData.groupId}
+                                onSuccess={handleTransactionSuccess}
+                                isPaymentDisabled={isPaymentDisabled}
+                            />
+                        </CardContent>
+                    </Card>
+
+                    {/* Extra Invoices Section */}
+                    <Card className="h-full">
+                        <CardHeader>
+                            <h4 className="font-semibold text-lg">Extra Invoices / Additional Services</h4>
+                            <CardDescription>Breakdown of additional services</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="border rounded-lg overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Trek/Service</TableHead>
+                                            <TableHead className="text-right">Total</TableHead>
+                                            <TableHead className="text-right">Balance</TableHead>
+                                            <TableHead className="text-right">Action</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {isLoadingExtraInvoices ? (
+                                            <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                        ) : extraInvoices && extraInvoices.length > 0 ? (
+                                            extraInvoices.map(invoice => (
+                                                <TableRow key={invoice.groupId}>
+                                                    <TableCell className="max-w-[150px] truncate" title={invoice.trekName || 'Extra Service'}>
+                                                        {invoice.trekName || 'Extra Service'}
+                                                    </TableCell>
+                                                    <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.paymentDetails.totalCost)}</TableCell>
+                                                    <TableCell className={cn("text-right font-semibold whitespace-nowrap", invoice.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
+                                                        {formatCurrency(invoice.paymentDetails.balance)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)} className="h-8 w-8 p-0" title="View Details">
+                                                                <Eye className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" onClick={() => handleEditInvoice(invoice)} className="h-8 w-8 p-0" title="Edit">
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" onClick={() => handleDownloadExtraInvoice(invoice)} className="h-8 w-8 p-0" title="Download PDF">
+                                                                <FileDown className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                            <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No extra invoices found.</TableCell></TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Transaction History */}
                 <Card>
                     <CardHeader>
                         <h4 className="font-semibold text-lg">Transaction History</h4>
+                        <CardDescription>Payment and refund records for this group</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="border rounded-lg max-h-[380px] overflow-y-auto overflow-x-auto">
+                        <div className="border rounded-lg max-h-[400px] overflow-y-auto overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Date</TableHead>
                                         <TableHead>Type</TableHead>
+                                        <TableHead>Method</TableHead>
                                         <TableHead>Note</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -403,27 +593,29 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                 </TableHeader>
                                 <TableBody>
                                     {isLoadingTransactions ? (
-                                        <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                     ) : transactions.length > 0 ? (
                                         transactions.map(t => (
                                             <TableRow key={t.id}>
-                                                <TableCell>{format(parseISO(t.date), 'PPP')}</TableCell>
-                                                <TableCell className={cn("capitalize",
+                                                <TableCell className="whitespace-nowrap">{format(parseISO(t.date), 'PPP')}</TableCell>
+                                                <TableCell className={cn("capitalize font-medium",
                                                     t.note && t.note.includes('Balance Due') ? 'text-yellow-600' :
                                                         t.type === 'payment' ? 'text-green-600' : 'text-red-600')}>
                                                     {t.note && t.note.includes('Balance Due') ? 'Unpaid' : t.type}
                                                 </TableCell>
-                                                <TableCell className="text-sm text-muted-foreground">{t.note}</TableCell>
-                                                <TableCell className="text-right font-medium">{formatCurrency(t.amount)}</TableCell>
+                                                <TableCell className="capitalize text-sm">{t.paymentMethod || 'N/A'}</TableCell>
+                                                <TableCell className="text-sm text-muted-foreground truncate max-w-[200px]" title={t.note}>{t.note}</TableCell>
+                                                <TableCell className="text-right font-medium whitespace-nowrap">{formatCurrency(t.amount)}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="outline" size="sm" onClick={() => handleDownloadInvoice(t)}>
+                                                    <Button variant="outline" size="sm" onClick={() => handleDownloadInvoice(t)} className="h-8 w-8 p-0">
                                                         <FileDown className="h-4 w-4" />
+                                                        <span className="sr-only">Download</span>
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))
                                     ) : (
-                                        <TableRow><TableCell colSpan={5} className="text-center h-24">No transactions yet.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">No transactions yet.</TableCell></TableRow>
                                     )}
                                 </TableBody>
                             </Table>
@@ -431,6 +623,76 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* View Extra Invoice Details Modal */}
+            <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+                <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 pb-2">
+                        <DialogTitle className="flex items-center justify-between">
+                            <span>Extra Invoice Details</span>
+                            {selectedInvoice && (
+                                <Badge variant={selectedInvoice.paymentDetails.balance === 0 ? "default" : "secondary"}>
+                                    {selectedInvoice.paymentDetails.balance === 0 ? "Paid" : "Pending"}
+                                </Badge>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>
+                            #{selectedInvoice?.groupId.substring(0, 8).toUpperCase()} - {selectedInvoice?.trekName}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <Separator />
+
+                    <div className="flex-1 p-6 overflow-y-auto max-h-[60vh]">
+                        {selectedInvoice && (
+                            <div className="space-y-4">
+                                {renderBreakdownTable(selectedInvoice.permits)}
+                                {renderBreakdownTable(selectedInvoice.services)}
+                                {renderBreakdownTable(selectedInvoice.extraDetails)}
+
+                                <div className="bg-muted/30 p-4 rounded-lg">
+                                    <h5 className="font-semibold text-sm mb-3">Invoice Summary</h5>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Subtotal</span>
+                                            <span>{formatCurrency(selectedInvoice.paymentDetails.totalCost / (1 + selectedInvoice.serviceCharge / 100))}</span>
+                                        </div>
+                                        {selectedInvoice.serviceCharge > 0 && (
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-muted-foreground">Service Charge ({selectedInvoice.serviceCharge}%)</span>
+                                                <span>{formatCurrency(selectedInvoice.paymentDetails.totalCost - (selectedInvoice.paymentDetails.totalCost / (1 + selectedInvoice.serviceCharge / 100)))}</span>
+                                            </div>
+                                        )}
+                                        <Separator className="my-1" />
+                                        <div className="flex justify-between font-bold text-base">
+                                            <span>Grand Total</span>
+                                            <span className="text-primary">{formatCurrency(selectedInvoice.paymentDetails.totalCost)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm pt-2">
+                                            <span className="text-green-600 font-medium">Total Paid</span>
+                                            <span className="text-green-600 font-medium">{formatCurrency(selectedInvoice.paymentDetails.totalPaid)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className={cn("font-bold", selectedInvoice.paymentDetails.balance > 0 ? "text-red-600" : "text-green-600")}>
+                                                Balance Due
+                                            </span>
+                                            <span className={cn("font-bold", selectedInvoice.paymentDetails.balance > 0 ? "text-red-600" : "text-green-600")}>
+                                                {formatCurrency(selectedInvoice.paymentDetails.balance)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="p-4 border-t flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+                        <Button onClick={() => selectedInvoice && handleDownloadExtraInvoice(selectedInvoice)}>
+                            <FileDown className="h-4 w-4 mr-2" /> Download PDF
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

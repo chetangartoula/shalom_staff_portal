@@ -26,8 +26,8 @@ import { fetchMergePackages, updateMergePackages, makePayment, type APIPaymentRe
 
 // Define interface for merged package
 interface MergedPackage {
-  id: number;
-  name: string;
+    id: number;
+    name: string;
 }
 
 const transactionSchema = z.object({
@@ -35,6 +35,7 @@ const transactionSchema = z.object({
     type: z.enum(['payment', 'refund']),
     date: z.date({ required_error: "Transaction date is required." }),
     note: z.string().optional(),
+    paymentMethod: z.string().min(1, "Payment method is required."),
     mergeGroups: z.array(z.string()).optional(),
 });
 
@@ -126,6 +127,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
             type: initialData?.type || 'payment',
             date: initialData?.date || new Date(),
             note: initialData?.note || '',
+            paymentMethod: (initialData as any)?.paymentMethod || 'cash',
             mergeGroups: initialData?.mergeGroups || [],
         },
     });
@@ -155,7 +157,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
         if (mergePackagesData && allReportsData?.reports) {
             // Convert merged package IDs to strings to match report IDs
             const mergedPackageIds = mergePackagesData.map(pkg => pkg.id.toString());
-            
+
             const initialSelected = allReportsData.reports
                 .filter(report => mergedPackageIds.includes(report.groupId))
                 .map(report => ({ groupId: report.groupId, groupName: report.groupName }));
@@ -168,15 +170,18 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
         try {
             const mergePackageIds = selectedGroupIds.map(id => parseInt(id)).filter(id => !isNaN(id));
             await updateMergePackages(groupId, mergePackageIds);
-            
-            // Invalidate and refetch merge packages to keep cache consistent
+
+            // Invalidate and refetch all relevant data to keep UI in sync
             queryClient.invalidateQueries({ queryKey: ['mergePackages', groupId] });
+            queryClient.invalidateQueries({ queryKey: ['paymentDetails', groupId] });
+            queryClient.invalidateQueries({ queryKey: ['transactions', groupId] });
+            queryClient.invalidateQueries({ queryKey: ['report', groupId] });
         } catch (error) {
             console.error('Failed to update merge packages:', error);
-            toast({ 
-                variant: 'destructive', 
-                title: 'Error', 
-                description: 'Failed to update merged groups. Please try again.' 
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Failed to update merged groups. Please try again.'
             });
         }
     }, [groupId, queryClient, toast]);
@@ -185,7 +190,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
     const handleReportSelection = async (report: { groupId: string, groupName: string }) => {
         const isSelected = selectedReports.some(r => r.groupId === report.groupId);
         let newSelectedReports;
-        
+
         if (isSelected) {
             // Deselect report
             newSelectedReports = selectedReports.filter(r => r.groupId !== report.groupId);
@@ -193,9 +198,9 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
             // Select report
             newSelectedReports = [...selectedReports, report];
         }
-        
+
         setSelectedReports(newSelectedReports);
-        
+
         // Immediately update merge packages in the backend
         const selectedGroupIds = newSelectedReports.map(r => r.groupId);
         await updateMergePackagesRealTime(selectedGroupIds);
@@ -205,7 +210,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
     const handleRemoveSelectedReport = async (reportGroupId: string) => {
         const newSelectedReports = selectedReports.filter(r => r.groupId !== reportGroupId);
         setSelectedReports(newSelectedReports);
-        
+
         // Immediately update merge packages in the backend
         const selectedGroupIds = newSelectedReports.map(r => r.groupId);
         await updateMergePackagesRealTime(selectedGroupIds);
@@ -220,6 +225,7 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
                 amount: values.amount,
                 remarks: values.note || '',
                 payment_type: values.type === 'payment' ? 'pay' : 'refund',
+                payment_method: values.paymentMethod,
                 date: values.date.toISOString().split('T')[0] // Format as YYYY-MM-DD
             };
 
@@ -267,7 +273,27 @@ export function TransactionForm({ groupId, onSuccess, initialData, isPaymentDisa
                     <FormItem>
                         <FormLabel>Amount</FormLabel>
                         <FormControl><Input type="number" step="0.01" {...field} disabled={isPaymentDisabled} /></FormControl>
-                        {isPaymentDisabled && <p className="text-sm text-yellow-600">This trip is fully paid. No more payments can be added.</p>}
+                        {isPaymentDisabled && <p className="text-sm text-yellow-600">This trip has no outstanding balance. Payments are disabled.</p>}
+                        <FormMessage />
+                    </FormItem>
+                )} />
+
+                <FormField control={form.control} name="paymentMethod" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Payment Method</FormLabel>
+                        <FormControl>
+                            <ToggleGroup
+                                type="single"
+                                variant="outline"
+                                value={field.value}
+                                onValueChange={(value) => value && field.onChange(value)}
+                                className="w-full grid grid-cols-3"
+                            >
+                                <ToggleGroupItem value="cash" className="text-xs sm:text-sm">Cash</ToggleGroupItem>
+                                <ToggleGroupItem value="bank" className="text-xs sm:text-sm">Bank</ToggleGroupItem>
+                                <ToggleGroupItem value="cheque" className="text-xs sm:text-sm">Cheque</ToggleGroupItem>
+                            </ToggleGroup>
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />

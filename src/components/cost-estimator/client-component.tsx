@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
 import type { Trek } from "@/lib/types";
 import { useTrips } from '@/hooks/use-trips';
@@ -20,7 +20,7 @@ interface ClientCostEstimatorProps {
   user: User | null;
 }
 
-export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientCostEstimatorProps) {
+export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }: ClientCostEstimatorProps) {
   const [user, setUser] = useState<User | null>(initialUser);
   const [selectedTrekId, setSelectedTrekId] = useState<string | null>(null);
   
@@ -40,6 +40,85 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
 
   // Check if any data is still loading
   const isLoading = isLoadingTreks || (selectedTrekId && (!permits || !services || !extraServices));
+
+  // Prepare initialData for the costing page - memoize to avoid recreating on every render
+  const initialData = useMemo(() => {
+    const data: any = {};
+    
+    if (selectedTrekId) {
+      data.trekId = selectedTrekId;
+      
+      if (permits && permits.length > 0) {
+        data.permits = {
+          id: 'permits',
+          name: 'Permits & Food',
+          rows: permits.map((permit: any) => ({
+            id: permit.id,
+            description: permit.name,
+            rate: permit.rate,
+            no: 1,
+            times: permit.times,
+            total: permit.rate * permit.times
+          })),
+          discountType: 'amount' as const,
+          discountValue: 0,
+          discountRemarks: ''
+        };
+      }
+      
+      if (services && services.length > 0) {
+        data.services = {
+          id: 'services',
+          name: 'Services',
+          rows: services.map((service: any) => ({
+            id: service.id,
+            description: service.name,
+            rate: service.rate,
+            no: 1,
+            times: service.times,
+            total: service.rate * service.times
+          })),
+          discountType: 'amount' as const,
+          discountValue: 0,
+          discountRemarks: ''
+        };
+      }
+      
+      if (extraServices && extraServices.length > 0) {
+        data.extraDetails = {
+          id: 'extraDetails',
+          name: 'Extra Details',
+          rows: extraServices.flatMap((extraService: any) => {
+            if (extraService.params && extraService.params.length > 0) {
+              // Create separate rows for each param
+              return extraService.params.map((param: any, index: number) => ({
+                id: `${extraService.id}-${index}`,
+                description: param.name,
+                rate: param.rate,
+                no: 1,
+                times: extraService.times,
+                total: param.rate * extraService.times
+              }));
+            } else {
+              return {
+                id: extraService.id,
+                description: extraService.serviceName,
+                rate: 0,
+                no: 1,
+                times: extraService.times,
+                total: 0
+              };
+            }
+          }),
+          discountType: 'amount' as const,
+          discountValue: 0,
+          discountRemarks: ''
+        };
+      }
+    }
+    
+    return Object.keys(data).length > 0 ? data : undefined;
+  }, [selectedTrekId, permits, services, extraServices]);
 
   // Fetch user data on client side
   useEffect(() => {
@@ -72,81 +151,6 @@ export function ClientCostEstimator({ initialTreks, user: initialUser }: ClientC
       treks={initialTreks} 
       user={user} 
     />;
-  }
-
-  // Prepare initialData for the costing page
-  const initialData: any = {};
-  
-  if (selectedTrekId) {
-    initialData.trekId = selectedTrekId;
-    
-    if (permits && permits.length > 0) {
-      initialData.permits = {
-        id: 'permits',
-        name: 'Permits & Food',
-        rows: permits.map((permit: any) => ({
-          id: permit.id,
-          description: permit.name,
-          rate: permit.rate,
-          no: 1,
-          times: permit.times,
-          total: permit.rate * permit.times
-        })),
-        discountType: 'amount' as const,
-        discountValue: 0,
-        discountRemarks: ''
-      };
-    }
-    
-    if (services && services.length > 0) {
-      initialData.services = {
-        id: 'services',
-        name: 'Services',
-        rows: services.map((service: any) => ({
-          id: service.id,
-          description: service.name,
-          rate: service.rate,
-          no: 1,
-          times: service.times,
-          total: service.rate * service.times
-        })),
-        discountType: 'amount' as const,
-        discountValue: 0,
-        discountRemarks: ''
-      };
-    }
-    
-    if (extraServices && extraServices.length > 0) {
-      initialData.extraDetails = {
-        id: 'extraDetails',
-        name: 'Extra Details',
-        rows: extraServices.flatMap((extraService: any) => {
-          if (extraService.params && extraService.params.length > 0) {
-            // Create separate rows for each param
-            return extraService.params.map((param: any, index: number) => ({
-              id: `${extraService.id}-${index}`,
-              description: param.name,
-              rate: param.rate,
-              no: 1,
-              times: extraService.times,
-              total: param.rate * extraService.times
-            }));
-          } else {
-            return {
-              id: extraService.id,
-              description: extraService.serviceName,
-              rate: 0,
-              no: 1,
-              times: extraService.times,
-              total: 0
-            };
-          }
-        }),
-        discountType: 'amount' as const,
-        discountValue: 0,
-        discountRemarks: ''
-      };
-    }
   }
 
   return <TrekCostingPage 

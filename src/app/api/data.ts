@@ -1,6 +1,6 @@
 
 import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp, Assignment } from '@/lib/types';
-import { initialAirportPickUp } from '@/lib/mock-data';
+import { initialAirportPickUp, initialTreks, services, initialGuides, initialPorters } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
 import { parseISO, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
@@ -45,7 +45,7 @@ const readDB = () => {
 
             // If airportPickUp is empty, initialize it with default data
             if (cachedDb.airportPickUp.length === 0) {
-                cachedDb.airportPickUp = initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() }));
+                cachedDb.airportPickUp = initialAirportPickUp.map((a: Omit<AirportPickUp, 'id'>) => ({ ...a, id: crypto.randomUUID() }));
                 dataUpdated = true;
             }
 
@@ -78,10 +78,10 @@ const readDB = () => {
     // Return default structure if file doesn't exist or is empty/corrupt
     const defaultData = {
         treks: [...initialTreks],
-        services: staticServices.map(s => ({ ...s, id: crypto.randomUUID() })),
-        guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
-        porters: initialPorters.map(p => ({ ...p, id: crypto.randomUUID() })),
-        airportPickUp: initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() })), // This was already correct
+        services: services.map((s: Omit<Service, 'id'>) => ({ ...s, id: crypto.randomUUID() })),
+        guides: initialGuides.map((g: Omit<Guide, 'id'>) => ({ ...g, id: crypto.randomUUID() })),
+        porters: initialPorters.map((p: Omit<Porter, 'id'>) => ({ ...p, id: crypto.randomUUID() })),
+        airportPickUp: initialAirportPickUp.map((a: Omit<AirportPickUp, 'id'>) => ({ ...a, id: crypto.randomUUID() })), // This was already correct
         reports: [],
         travelers: [],
         assignments: [],

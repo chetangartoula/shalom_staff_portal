@@ -89,11 +89,11 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
       page: String(page),
       limit: '10'
     });
-    
+
     if (searchTerm) {
       params.set('search', searchTerm);
     }
-    
+
     return params.toString();
   }, [page, searchTerm]);
 
@@ -108,7 +108,7 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
       return response.json();
     },
     placeholderData: (prevData) => prevData,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    staleTime: 1000 * 30, // 30 seconds - reduced from 2 minutes to ensure fresher data
     retry: 2
   });
 
@@ -450,73 +450,69 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
             <p className="text-muted-foreground text-sm">{cardDescription}</p>
           </div>
           <div className="relative w-full md:w-auto flex flex-col md:flex-row gap-2">
-            {pageType === 'payments' && (
-              <>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-[150px]">
-                    <SelectValue placeholder="Filter Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                    <SelectItem value="partially paid">Partially Paid</SelectItem>
-                    <SelectItem value="fully paid">Fully Paid</SelectItem>
-                    <SelectItem value="overpaid">Overpaid</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={creatorFilter} onValueChange={setCreatorFilter}>
-                  <SelectTrigger className="w-full md:w-[150px]">
-                    <SelectValue placeholder="Filter Creator" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Creators</SelectItem>
-                    {uniqueCreators.map(creator => (
-                      <SelectItem key={creator as string} value={creator as string}>
-                        {creator}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="grid gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date"
-                        variant={"outline"}
-                        className={cn(
-                          "w-full md:w-[260px] justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date?.from ? (
-                          date.to ? (
-                            <>
-                              {format(date.from, "LLL dd, y")} -{" "}
-                              {format(date.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            format(date.from, "LLL dd, y")
-                          )
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        initialFocus
-                        mode="range"
-                        defaultMonth={date?.from}
-                        selected={date}
-                        onSelect={setDate}
-                        numberOfMonths={2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </>
-            )}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[150px]">
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="partially paid">Partially Paid</SelectItem>
+                <SelectItem value="fully paid">Fully Paid</SelectItem>
+                <SelectItem value="overpaid">Overpaid</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={creatorFilter} onValueChange={setCreatorFilter}>
+              <SelectTrigger className="w-full md:w-[150px]">
+                <SelectValue placeholder="Filter Creator" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Creators</SelectItem>
+                {uniqueCreators.map(creator => (
+                  <SelectItem key={creator as string} value={creator as string}>
+                    {creator}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="grid gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full md:w-[260px] justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date?.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "LLL dd, y")} -{" "}
+                          {format(date.to, "LLL dd, y")}
+                        </>
+                      ) : (
+                        format(date.from, "LLL dd, y")
+                      )
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date?.from}
+                    selected={date}
+                    onSelect={setDate}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input

@@ -105,12 +105,14 @@ export interface Transaction {
   type: 'payment' | 'refund';
   date: string;
   note?: string;
+  paymentMethod?: string; // Added for payment method
   mergeGroups?: string[]; // Added for merged groups functionality
 }
 
 export interface PaymentDetails {
   totalCost: number;
   totalPaid: number;
+  totalRefund?: number; // Added for refund tracking
   balance: number;
   paymentStatus: PaymentStatus;
 }

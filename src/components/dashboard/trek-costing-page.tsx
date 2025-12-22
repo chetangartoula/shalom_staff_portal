@@ -4,7 +4,7 @@
 import React, { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, PlusSquare, Check, Copy, Edit, Save, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, PlusSquare, Check, Copy, Edit, Save, ArrowLeft, ArrowRight, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/shadcn/button";
 import {
@@ -31,7 +31,7 @@ import type { Trek, CostRow, SectionState } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import type { User } from "@/lib/auth";
-import { postGroupsAndPackage } from '@/lib/api-service';
+import { postGroupsAndPackage, updateGroupsAndPackage } from '@/lib/api-service';
 
 type ReportState = {
   groupId: string;
@@ -79,6 +79,19 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   overallDiscountRemarks: '',
 });
 
+// Helper functions for group name generation
+const getTrekShortName = (name: string): string => {
+  return name
+    .split(' ')
+    .filter(word => word.length > 0)
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+};
+
+const getCurrentTimestamp = (): string => {
+  return Date.now().toString();
+};
 
 const LoadingStep = () => (
   <div className="flex justify-center items-center h-96">
@@ -96,16 +109,19 @@ interface TrekCostingPageProps {
   initialData?: any;
   treks?: Trek[];
   user?: User | null;
-  onTrekSelect?: (trekId: string) => void; // Add this line
+  onTrekSelect?: (trekId: string) => void;
+  skipGroupDetails?: boolean;
+  groupId?: string;
+  isReadOnly?: boolean; // New prop to distinguish between cost estimator and cost matrix
 }
 
-function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect, skipGroupDetails = false, groupId, isReadOnly = false }: TrekCostingPageProps) {
   const { toast } = useToast();
   const router = useRouter();
 
   const [report, setReport] = useState<ReportState>(() => createInitialReportState(initialData?.groupId));
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(!!initialData);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(initialData?.reportUrl || null);
   const [isCopied, setIsCopied] = useState(false);
@@ -115,22 +131,74 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   const [newSectionName, setNewSectionName] = useState("");
   const [includeServiceChargeInPdf, setIncludeServiceChargeInPdf] = useState(true);
 
+  // Initialize from initialData and update when permits/services data arrives
   useEffect(() => {
-    if (initialData) {
-      const fullReport = {
-        ...createInitialReportState(initialData.groupId),
-        ...initialData,
-        startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
-      };
-      setReport(fullReport);
+    if (initialData && initialData.trekId) {
+      console.log('TrekCostingPage: initialData changed', {
+        trekId: initialData.trekId,
+        hasPermits: !!initialData.permits,
+        permitsCount: initialData.permits?.rows?.length || 0,
+        hasServices: !!initialData.services,
+        servicesCount: initialData.services?.rows?.length || 0
+      });
 
-      if (initialData.trekId) {
-        setCurrentStep(1); // Start from group details if editing
-      }
+      setReport(prev => {
+        console.log('TrekCostingPage: Current report state', {
+          trekId: prev.trekId,
+          permitsCount: prev.permits?.rows?.length || 0,
+          servicesCount: prev.services?.rows?.length || 0
+        });
 
-      setIsLoading(false);
+        // Create a new report with the initialData
+        const fullReport = {
+          ...createInitialReportState(initialData.groupId),
+          ...initialData,
+          startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
+        };
+
+        // If groupName is empty or missing, generate it from the trek name
+        if (!fullReport.groupName && initialData.trekId) {
+          const trek = treks?.find(t => t.id === initialData.trekId);
+          if (trek) {
+            const shortName = getTrekShortName(trek.name);
+            const timestamp = getCurrentTimestamp();
+            fullReport.groupName = `${shortName}-${timestamp}`;
+            // Also ensure trekName is set if missing
+            if (!fullReport.trekName) {
+              fullReport.trekName = trek.name;
+            }
+          }
+        }
+
+        // If we already have a trekId and it matches, merge the data instead of replacing
+        if (prev.trekId === initialData.trekId) {
+          const updatedReport = {
+            ...prev,
+            // Update permits if they're provided in initialData
+            permits: initialData.permits || prev.permits,
+            // Update services if they're provided in initialData
+            services: initialData.services || prev.services,
+            // Update extraDetails if they're provided in initialData
+            extraDetails: initialData.extraDetails || prev.extraDetails,
+          };
+
+          console.log('TrekCostingPage: Merging data for same trek', {
+            permitsCount: updatedReport.permits?.rows?.length || 0,
+            servicesCount: updatedReport.services?.rows?.length || 0
+          });
+
+          return updatedReport;
+        }
+
+        console.log('TrekCostingPage: Using full report for new trek');
+        // If it's a different trek or first load, replace everything
+        return fullReport;
+      });
+
+      // Only set step to 0 if we don't already have a currentStep set
+      setCurrentStep(prev => prev === 0 && report.trekId ? prev : 0);
     }
-  }, [initialData]);
+  }, [initialData, report.trekId]);
 
   const selectedTrek = useMemo(
     () => treks?.find((trek) => trek.id === report.trekId),
@@ -247,16 +315,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, []);
 
   const handleTrekSelect = useCallback((trekId: string) => {
-    // If we have a callback, use it instead of the default behavior
-    if (onTrekSelect) {
-      onTrekSelect(trekId);
-      return;
-    }
-    
-    // Default behavior (keep existing logic for backward compatibility)
     const newSelectedTrek = treks?.find(t => t.id === trekId);
     if (!newSelectedTrek) return;
 
+    // If we have a callback, use it to notify parent
+    if (onTrekSelect) {
+      onTrekSelect(trekId);
+    }
+
+    // Always update local state regardless of callback
     setReport(prev => {
       const initialPermits = newSelectedTrek.permits?.map(p => ({
         id: crypto.randomUUID(),
@@ -272,18 +339,22 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: prev.groupSize, times: 0, total: 0 }
       ];
 
-      const defaultGroupName = `${newSelectedTrek.name} ${prev.groupId.substring(0, 4)}`;
+      const trekShortName = getTrekShortName(newSelectedTrek.name);
+      const timestamp = getCurrentTimestamp();
+      const defaultGroupName = `${trekShortName}-${timestamp}`;
 
       return {
         ...prev,
         trekId: newSelectedTrek.id,
         trekName: newSelectedTrek.name,
-        groupName: prev.groupName || defaultGroupName,
+        groupName: defaultGroupName,
         permits: { ...prev.permits, rows: initialPermits },
         extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
       };
     });
-    setCurrentStep(1);
+    // Set to step 0 to show Group Details (which is at index 0 in allCostingStepsMetadata)
+    // When initialData exists, stepIndex = currentStep, so currentStep 0 = Group Details
+    setCurrentStep(0);
   }, [treks, onTrekSelect]);
 
   const addRow = useCallback((sectionId: string) => {
@@ -366,43 +437,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }
   }, [report, calculateSectionTotals, toast]);
 
-  const getReportPayload = useCallback(() => {
-    const url = `${window.location.origin}/report/${report.groupId}`;
-    return { ...report, reportUrl: url };
-  }, [report]);
-
-  const handleSaveOrUpdate = useCallback(async () => {
-    setIsSaving(true);
-    const payload = getReportPayload();
-    const isUpdate = !!initialData?.groupId;
-    const url = isUpdate ? `/api/reports/${payload.groupId}` : '/api/reports';
-    const method = isUpdate ? 'PUT' : 'POST';
-
-    try {
-      const response = await fetch(url, {
-        method: method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${isUpdate ? 'update' : 'save'} report`);
-      }
-
-      setSavedReportUrl(payload.reportUrl);
-      toast({ title: "Success!", description: `Report has been ${isUpdate ? 'updated' : 'saved'}.` });
-
-      return true;
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: (error as Error).message });
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }, [getReportPayload, initialData, toast]);
-
-
   const handleCopyToClipboard = useCallback(() => {
     if (savedReportUrl) {
       navigator.clipboard.writeText(savedReportUrl);
@@ -412,117 +446,143 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }
   }, [savedReportUrl, toast]);
 
-  const handleFinish = useCallback(async () => {
-    setIsSaving(true);
-    
-    try {
-      // Transform permits data
-      const permitsData = report.permits.rows.map(row => ({
-        name: row.description,
-        rate: row.rate,
-        numbers: row.no,
-        times: row.times
-      }));
+  const getTransformedPayload = useCallback(() => {
+    // Transform permits data
+    const permitsData = report.permits.rows.map(row => ({
+      name: row.description,
+      rate: row.rate,
+      numbers: row.no,
+      times: row.times
+    }));
 
-      // Transform services data
-      const servicesData = report.services.rows.map(row => ({
-        name: row.description,
-        rate: row.rate,
-        numbers: row.no,
-        times: row.times
-      }));
+    // Transform services data
+    const servicesData = report.services.rows.map(row => ({
+      name: row.description,
+      rate: row.rate,
+      numbers: row.no,
+      times: row.times
+    }));
 
-      // Transform extra services data
-      // Group extra details by description to match the required structure
-      const extraServicesMap = new Map();
-      report.extraDetails.rows.forEach(row => {
-        if (!extraServicesMap.has(row.description)) {
-          extraServicesMap.set(row.description, {
-            service_name: row.description,
-            params: []
-          });
-        }
-        extraServicesMap.get(row.description).params.push({
-          name: row.description,
-          rate: row.rate,
-          numbers: row.no,
-          times: row.times
+    // Transform extra services data
+    // Group extra details by description to match the required structure
+    const extraServicesMap = new Map();
+    report.extraDetails.rows.forEach(row => {
+      if (!extraServicesMap.has(row.description)) {
+        extraServicesMap.set(row.description, {
+          service_name: row.description,
+          params: []
         });
+      }
+      extraServicesMap.get(row.description).params.push({
+        name: row.description,
+        rate: row.rate,
+        numbers: row.no,
+        times: row.times
+      });
+    });
+
+    const extraServicesData = Array.from(extraServicesMap.values());
+
+    return {
+      package: {
+        name: report.groupName || `${report.trekName} ${report.groupId.substring(0, 4)}`,
+        total_space: report.groupSize,
+        start_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        end_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        trip: parseInt(report.trekId || '0')
+      },
+      status: "draft",
+      permits: permitsData,
+      services: servicesData,
+      extra_services: extraServicesData,
+      service_discount: String(report.services.discountValue || 0),
+      service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
+      service_discount_remarks: report.services.discountRemarks || "",
+      extra_service_discount: String(report.extraDetails.discountValue || 0),
+      extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
+      extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
+      permit_discount: String(report.permits.discountValue || 0),
+      permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
+      permit_discount_remarks: report.permits.discountRemarks || "",
+      overall_discount: String(report.overallDiscountValue || 0),
+      overall_discount_type: report.overallDiscountType === 'percentage' ? 'percentage' : 'flat',
+      overall_discount_remarks: report.overallDiscountRemarks || "",
+      service_charge: String(report.serviceCharge || 0)
+    };
+  }, [report]);
+
+  const handleSaveOrUpdate = useCallback(async (shouldNavigate: boolean = false) => {
+    setIsSaving(true);
+    const payload = getTransformedPayload();
+    const isUpdate = !!initialData?.groupId;
+
+    try {
+      let response;
+      if (isUpdate) {
+        response = await updateGroupsAndPackage(report.groupId, payload);
+      } else {
+        response = await postGroupsAndPackage(payload);
+      }
+
+      toast({
+        title: "Success!",
+        description: `Report has been ${isUpdate ? 'updated' : 'saved'} successfully.`
       });
 
-      const extraServicesData = Array.from(extraServicesMap.values());
-
-      // Prepare the payload structure as specified
-      const payload = {
-        package: {
-          name: report.groupName || `${report.trekName} ${report.groupId.substring(0, 4)}`,
-          total_space: report.groupSize,
-          start_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          end_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          trip: parseInt(report.trekId || '0')
-        },
-        status: "draft",
-        permits: permitsData,
-        services: servicesData,
-        extra_services: extraServicesData,
-        service_discount: report.services.discountValue || 0,
-        service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
-        service_discount_remarks: report.services.discountRemarks || "",
-        extra_service_discount: report.extraDetails.discountValue || 0,
-        extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
-        extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
-        permit_discount: report.permits.discountValue || 0,
-        permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
-        permit_discount_remarks: report.permits.discountRemarks || "",
-        overall_discount: report.overallDiscountValue || 0,
-        overall_discount_type: report.overallDiscountType === 'percentage' ? 'percentage' : 'flat',
-        overall_discount_remarks: report.overallDiscountRemarks || ""
-      };
-
-      // Make the API call
-      const response = await postGroupsAndPackage(payload);
-      
-      // Show success message
-      toast({ title: "Success!", description: "Report has been saved successfully." });
-      
-      // Navigate to reports page
-      router.push('/reports');
+      if (shouldNavigate) {
+        router.push('/reports');
+      }
+      return true;
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: (error as Error).message || "Failed to save report" });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to save report"
+      });
+      return false;
     } finally {
       setIsSaving(false);
     }
-  }, [report, router, toast]);
+  }, [getTransformedPayload, initialData, report.groupId, router, toast]);
 
-  const allCostingStepsMetadata = useMemo(() => [
-    { id: 'group-details', name: 'Group Details' },
-    { ...report.permits },
-    { ...report.services },
-    ...report.customSections,
-    { id: 'final', name: 'Final Summary' }
-  ], [report.permits, report.services, report.customSections]);
+  const handleNextStep = useCallback(() => {
+    setCurrentStep(prev => prev + 1);
+  }, []);
+
+  const handleFinish = useCallback(async () => {
+    await handleSaveOrUpdate(true);
+  }, [handleSaveOrUpdate]);
+
+  const allCostingStepsMetadata = useMemo(() => {
+    const steps = [];
+
+    // Only include Group Details if not skipping it
+    if (!skipGroupDetails) {
+      steps.push({ id: 'group-details', name: 'Group Details' });
+    }
+
+    steps.push(
+      { ...report.permits },
+      { ...report.services },
+      ...report.customSections,
+      { id: 'final', name: 'Final Summary' }
+    );
+
+    return steps;
+  }, [report.permits, report.services, report.customSections, skipGroupDetails]);
 
   const renderStepContent = () => {
     if (isLoading) return <LoadingStep />;
-    
-    // Show trek selection step if:
-    // 1. We're on step 0 AND
-    // 2. We don't have initialData (meaning we're creating a new report, not editing)
-    if (currentStep === 0 && !initialData) {
+
+    // Show trek selection step if we're on step 0 and don't have a trek selected yet
+    if (currentStep === 0 && !report.trekId) {
       return <SelectTrekStep treks={treks || []} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
     }
-    
-    // If we have initialData but are on step 0, it means we've selected a trek
-    // and should move to the group details step
-    if (currentStep === 0 && initialData && initialData.trekId) {
-      // Don't render anything, just move to the next step
-      setTimeout(() => setCurrentStep(1), 0);
-      return <LoadingStep />;
-    }
 
-    // Adjust step index for rendering, since step 0 is trek selection
-    const stepIndex = initialData ? currentStep : currentStep - 1;
-    if (stepIndex < 0) return <LoadingStep />;
+    // After trek is selected, determine which step to show based on currentStep
+    // When initialData exists or trek is selected: stepIndex = currentStep
+    // When no initialData and no trek: we show trek selection above
+    const stepIndex = currentStep;
 
     const activeStepData = allCostingStepsMetadata[stepIndex];
     if (!activeStepData) return null;
@@ -570,6 +630,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
           isSubmitting={isSaving}
           onSubmit={handleFinish}
+          isRateReadOnly={true}
+          hideAddRow={true}
         />
       );
     }
@@ -579,15 +641,18 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         <CostTable
           section={report[activeStepData.id as keyof ReportState] as SectionState || report.customSections.find(cs => cs.id === activeStepData.id)!}
           isCustom={report.customSections.some(cs => cs.id === activeStepData.id)}
-          isDescriptionEditable={activeStepData.id !== 'permits'}
+          isDescriptionEditable={activeStepData.id !== 'permits' && !isReadOnly}
+          isReadOnly={isReadOnly}
           onRowChange={handleRowChange}
           onDiscountTypeChange={handleDiscountTypeChange}
           onDiscountValueChange={handleDiscountValueChange}
           onDiscountRemarksChange={handleDiscountRemarksChange}
-          onAddRow={addRow}
-          onRemoveRow={removeRow}
-          onEditSection={handleOpenEditSectionModal}
-          onRemoveSection={removeSection}
+          onAddRow={undefined}
+          onRemoveRow={isReadOnly ? undefined : removeRow}
+          onEditSection={isReadOnly ? undefined : handleOpenEditSectionModal}
+          onRemoveSection={isReadOnly ? undefined : removeSection}
+          isRateReadOnly={activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'extraDetails'}
+          hideAddRow={true}
         />
       );
     }
@@ -596,36 +661,30 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   };
 
   const breadcrumbItems = useMemo(() => {
-    // If we're on step 0 and don't have initialData, we're selecting a trek
-    if (currentStep === 0 && !initialData) return [{ label: "Select Trek", isCurrent: true, stepIndex: 0 }];
+    // If no trek is selected, show only "Select Trek"
+    if (!report.trekId) {
+      return [{ label: "Select Trek", isCurrent: true, stepIndex: 0 }];
+    }
 
+    // Once trek is selected, show: Trek Name > Group Details > Permits > Services > ... > Summary
     const steps = [
-      { label: selectedTrek?.name || 'Trek', isCurrent: false, stepIndex: 0 },
+      { label: selectedTrek?.name || 'Trek', isCurrent: false, stepIndex: -1 }, // Trek is not a real step, just a label
       ...allCostingStepsMetadata.map((s, i) => ({
         label: s.name,
-        isCurrent: (initialData ? currentStep : currentStep - 1) === i,
-        stepIndex: initialData ? i : i + 1,
+        isCurrent: currentStep === i,
+        stepIndex: i,
       }))
     ];
 
-    // If we have initialData but no groupId, we're creating a new report
-    // In this case, we should show the trek name as the first step
-    if (initialData && !initialData.groupId) {
-      // Don't remove the trek step, but adjust the step indices
-    } else if (initialData && initialData.groupId) {
-      // If we're editing an existing report, remove the "Trek" step
-      steps.shift();
-    }
-
     return steps;
-  }, [currentStep, selectedTrek, allCostingStepsMetadata, initialData]);
+  }, [currentStep, selectedTrek, allCostingStepsMetadata, report.trekId]);
 
-  const finalStepIndex = breadcrumbItems.length - 1;
+  const finalStepIndex = allCostingStepsMetadata.length - 1;
 
 
   return (
     <Suspense fallback={<LoadingStep />}>
-      {(currentStep > 0 || initialData) && (
+      {report.trekId && (
         <header className="mb-6 space-y-4">
           <div className="overflow-x-auto hide-scrollbar">
             <Breadcrumb>
@@ -637,7 +696,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
                         <BreadcrumbPage>{item.label}</BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink asChild>
-                          <button onClick={() => setCurrentStep(item.stepIndex)} className="transition-colors hover:text-foreground whitespace-nowrap">{item.label}</button>
+                          <button
+                            onClick={() => item.stepIndex >= 0 && setCurrentStep(item.stepIndex)}
+                            className="transition-colors hover:text-foreground whitespace-nowrap"
+                            disabled={item.stepIndex < 0}
+                          >
+                            {item.label}
+                          </button>
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
@@ -654,7 +719,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
                 {initialData?.groupId ? "Editing report for" : "Creating new report for"} <span className="font-semibold text-primary">{report.trekName}</span>
               </p>
             </div>
-            <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
+            {/* Remove Add Section button as requested */}
+            {/* <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-dashed self-start sm:self-center" onClick={handleOpenAddSectionModal}>
                   <PlusSquare className="mr-2 h-4 w-4" /> Add Section
@@ -677,16 +743,20 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
                   <Button onClick={handleSaveSection}>Save Section</Button>
                 </DialogFooter>
               </DialogContent>
-            </Dialog>
+            </Dialog> */}
           </div>
         </header>
       )}
 
       {renderStepContent()}
 
-      {(currentStep > 0 || initialData) && (
+      {report.trekId && (
         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" disabled={(initialData && currentStep === 0) || (!initialData && currentStep <= 1)}>
+          <Button
+            onClick={() => setCurrentStep(prev => prev - 1)}
+            variant="outline"
+            disabled={currentStep === 0}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
 
@@ -702,22 +772,43 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
               </div>
             )}
 
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button onClick={handleSaveOrUpdate} disabled={isSaving} className="flex-1">
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Save className="mr-2 h-4 w-4" /> Save
-              </Button>
-
-              {currentStep === finalStepIndex ? (
-                <Button onClick={handleFinish} disabled={isSaving} className="flex-1">
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Finish'}
+            {/* For the final step, show Export PDF, Export Excel, and Finish buttons */}
+            {currentStep === finalStepIndex ? (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button onClick={onExportPDF} variant="outline" className="flex-1">
+                  <FileDown className="mr-2 h-4 w-4" /> Export PDF
                 </Button>
-              ) : (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1">
+                <Button onClick={onExportExcel} variant="outline" className="flex-1">
+                  <FileDown className="mr-2 h-4 w-4" /> Export Excel
+                </Button>
+                <Button onClick={handleFinish} disabled={isSaving} className="flex-1">
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" /> Finish
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2 w-full sm:w-auto">
+                {/* For other steps, show Save and Next buttons */}
+                {!isReadOnly && (
+                  <Button onClick={handleSaveOrUpdate} disabled={isSaving} className="flex-1">
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Save className="mr-2 h-4 w-4" /> Save
+                  </Button>
+                )}
+                <Button onClick={handleNextStep} disabled={isSaving} className="flex-1">
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

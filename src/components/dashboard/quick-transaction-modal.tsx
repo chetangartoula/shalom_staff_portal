@@ -20,7 +20,9 @@ interface QuickTransactionModalProps {
 export function QuickTransactionModal({ isOpen, onClose, report, onSuccess }: QuickTransactionModalProps) {
     if (!report) return null;
 
-    const isFullyPaid = report.paymentDetails.paymentStatus === 'fully paid' || report.paymentDetails.paymentStatus === 'overpaid';
+    // Only disable payment if balance is zero or negative (fully paid or overpaid)
+    // Allow payments when there's still a balance due (balance > 0)
+    const isFullyPaid = report.paymentDetails.balance <= 0;
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>

@@ -1,4 +1,4 @@
-import type { Trek } from '@/lib/types';
+import type { Trek, Report, SectionState } from '@/lib/types';
 
 // Base URL for the external API
 const BASE_URL = 'http://localhost:8000/api/v1';
@@ -8,18 +8,16 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-    
-    console.log(`Fetching from API: ${BASE_URL}${endpoint}`);
-    
+
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
       },
     });
-    
+
     clearTimeout(timeoutId);
-    
+
     if (!response.ok) {
       // Handle specific HTTP status codes
       if (response.status === 404) {
@@ -32,16 +30,14 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
         throw new Error(`API request failed with status ${response.status} for ${endpoint}`);
       }
     }
-    
+
     const data = await response.json();
-    console.log(`Received data from ${endpoint}:`, data);
-    
+
     return data;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Request timeout - the server took too long to respond');
     }
-    console.error(`Error fetching from ${endpoint}:`, error);
     throw error;
   }
 }
@@ -147,7 +143,9 @@ interface APIAirportPickUp {
 }
 
 // Define interface for the new API response structure
-interface APIGroupAndPackage {  id: number;
+interface APIGroupAndPackage {
+  total_paid: number;
+  id: number;
   package: {
     id: number;
     created_at: string;
@@ -193,15 +191,16 @@ interface APIGroupAndPackage {  id: number;
   overall_discount: string;
   overall_discount_type: string;
   overall_discount_remarks: string;
-  sub_total: string;
-  total_cost: string;
+  sub_total: number;
+  total_cost: number;
+  service_charge: string;
 }
 
 // Fetch guides from the real API
 export async function fetchGuides(): Promise<{ guides: any[] }> {
   try {
     const data = await fetchFromAPI<{ guides: APIGuide[] }>('/staff/guides/');
-    
+
     // Transform the API response to match our Guide type
     const transformedGuides = data.guides.map(guide => ({
       id: guide.id.toString(),
@@ -210,7 +209,7 @@ export async function fetchGuides(): Promise<{ guides: any[] }> {
       email: guide.email,
       status: guide.status as any // Assuming the API returns valid status values
     }));
-    
+
     return { guides: transformedGuides };
   } catch (error) {
     console.error('Error fetching guides:', error);
@@ -222,7 +221,7 @@ export async function fetchGuides(): Promise<{ guides: any[] }> {
 export async function fetchPorters(): Promise<{ porters: any[] }> {
   try {
     const data = await fetchFromAPI<{ porters: APIPorter[] }>('/staff/porters/');
-    
+
     // Transform the API response to match our Porter type
     const transformedPorters = data.porters.map(porter => ({
       id: porter.id.toString(),
@@ -230,7 +229,7 @@ export async function fetchPorters(): Promise<{ porters: any[] }> {
       phone: porter.phone,
       status: porter.status as any // Assuming the API returns valid status values
     }));
-    
+
     return { porters: transformedPorters };
   } catch (error) {
     console.error('Error fetching porters:', error);
@@ -243,14 +242,14 @@ export async function fetchAirportPickUp(): Promise<{ airportPickUp: any[] }> {
   try {
     // Since there's no dedicated endpoint, we'll fetch assignments and extract airport pickup data
     const assignmentsData = await fetchAssignments();
-    
+
     // Extract all unique airport pickup personnel from assignments
     const allAirportPickUp = assignmentsData.assignments
       .flatMap((assignment: any) => assignment.airportPickUp)
-      .filter((pickup: any, index: number, self: any[]) => 
+      .filter((pickup: any, index: number, self: any[]) =>
         index === self.findIndex((p: any) => p.id === pickup.id)
       );
-    
+
     // If no airport pickup data found in assignments, return empty array
     // In a real implementation, there might be a dedicated endpoint
     return { airportPickUp: allAirportPickUp };
@@ -261,9 +260,10 @@ export async function fetchAirportPickUp(): Promise<{ airportPickUp: any[] }> {
 }
 
 // Fetch assignments from the real API
-export async function fetchAssignments(): Promise<{ assignments: any[] }> {  try {
+export async function fetchAssignments(): Promise<{ assignments: any[] }> {
+  try {
     const data = await fetchFromAPI<APIAssignment[]>('/staff/assignments/');
-    
+
     // Transform the API response to match our Assignment type
     const transformedAssignments = data.map(assignment => ({
       groupId: assignment.groupId.toString(),
@@ -285,7 +285,7 @@ export async function fetchAssignments(): Promise<{ assignments: any[] }> {  try
       })),
       airportPickUp: assignment.airportPickUp
     }));
-    
+
     return { assignments: transformedAssignments };
   } catch (error) {
     console.error('Error fetching assignments:', error);
@@ -301,9 +301,9 @@ export async function assignTeam(guides: number[], porters: number[], packageId:
       porters: porters,
       package: packageId
     };
-    
+
     console.log('Sending assign team payload:', JSON.stringify(payload, null, 2));
-    
+
     const response = await fetch(`${BASE_URL}/staff/assign-teams/`, {
       method: 'POST',
       headers: {
@@ -311,14 +311,14 @@ export async function assignTeam(guides: number[], porters: number[], packageId:
       },
       body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log('Assign team response:', data);
-    
+
     return data;
   } catch (error) {
     console.error('Error assigning team:', error);
@@ -352,7 +352,7 @@ export async function fetchAssignedTeam(packageId: number): Promise<APIAssignTea
 export async function fetchTrips(): Promise<{ trips: Trek[] }> {
   try {
     const data = await fetchFromAPI<{ trips: APITrip[] }>('/staff/trip-list/');
-    
+
     // Transform the API response to match our Trek type
     const transformedTrips: Trek[] = data.trips.map(trip => ({
       id: trip.id.toString(),
@@ -360,7 +360,7 @@ export async function fetchTrips(): Promise<{ trips: Trek[] }> {
       description: trip.sub_title,
       permits: [] // Permits would need to be fetched separately or added manually
     }));
-    
+
     return { trips: transformedTrips };
   } catch (error) {
     throw error;
@@ -371,7 +371,7 @@ export async function fetchTrips(): Promise<{ trips: Trek[] }> {
 export async function fetchPermits(tripId: string): Promise<any[]> {
   try {
     const data = await fetchFromAPI<APIPermit[]>(`/staff/permit-list/${tripId}/`);
-    
+
     // Transform the API response to match our Permit type
     const transformedPermits = data.map(permit => ({
       id: permit.id.toString(),
@@ -379,7 +379,7 @@ export async function fetchPermits(tripId: string): Promise<any[]> {
       rate: parseFloat(permit.rate), // Convert string rate to number
       times: permit.times
     }));
-    
+
     return transformedPermits;
   } catch (error) {
     throw error;
@@ -390,7 +390,7 @@ export async function fetchPermits(tripId: string): Promise<any[]> {
 export async function fetchServices(tripId: string = '32'): Promise<any[]> {
   try {
     const data = await fetchFromAPI<APIService[]>(`/staff/service-list/${tripId}/`);
-    
+
     // Transform the API response to match our Service type
     const transformedServices = data.map(service => ({
       id: service.id.toString(),
@@ -398,7 +398,7 @@ export async function fetchServices(tripId: string = '32'): Promise<any[]> {
       rate: parseFloat(service.rate), // Convert string rate to number
       times: service.times
     }));
-    
+
     return transformedServices;
   } catch (error) {
     throw error;
@@ -409,7 +409,7 @@ export async function fetchServices(tripId: string = '32'): Promise<any[]> {
 export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> {
   try {
     const data = await fetchFromAPI<APIExtraService[]>(`/staff/extra-service-list/${tripId}/`);
-    
+
     // Transform the API response
     const transformedExtraServices = data.map(extraService => ({
       id: extraService.id.toString(),
@@ -417,7 +417,7 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
       params: extraService.params,
       times: extraService.times
     }));
-    
+
     return transformedExtraServices;
   } catch (error) {
     throw error;
@@ -425,14 +425,14 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
 }
 
 // Fetch groups and packages from the real API
-export async function fetchGroupsAndPackages(page: number = 1, limit: number = 10): Promise<{ 
-  reports: any[]; 
-  total: number; 
-  hasMore: boolean 
+export async function fetchGroupsAndPackages(page: number = 1, limit: number = 10): Promise<{
+  reports: any[];
+  total: number;
+  hasMore: boolean
 }> {
   try {
     const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/groups-and-package/?page=${page}&limit=${limit}`);
-    
+
     // Transform the API response to match our Report type
     const transformedReports = data.map(item => ({
       groupId: item.id.toString(),
@@ -474,7 +474,7 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       extraDetails: {
         id: 'extraDetails',
         name: 'Extra Details',
-        rows: item.extra_services.flatMap((extraService, serviceIndex) => 
+        rows: item.extra_services.flatMap((extraService, serviceIndex) =>
           extraService.params.map((param, paramIndex) => ({
             id: `extra-${serviceIndex}-${paramIndex}`,
             description: param.name,
@@ -489,7 +489,7 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
         discountRemarks: item.extra_service_discount_remarks
       },
       customSections: [],
-      serviceCharge: 0, // This might need to be calculated or fetched separately
+      serviceCharge: parseFloat(item.service_charge) || 0,
       reportUrl: `/report/${item.id}`, // Removed window.location.origin
       clientCommunicationMethod: '',
       overallDiscountType: item.overall_discount_type === 'percentage' ? 'percentage' : 'amount',
@@ -499,10 +499,21 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       joined: 0, // This would need to be fetched from the API or calculated
       pending: item.package.total_space, // This would need to be fetched from the API or calculated
       paymentDetails: {
-        totalCost: parseFloat(item.total_cost),
-        totalPaid: 0, // This would need to be fetched from the API or calculated
-        balance: parseFloat(item.total_cost), // This would need to be fetched from the API or calculated
-        paymentStatus: 'unpaid' as const // This would need to be fetched from the API or calculated
+        totalCost: item.total_cost,
+        totalPaid: item.total_paid || 0, // Use total_paid from API response
+        balance: item.total_cost - (item.total_paid || 0), // Calculate balance
+        paymentStatus: (() => {
+          const totalCost = item.total_cost;
+          const totalPaid = item.total_paid || 0;
+          const balance = totalCost - totalPaid;
+          const epsilon = 0.01; // Tolerance for floating point inaccuracies
+
+          if (totalPaid === 0) return 'unpaid';
+          if (Math.abs(balance) <= epsilon || balance < 0) {
+            return totalPaid > totalCost ? 'overpaid' : 'fully paid';
+          }
+          return 'partially paid';
+        })()
       }
     }));
 
@@ -518,86 +529,109 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
 }
 
 // Fetch a single group and package from the real API
-export async function fetchGroupAndPackageById(id: string): Promise<any> {
+// Helper to transform API response to Report type
+function transformAPIGroupToReport(item: APIGroupAndPackage): Report {
+  return {
+    groupId: item.id.toString(),
+    trekId: item.package?.trip?.toString() || '0',
+    trekName: item.package?.name || 'Unknown Trek',
+    groupName: item.package?.name || 'Unknown Group',
+    groupSize: item.package?.total_space || 0,
+    startDate: item.package?.start_date || new Date().toISOString(),
+    permits: {
+      id: 'permits',
+      name: 'Permits & Food',
+      rows: item.permits.map((permit, index) => ({
+        id: `permit-${index}`,
+        description: permit.name,
+        rate: permit.rate,
+        no: permit.numbers,
+        times: permit.times,
+        total: permit.rate * permit.numbers * permit.times
+      })),
+      discountType: item.permit_discount_type === 'percentage' ? 'percentage' : 'amount',
+      discountValue: parseFloat(item.permit_discount || '0'),
+      discountRemarks: item.permit_discount_remarks
+    },
+    services: {
+      id: 'services',
+      name: 'Services',
+      rows: item.services.map((service, index) => ({
+        id: `service-${index}`,
+        description: service.name,
+        rate: service.rate,
+        no: service.numbers,
+        times: service.times,
+        total: service.rate * service.numbers * service.times
+      })),
+      discountType: item.service_discount_type === 'percentage' ? 'percentage' : 'amount',
+      discountValue: parseFloat(item.service_discount || '0'),
+      discountRemarks: item.service_discount_remarks
+    },
+    extraDetails: {
+      id: 'extraDetails',
+      name: 'Extra Details',
+      rows: item.extra_services.flatMap((extraService, serviceIndex) =>
+        extraService.params.map((param, paramIndex) => ({
+          id: `extra-${serviceIndex}-${paramIndex}`,
+          description: param.name,
+          rate: param.rate,
+          no: param.numbers,
+          times: param.times,
+          total: param.rate * param.numbers * param.times
+        }))
+      ),
+      discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
+      discountValue: parseFloat(item.extra_service_discount || '0'),
+      discountRemarks: item.extra_service_discount_remarks
+    },
+    customSections: [],
+    serviceCharge: parseFloat(item.service_charge || '0') || 0,
+    reportUrl: `/report/${item.id}`,
+    clientCommunicationMethod: '',
+    overallDiscountType: item.overall_discount_type === 'percentage' ? 'percentage' : 'amount',
+    overallDiscountValue: parseFloat(item.overall_discount || '0'),
+    overallDiscountRemarks: item.overall_discount_remarks,
+    joined: 0,
+    pending: item.package?.total_space || 0,
+    paymentDetails: {
+      totalCost: item.total_cost,
+      totalPaid: item.total_paid || 0,
+      balance: item.total_cost - (item.total_paid || 0),
+      paymentStatus: (() => {
+        const totalCost = item.total_cost;
+        const totalPaid = item.total_paid || 0;
+        const balance = totalCost - totalPaid;
+        const epsilon = 0.01;
+
+        if (totalPaid === 0) return 'unpaid';
+        if (Math.abs(balance) <= epsilon || balance < 0) {
+          return totalPaid > totalCost ? 'overpaid' : 'fully paid';
+        }
+        return 'partially paid';
+      })()
+    }
+  };
+}
+
+// Fetch a single group and package from the real API
+export async function fetchGroupAndPackageById(id: string): Promise<Report> {
   try {
     const item = await fetchFromAPI<APIGroupAndPackage>(`/staff/groups-and-package/${id}/`);
-    
-    // Transform the API response to match our Report type
-    const transformedReport = {
-      groupId: item.id.toString(),
-      trekId: item.package.trip.toString(),
-      trekName: item.package.name, // We might need to fetch the actual trek name separately
-      groupName: item.package.name,
-      groupSize: item.package.total_space,
-      startDate: item.package.start_date,
-      permits: {
-        id: 'permits',
-        name: 'Permits & Food',
-        rows: item.permits.map((permit, index) => ({
-          id: `permit-${index}`,
-          description: permit.name,
-          rate: permit.rate,
-          no: permit.numbers,
-          times: permit.times,
-          total: permit.rate * permit.numbers * permit.times
-        })),
-        discountType: item.permit_discount_type === 'percentage' ? 'percentage' : 'amount',
-        discountValue: parseFloat(item.permit_discount),
-        discountRemarks: item.permit_discount_remarks
-      },
-      services: {
-        id: 'services',
-        name: 'Services',
-        rows: item.services.map((service, index) => ({
-          id: `service-${index}`,
-          description: service.name,
-          rate: service.rate,
-          no: service.numbers,
-          times: service.times,
-          total: service.rate * service.numbers * service.times
-        })),
-        discountType: item.service_discount_type === 'percentage' ? 'percentage' : 'amount',
-        discountValue: parseFloat(item.service_discount),
-        discountRemarks: item.service_discount_remarks
-      },
-      extraDetails: {
-        id: 'extraDetails',
-        name: 'Extra Details',
-        rows: item.extra_services.flatMap((extraService, serviceIndex) => 
-          extraService.params.map((param, paramIndex) => ({
-            id: `extra-${serviceIndex}-${paramIndex}`,
-            description: param.name,
-            rate: param.rate,
-            no: param.numbers,
-            times: param.times,
-            total: param.rate * param.numbers * param.times
-          }))
-        ),
-        discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
-        discountValue: parseFloat(item.extra_service_discount),
-        discountRemarks: item.extra_service_discount_remarks
-      },
-      customSections: [],
-      serviceCharge: 0, // This might need to be calculated or fetched separately
-      reportUrl: `/report/${item.id}`, // Relative path, will be made absolute in the API route
-      clientCommunicationMethod: '',
-      overallDiscountType: item.overall_discount_type === 'percentage' ? 'percentage' : 'amount',
-      overallDiscountValue: parseFloat(item.overall_discount),
-      overallDiscountRemarks: item.overall_discount_remarks,
-      createdBy: 'API User', // This would need to be fetched from the API or set differently
-      joined: 0, // This would need to be fetched from the API or calculated
-      pending: item.package.total_space, // This would need to be fetched from the API or calculated
-      paymentDetails: {
-        totalCost: parseFloat(item.total_cost),
-        totalPaid: 0, // This would need to be fetched from the API or calculated
-        balance: parseFloat(item.total_cost), // This would need to be fetched from the API or calculated
-        paymentStatus: 'unpaid' as const // This would need to be fetched from the API or calculated
-      }
-    };
-
-    return transformedReport;
+    return transformAPIGroupToReport(item);
   } catch (error) {
     console.error('Error fetching group and package by ID:', error);
+    throw error;
+  }
+}
+
+// Fetch extra invoices for a specific group from the real API
+export async function fetchExtraInvoicesByGroupId(groupId: string): Promise<Report[]> {
+  try {
+    const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/extra-invoice/${groupId}/`);
+    return data.map(item => transformAPIGroupToReport(item));
+  } catch (error) {
+    console.error('Error fetching extra invoices:', error);
     throw error;
   }
 }
@@ -605,9 +639,6 @@ export async function fetchGroupAndPackageById(id: string): Promise<any> {
 // Post groups and package data
 export async function postGroupsAndPackage(data: any): Promise<any> {
   try {
-    // Log the payload for debugging
-    console.log('Sending payload to API:', JSON.stringify(data, null, 2));
-    
     const response = await fetch(`${BASE_URL}/staff/groups-and-package/`, {
       method: 'POST',
       headers: {
@@ -615,7 +646,7 @@ export async function postGroupsAndPackage(data: any): Promise<any> {
       },
       body: JSON.stringify(data),
     });
-    
+
     if (!response.ok) {
       // Try to parse the error response for more details
       let errorMessage = `API request failed with status ${response.status}`;
@@ -629,11 +660,74 @@ export async function postGroupsAndPackage(data: any): Promise<any> {
       }
       throw new Error(errorMessage);
     }
-    
+
     const responseData = await response.json();
     return responseData;
   } catch (error) {
-    console.error('Error posting groups and package:', error);
+    throw error;
+  }
+}
+
+// Update groups and package data
+export async function updateGroupsAndPackage(id: string, data: any): Promise<any> {
+  try {
+    const response = await fetch(`${BASE_URL}/staff/groups-and-package/${id}/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      // Try to parse the error response for more details
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        console.log('API Error Response:', errorData);
+        errorMessage = errorData.message || errorData.detail || JSON.stringify(errorData) || errorMessage;
+      } catch (parseError) {
+        // If we can't parse the error response, use the status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    return responseData;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Post extra invoice data (same payload structure as groups-and-package)
+export async function postExtraInvoice(groupId: string, data: any): Promise<any> {
+  try {
+    const response = await fetch(`${BASE_URL}/staff/extra-invoice/${groupId}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      // Try to parse the error response for more details
+      let errorMessage = `API request failed with status ${response.status}`;
+      try {
+        const errorData = await response.json();
+        console.log('API Error Response:', errorData);
+        errorMessage = errorData.message || errorData.detail || JSON.stringify(errorData) || errorMessage;
+      } catch (parseError) {
+        // If we can't parse the error response, use the status text
+        errorMessage = response.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const responseData = await response.json();
+    return responseData;
+  } catch (error) {
     throw error;
   }
 }
@@ -671,7 +765,6 @@ export async function fetchTransactions(page: number = 1): Promise<APITransactio
     const data = await fetchFromAPI<APITransactionsResponse>(`/staff/payments/?page=${page}`);
     return data;
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     throw error;
   }
 }
@@ -702,7 +795,7 @@ interface APIAllTransactionsResponse {
 export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
   try {
     const data = await fetchFromAPI<APIAllTransactionsResponse>(`/staff/transactions/all/`);
-    
+
     // Transform the API response to match our Transaction type
     const transformedTransactions = data.transactions.map(transaction => ({
       id: transaction.id,
@@ -712,10 +805,9 @@ export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
       date: transaction.date,
       note: transaction.note
     }));
-    
+
     return { transactions: transformedTransactions };
   } catch (error) {
-    console.error('Error fetching all transactions:', error);
     throw error;
   }
 }
@@ -724,7 +816,7 @@ export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
 export async function fetchTransactionsByGroupId(groupId: string): Promise<{ transactions: any[] }> {
   try {
     const data = await fetchFromAPI<APITransaction[]>(`/staff/transactions/${groupId}/`);
-    
+
     // Transform the API response to match our Transaction type
     const transformedTransactions = data.map(transaction => ({
       id: transaction.id,
@@ -734,10 +826,9 @@ export async function fetchTransactionsByGroupId(groupId: string): Promise<{ tra
       date: transaction.date,
       note: transaction.note
     }));
-    
+
     return { transactions: transformedTransactions };
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     throw error;
   }
 }
@@ -752,15 +843,14 @@ export async function addTransaction(groupId: string, transactionData: any): Pro
       },
       body: JSON.stringify(transactionData),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error adding transaction:', error);
     throw error;
   }
 }
@@ -796,11 +886,11 @@ export async function updateMergePackages(groupId: string, mergePackageIds: numb
       },
       body: JSON.stringify({ merge_package_ids: mergePackageIds }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -815,6 +905,7 @@ export interface APIPaymentRequest {
   amount: number;
   remarks: string;
   payment_type: 'pay' | 'refund';
+  payment_method: string;
   date: string;
 }
 
@@ -828,11 +919,11 @@ export async function makePayment(paymentData: APIPaymentRequest): Promise<any> 
       },
       body: JSON.stringify(paymentData),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
@@ -916,7 +1007,7 @@ export async function createTraveler(travelerData: APICreateTravelerRequest): Pr
   try {
     // Create FormData for multipart/form-data submission
     const formData = new FormData();
-    
+
     // Add all fields to FormData
     Object.entries(travelerData).forEach(([key, value]) => {
       if (value !== null) {
@@ -930,11 +1021,11 @@ export async function createTraveler(travelerData: APICreateTravelerRequest): Pr
       method: 'POST',
       body: formData,
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {

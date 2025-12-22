@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import React, { useState, useEffect, useMemo } from "react";
-import { Loader2, Save, Camera, Upload, User } from "lucide-react";
+import { Camera, Loader2, Save, Upload, User } from "lucide-react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/shadcn/button";
@@ -28,6 +28,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -35,7 +36,6 @@ import {
 import { Textarea } from "@/components/ui/shadcn/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/ui/shadcn/date-picker";
-import { CameraCapture } from "@/components/camera-capture";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
@@ -89,6 +89,102 @@ const fileToDataURL = (file: File): Promise<string> => {
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
+};
+
+// CameraCapture Component
+const CameraCapture = ({ open, onOpenChange, onCapture }: { open: boolean; onOpenChange: (open: boolean) => void; onCapture: (imageSrc: string) => void; }) => {
+  const [stream, setStream] = React.useState<MediaStream | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [open]);
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' },
+        audio: false 
+      });
+      setStream(mediaStream);
+      setError(null);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setError('Could not access camera. Please ensure you have granted camera permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = canvas.toDataURL('image/jpeg');
+        onCapture(imageData);
+        onOpenChange(false);
+      }
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Take a Photo</DialogTitle>
+        </DialogHeader>
+        
+        {error ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <p className="text-red-500 text-center">{error}</p>
+            <Button onClick={() => onOpenChange(false)}>Close</Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-center">
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted
+                className="w-full max-w-xs rounded-lg"
+              />
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+            <DialogFooter>
+              <Button onClick={captureImage}>Capture</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) {
@@ -644,13 +740,13 @@ export default function TravelerForm({ groupId, groupSize }: TravelerFormProps) 
                 </AccordionItem>
             ))}
             </Accordion>
-            <DialogContent className="max-w-md w-[90vw]">
-                <DialogHeader>
-                    <DialogTitle>Capture Profile Picture</DialogTitle>
-                </DialogHeader>
-                <CameraCapture onCapture={handleCapture} />
-            </DialogContent>
         </Dialog>
+        
+        <CameraCapture 
+          open={isCameraDialogOpen} 
+          onOpenChange={setIsCameraDialogOpen}
+          onCapture={handleCapture} 
+        />
       </form>
     </Form>
   );

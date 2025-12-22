@@ -48,6 +48,8 @@ interface FinalStepProps {
     onClientCommunicationMethodChange?: (method: string) => void;
     isSubmitting: boolean;
     onSubmit: () => void;
+    isRateReadOnly?: boolean;
+    hideAddRow?: boolean;
 }
 
 function FinalStepComponent({
@@ -77,7 +79,9 @@ function FinalStepComponent({
     clientCommunicationMethod = '',
     onClientCommunicationMethodChange = () => { },
     isSubmitting,
-    onSubmit
+    onSubmit,
+    isRateReadOnly = false,
+    hideAddRow = false
 }: FinalStepProps) {
     const totalWithService = totalCost + (totalCost * (serviceCharge / 100));
     const costPerPersonWithoutService = totalCost / groupSize;
@@ -95,6 +99,8 @@ function FinalStepComponent({
                 onDiscountRemarksChange={onDiscountRemarksChange}
                 onAddRow={onAddRow}
                 onRemoveRow={onRemoveRow}
+                isRateReadOnly={isRateReadOnly}
+                hideAddRow={hideAddRow}
             />
 
             <Card>
@@ -202,24 +208,6 @@ function FinalStepComponent({
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex-col sm:flex-row sm:flex-wrap justify-end gap-2 pt-6">
-                    <Button onClick={onExportPDF} variant="outline" className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4" /> Export PDF</Button>
-                    <Button onClick={onExportExcel} variant="outline" className="w-full sm:w-auto"><FileDown className="mr-2 h-4 w-4" /> Export Excel</Button>
-                    <Button 
-                        onClick={onSubmit} 
-                        disabled={isSubmitting}
-                        className="w-full sm:w-auto"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            'Finish'
-                        )}
-                    </Button>
-                </CardFooter>
             </Card>
         </div>
     );
