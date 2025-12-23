@@ -525,36 +525,32 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                 <h4 className="font-semibold text-lg">Extra Invoices / Additional Services</h4>
                                 <CardDescription>Breakdown of additional services</CardDescription>
                             </div>
-                            <Button size="sm" asChild>
+                            {/* <Button size="sm" asChild>
                                 <Link href={`/cost-matrix/new?parentId=${initialReport.groupId}&isExtra=true`}>
                                     <Plus className="h-4 w-4 mr-1" /> Add Service
                                 </Link>
-                            </Button>
+                            </Button> */}
                         </CardHeader>
                         <CardContent>
                             <div className="border rounded-lg overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Trek/Service</TableHead>
+                                            <TableHead>Service</TableHead>
                                             <TableHead className="text-right">Total</TableHead>
-                                            <TableHead className="text-right">Balance</TableHead>
                                             <TableHead className="text-right">Action</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {isLoadingExtraInvoices ? (
-                                            <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                         ) : extraInvoices && extraInvoices.length > 0 ? (
                                             extraInvoices.map(invoice => (
                                                 <TableRow key={invoice.groupId}>
-                                                    <TableCell className="max-w-[150px] truncate" title={invoice.trekName || 'Extra Service'}>
-                                                        {invoice.trekName || 'Extra Service'}
+                                                    <TableCell className="max-w-[150px] truncate">
+                                                        Additional Service
                                                     </TableCell>
                                                     <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.paymentDetails.totalCost)}</TableCell>
-                                                    <TableCell className={cn("text-right font-semibold whitespace-nowrap", invoice.paymentDetails.balance > 0 ? 'text-red-600' : 'text-green-600')}>
-                                                        {formatCurrency(invoice.paymentDetails.balance)}
-                                                    </TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-1">
                                                             <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)} className="h-8 w-8 p-0" title="View Details">
@@ -573,7 +569,7 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                                                 </TableRow>
                                             ))
                                         ) : (
-                                            <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">No extra invoices found.</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">No extra invoices found.</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>

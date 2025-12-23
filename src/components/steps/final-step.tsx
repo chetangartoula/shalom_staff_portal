@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/shadcn/button";
 import {
     Card,
@@ -40,6 +40,7 @@ interface FinalStepProps {
     onOverallDiscountValueChange?: (value: number) => void;
     onOverallDiscountRemarksChange?: (remarks: string) => void;
     groupSize: number;
+    onGroupSizeChange?: (size: number) => void;
     serviceCharge: number;
     setServiceCharge: (value: number) => void;
     includeServiceChargeInPdf: boolean;
@@ -72,6 +73,7 @@ function FinalStepComponent({
     onOverallDiscountValueChange = () => { },
     onOverallDiscountRemarksChange = () => { },
     groupSize,
+    onGroupSizeChange,
     serviceCharge,
     setServiceCharge,
     includeServiceChargeInPdf,
@@ -84,8 +86,24 @@ function FinalStepComponent({
     hideAddRow = false
 }: FinalStepProps) {
     const totalWithService = totalCost + (totalCost * (serviceCharge / 100));
-    const costPerPersonWithoutService = totalCost / groupSize;
-    const costPerPersonWithService = totalWithService / groupSize;
+    const costPerPersonWithoutService = groupSize > 0 ? totalCost / groupSize : 0;
+    const costPerPersonWithService = groupSize > 0 ? totalWithService / groupSize : 0;
+
+    const [localOverallDiscount, setLocalOverallDiscount] = useState(overallDiscountValue?.toString() || '');
+    const [localServiceCharge, setLocalServiceCharge] = useState(serviceCharge?.toString() || '');
+    const [localGroupSize, setLocalGroupSize] = useState(groupSize?.toString() || '1');
+
+    useEffect(() => {
+        setLocalOverallDiscount(overallDiscountValue?.toString() || '');
+    }, [overallDiscountValue]);
+
+    useEffect(() => {
+        setLocalServiceCharge(serviceCharge?.toString() || '');
+    }, [serviceCharge]);
+
+    useEffect(() => {
+        setLocalGroupSize(groupSize?.toString() || '1');
+    }, [groupSize]);
 
     return (
         <div className="space-y-8">
@@ -110,8 +128,21 @@ function FinalStepComponent({
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
                         <div>
-                            <Label htmlFor="pax-display">Number of People (Pax)</Label>
-                            <div id="pax-display" className="mt-2 text-lg font-semibold rounded-md border bg-muted px-3 py-2">{groupSize}</div>
+                            <Label htmlFor="pax-input">Number of People (Pax)</Label>
+                            <Input
+                                id="pax-input"
+                                type="number"
+                                value={localGroupSize}
+                                onChange={(e) => {
+                                    setLocalGroupSize(e.target.value);
+                                    const val = parseInt(e.target.value);
+                                    if (!isNaN(val) && onGroupSizeChange) {
+                                        onGroupSizeChange(val);
+                                    }
+                                }}
+                                className="mt-2 font-semibold"
+                                min={1}
+                            />
                         </div>
 
                         {/* Overall Discount Section */}
@@ -135,8 +166,12 @@ function FinalStepComponent({
                                     <Input
                                         type="number"
                                         id="overall-discount"
-                                        value={overallDiscountValue ?? 0}
-                                        onChange={e => onOverallDiscountValueChange?.(Number(e.target.value))}
+                                        value={localOverallDiscount}
+                                        onChange={e => {
+                                            setLocalOverallDiscount(e.target.value);
+                                            const val = parseFloat(e.target.value);
+                                            onOverallDiscountValueChange?.(!isNaN(val) ? val : 0);
+                                        }}
                                         className="flex-1"
                                         placeholder="0.00"
                                     />
@@ -161,8 +196,12 @@ function FinalStepComponent({
                             <Input
                                 id="service-charge"
                                 type="number"
-                                value={serviceCharge}
-                                onChange={(e) => setServiceCharge(Number(e.target.value))}
+                                value={localServiceCharge}
+                                onChange={(e) => {
+                                    setLocalServiceCharge(e.target.value);
+                                    const val = parseFloat(e.target.value);
+                                    setServiceCharge(!isNaN(val) ? val : 0);
+                                }}
                                 placeholder="e.g., 10"
                                 className="mt-2"
                             />

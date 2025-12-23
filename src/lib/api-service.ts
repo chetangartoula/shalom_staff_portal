@@ -1,4 +1,32 @@
 import type { Trek, Report, SectionState } from '@/lib/types';
+import type {
+  APITrip,
+  APIPermit,
+  APIService,
+  APIExtraServiceParam,
+  APIExtraService,
+  APIGuide,
+  APIPorter,
+  APIAssignmentGuide,
+  APIAssignmentPorter,
+  APIAssignment,
+  APIAssignTeamResponse,
+  APIAirportPickUp,
+  APIGroupAndPackage,
+  APITransactionResult,
+  APITransactionsResults,
+  APITransactionsResponse,
+  APITransaction,
+  APIAllTransactionsResponse,
+  APIMergedPackage,
+  APIMergePackagesResponse,
+  APIPayment,
+  APIPaymentRequest,
+  APIPaymentDetailResponse,
+  APICreateTravelerRequest,
+  APITraveler,
+  APIDashboardStats
+} from '@/lib/api-types';
 
 // Base URL for the external API - use environment variable with fallback
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
@@ -40,160 +68,6 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
     }
     throw error;
   }
-}
-
-// Define the API response structure
-interface APITrip {
-  id: number;
-  title: string;
-  sub_title: string;
-}
-
-interface APIPermit {
-  id: number;
-  name: string;
-  rate: string; // API returns rate as string
-  times: number;
-  is_active: boolean;
-  order: number;
-}
-
-interface APIService {
-  id: number;
-  name: string;
-  rate: string; // API returns rate as string
-  times: number;
-  max_num: number;
-}
-
-interface APIExtraServiceParam {
-  name: string;
-  rate: number;
-}
-
-interface APIExtraService {
-  id: number;
-  service_name: string;
-  params: APIExtraServiceParam[];
-  times: number;
-}
-
-// Define interfaces for guides and porters API responses
-interface APIGuide {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  status: string;
-}
-
-interface APIPorter {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  status: string;
-}
-
-// Define interfaces for assignments API responses
-interface APIAssignmentGuide {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  status: string;
-}
-
-interface APIAssignmentPorter {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  status: string;
-}
-
-interface APIAssignment {
-  groupId: number;
-  trekName: string;
-  groupName: string;
-  startDate: string;
-  guides: APIAssignmentGuide[];
-  porters: APIAssignmentPorter[];
-  airportPickUp: any[]; // We'll define this properly if needed
-}
-
-interface APIAssignTeamResponse {
-  id: number;
-  guides: number[];
-  porters: number[];
-  package: number;
-}
-
-// Define interfaces for airport pickup API responses
-interface APIAirportPickUp {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  status: string;
-  vehicle_type?: string;
-  license_plate?: string;
-  driver_name?: string;
-  driver_contact?: string;
-}
-
-// Define interface for the new API response structure
-interface APIGroupAndPackage {
-  total_paid: number;
-  id: number;
-  package: {
-    id: number;
-    created_at: string;
-    updated_at: string;
-    slug: string;
-    name: string;
-    total_space: number;
-    start_date: string;
-    end_date: string;
-    trip: number;
-  };
-  status: string;
-  permits: Array<{
-    name: string;
-    rate: number;
-    times: number;
-    numbers: number;
-  }>;
-  services: Array<{
-    name: string;
-    rate: number;
-    times: number;
-    numbers: number;
-  }>;
-  extra_services: Array<{
-    service_name: string;
-    params: Array<{
-      name: string;
-      rate: number;
-      times: number;
-      numbers: number;
-    }>;
-  }>;
-  service_discount: string;
-  service_discount_type: string;
-  service_discount_remarks: string;
-  extra_service_discount: string;
-  extra_service_discount_type: string;
-  extra_service_discount_remarks: string;
-  permit_discount: string;
-  permit_discount_type: string;
-  permit_discount_remarks: string;
-  overall_discount: string;
-  overall_discount_type: string;
-  overall_discount_remarks: string;
-  sub_total: number;
-  total_cost: number;
-  service_charge: string;
 }
 
 // Fetch guides from the real API
@@ -729,8 +603,8 @@ export async function updateGroupsAndPackage(id: string, data: any): Promise<any
 // Update an extra invoice using PUT method (uses package ID)
 export async function updateExtraInvoice(packageId: string, data: any): Promise<any> {
   try {
-    const response = await fetch(`${BASE_URL}/staff/extra-invoice/package/${packageId}/`, {
-      method: 'PUT',
+    const response = await fetch(`${BASE_URL}/staff/extra-invoice-details/${packageId}/`, {
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -781,32 +655,7 @@ export async function postExtraInvoice(groupId: string, data: any): Promise<any>
   }
 }
 
-// Define interface for transactions API response
-interface APITransactionResult {
-  id: number;
-  package_id: number;
-  package_name: string;
-  amount: number;
-  payment_method: string;
-  payment_types: string | null;
-  remarks: string;
-  date: string;
-}
 
-interface APITransactionsResults {
-  total_payments: number;
-  total_pay: number;
-  total_refund: number;
-  balance: number;
-  transactions: APITransactionResult[];
-}
-
-interface APITransactionsResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: APITransactionsResults;
-}
 
 // Fetch transactions from the real API
 export async function fetchTransactions(page: number = 1): Promise<APITransactionsResponse> {
@@ -818,27 +667,7 @@ export async function fetchTransactions(page: number = 1): Promise<APITransactio
   }
 }
 
-// Define interface for transaction API response
-interface APITransaction {
-  id: string;
-  groupId: string;
-  amount: number;
-  type: 'payment' | 'refund';
-  date: string;
-  note: string;
-}
 
-// Define interface for all transactions API response
-interface APIAllTransactionsResponse {
-  transactions: APITransaction[];
-  total?: number;
-  hasMore?: boolean;
-  summary?: {
-    totalPayments: number;
-    totalRefunds: number;
-    netTotal: number;
-  };
-}
 
 // Fetch all transactions from the real API
 export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
@@ -904,15 +733,7 @@ export async function addTransaction(groupId: string, transactionData: any): Pro
   }
 }
 
-// Define interface for merge packages API response
-interface APIMergedPackage {
-  id: number;
-  name: string;
-}
 
-interface APIMergePackagesResponse {
-  merged_packages: APIMergedPackage[];
-}
 
 // Fetch merged packages for a specific group from the real API
 export async function fetchMergePackages(groupId: string): Promise<APIMergedPackage[]> {
@@ -948,15 +769,7 @@ export async function updateMergePackages(groupId: string, mergePackageIds: numb
   }
 }
 
-// Define interface for payment API request
-export interface APIPaymentRequest {
-  package_id: string;
-  amount: number;
-  remarks: string;
-  payment_type: 'pay' | 'refund';
-  payment_method: string;
-  date: string;
-}
+
 
 // Make payment API request
 export async function makePayment(paymentData: APIPaymentRequest): Promise<any> {
@@ -981,23 +794,7 @@ export async function makePayment(paymentData: APIPaymentRequest): Promise<any> 
   }
 }
 
-// Define interface for payment detail API response
-interface APIPayment {
-  id: number;
-  amount: number;
-  payment_method: string;
-  payment_types: string;
-  remarks: string;
-  date: string;
-}
 
-interface APIPaymentDetailResponse {
-  total_amount: number;
-  payments: APIPayment[];
-  total_paid: number;
-  total_refund: number;
-  balance: number;
-}
 
 // Fetch payment details for a specific group from the real API
 export async function fetchPaymentDetails(groupId: string): Promise<APIPaymentDetailResponse> {
@@ -1010,46 +807,7 @@ export async function fetchPaymentDetails(groupId: string): Promise<APIPaymentDe
   }
 }
 
-// Define interface for traveler creation API request
-interface APICreateTravelerRequest {
-  profile_pic: string | null;
-  full_name: string;
-  phone_number: string;
-  email: string;
-  address: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  passport_number: string;
-  nationality: string;
-  passport_photo: string | null;
-  visa_photo: string | null;
-  traval_policy_document: string | null;
-  traval_insurance_document: string | null;
-  package: number | null;
-}
 
-// Define interface for traveler response
-interface APITraveler {
-  id: number;
-  created_at: string;
-  updated_at: string;
-  slug: string;
-  profile_pic: string | null;
-  full_name: string;
-  phone_number: string;
-  email: string;
-  address: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
-  passport_number: string;
-  nationality: string;
-  passport_photo: string | null;
-  visa_photo: string | null;
-  traval_policy_document: string | null;
-  traval_insurance_document: string | null;
-  package: number;
-  package_name: string;
-}
 
 // Create traveler API request
 export async function createTraveler(travelerData: APICreateTravelerRequest): Promise<any> {
@@ -1105,45 +863,7 @@ export async function fetchAllTravelers(): Promise<APITraveler[]> {
   }
 }
 
-// Define interface for dashboard stats API response
-interface APIDashboardStats {
-  stats: {
-    reports: number;
-    travelers: number;
-    treks: number;
-    guides: number;
-    porters: number;
-  };
-  recentReports: {
-    reports: Array<{
-      groupId: string;
-      trekName: string;
-      groupName: string;
-      groupSize: number;
-      startDate: string;
-    }>;
-    total: number;
-  };
-  trekPopularity: {
-    chartData: Array<{
-      name: string;
-      value: number;
-    }>;
-  };
-  teamAvailability: {
-    chartData: Array<{
-      name: string;
-      value: number;
-    }>;
-  };
-  paymentAnalytics: {
-    chartData: Array<{
-      date: string;
-      payments: number;
-      refunds: number;
-    }>;
-  };
-}
+
 
 // Fetch dashboard stats from the real API
 export async function fetchDashboardStats(): Promise<APIDashboardStats> {

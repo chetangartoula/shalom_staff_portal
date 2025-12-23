@@ -45,10 +45,71 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     const { toast } = useToast();
     const router = useRouter();
 
-    const [report, setReport] = useState<Report>(() => ({
-        ...initialData,
-        startDate: initialData.startDate || new Date().toISOString(),
-    }));
+    const [report, setReport] = useState<Report>(() => {
+        const data = initialData as any;
+
+        // Helper to parsing discounts
+        const parseDiscount = (val: any) => Number(val || 0);
+        const parseType = (val: any) => val === 'percentage' ? 'percentage' : 'amount';
+
+        // Map Extra Services from API structure (nested params) to flat rows
+        let extraRows: CostRow[] = [];
+        if (data.extra_services && Array.isArray(data.extra_services)) {
+            data.extra_services.forEach((service: any) => {
+                if (service.params && Array.isArray(service.params)) {
+                    service.params.forEach((param: any) => {
+                        extraRows.push({
+                            id: crypto.randomUUID(),
+                            description: param.name || service.service_name,
+                            rate: Number(param.rate),
+                            no: Number(param.numbers),
+                            times: Number(param.times),
+                            total: Number(param.rate) * Number(param.numbers) * Number(param.times)
+                        });
+                    });
+                }
+            });
+        }
+        // Fallback to existing extraDetails if available
+        if (extraRows.length === 0 && initialData.extraDetails?.rows) {
+            extraRows = initialData.extraDetails.rows;
+        }
+
+
+        return {
+            ...initialData,
+            groupSize: Number(initialData.groupSize || 1),
+            startDate: initialData.startDate || new Date().toISOString(),
+            // Map Service Charge
+            serviceCharge: Number(data.service_charge || initialData.serviceCharge || 0),
+
+            // Map Section Discounts
+            permits: {
+                ...initialData.permits,
+                discountValue: parseDiscount(data.permit_discount || initialData.permits?.discountValue),
+                discountType: parseType(data.permit_discount_type || initialData.permits?.discountType),
+                discountRemarks: data.permit_discount_remarks || initialData.permits?.discountRemarks || ''
+            },
+            services: {
+                ...initialData.services,
+                discountValue: parseDiscount(data.service_discount || initialData.services?.discountValue),
+                discountType: parseType(data.service_discount_type || initialData.services?.discountType),
+                discountRemarks: data.service_discount_remarks || initialData.services?.discountRemarks || ''
+            },
+            extraDetails: {
+                ...initialData.extraDetails,
+                rows: extraRows,
+                discountValue: parseDiscount(data.extra_service_discount || initialData.extraDetails?.discountValue),
+                discountType: parseType(data.extra_service_discount_type || initialData.extraDetails?.discountType),
+                discountRemarks: data.extra_service_discount_remarks || initialData.extraDetails?.discountRemarks || ''
+            },
+
+            // Map Overall Discount
+            overallDiscountValue: parseDiscount(data.overall_discount || initialData.overallDiscountValue),
+            overallDiscountType: parseType(data.overall_discount_type || initialData.overallDiscountType),
+            overallDiscountRemarks: data.overall_discount_remarks || initialData.overallDiscountRemarks || '',
+        };
+    });
     const [currentStep, setCurrentStep] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -58,12 +119,13 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     );
 
     const calculateSectionTotals = useCallback((section: SectionState) => {
-        const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
+        const subtotal = section.rows.reduce((acc, row) => acc + (row.total || 0), 0);
+        const discountVal = Number(section.discountValue || 0);
         const discountAmount = section.discountType === 'percentage'
-            ? (subtotal * (section.discountValue / 100))
-            : section.discountValue;
+            ? (subtotal * (discountVal / 100))
+            : discountVal;
         const total = subtotal - discountAmount;
-        return { subtotal, total, discountAmount };
+        return { subtotal: subtotal || 0, total: total || 0, discountAmount: discountAmount || 0 };
     }, []);
 
     const subtotalBeforeOverallDiscount = useMemo(() => {
@@ -73,15 +135,22 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
 
     const overallDiscountAmount = useMemo(() => {
         const type = report.overallDiscountType || 'amount';
-        const value = report.overallDiscountValue || 0;
+        const value = Number(report.overallDiscountValue || 0);
+        const subtotal = Number(subtotalBeforeOverallDiscount || 0);
+
         return type === 'percentage'
-            ? (subtotalBeforeOverallDiscount * (value / 100))
+            ? (subtotal * (value / 100))
             : value;
     }, [report.overallDiscountType, report.overallDiscountValue, subtotalBeforeOverallDiscount]);
 
     const totalCost = useMemo(() => {
-        return subtotalBeforeOverallDiscount - (overallDiscountAmount || 0);
+        return (subtotalBeforeOverallDiscount || 0) - (overallDiscountAmount || 0);
     }, [subtotalBeforeOverallDiscount, overallDiscountAmount]);
+
+    const totalWithService = useMemo(() => {
+        const serviceCharge = Number(report.serviceCharge || 0);
+        return totalCost + (totalCost * (serviceCharge / 100));
+    }, [totalCost, report.serviceCharge]);
 
     const handleDetailChange = useCallback((field: keyof Report, value: any) => {
         setReport(prev => ({ ...prev, [field]: value }));
@@ -91,6 +160,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         setReport(prevReport => {
             const newReport = { ...prevReport };
             if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
+                console.log(`Updating main section ${sectionId}`, updater(newReport[sectionId as 'permits' | 'services' | 'extraDetails']));
                 newReport[sectionId as 'permits' | 'services' | 'extraDetails'] = updater(newReport[sectionId as 'permits' | 'services' | 'extraDetails']);
             } else {
                 newReport.customSections = newReport.customSections.map(s =>
@@ -101,6 +171,8 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         });
     }, []);
 
+
+
     const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
         handleSectionUpdate(sectionId, (section) => ({
             ...section,
@@ -108,7 +180,10 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                 if (row.id === id) {
                     const newRow = { ...row, [field]: value };
                     if (field === 'no' || field === 'rate' || field === 'times') {
-                        newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+                        const rate = Number(newRow.rate || 0);
+                        const no = Number(newRow.no || 0);
+                        const times = Number(newRow.times || 0);
+                        newRow.total = rate * no * times;
                     }
                     return newRow;
                 }
@@ -152,13 +227,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         });
 
         return {
-            package: {
-                name: report.groupName || `${report.trekName} ${report.groupId.length > 8 ? 'Extra' : report.groupId}`,
-                total_space: report.groupSize,
-                start_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                end_date: report.startDate ? new Date(report.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                trip: parseInt(report.trekId || '0')
-            },
+            package: Number(report.parentGroupId || 0),
             status: "draft",
             permits: report.permits.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
             services: report.services.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
@@ -215,10 +284,17 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     const allSteps = useMemo(() => [
         { id: 'permits', name: 'Permits & Food', data: report.permits },
         { id: 'services', name: 'Services', data: report.services },
-        { id: 'extraDetails', name: 'Extra Details', data: report.extraDetails },
+        // { id: 'extraDetails', name: 'Extra Details', data: report.extraDetails },
         ...report.customSections.map(s => ({ id: s.id, name: s.name, data: s })),
         { id: 'final', name: 'Final Summary' }
     ], [report]);
+
+    // Ensure currentStep is valid when steps change
+    React.useEffect(() => {
+        if (currentStep >= allSteps.length && allSteps.length > 0) {
+            setCurrentStep(allSteps.length - 1);
+        }
+    }, [allSteps.length, currentStep]);
 
     const createNewRow = useCallback(() => ({
         id: crypto.randomUUID(),
@@ -232,6 +308,11 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     const renderStepContent = () => {
         if (currentStep === 0 && !report.trekId) {
             return <SelectTrekStep treks={treks} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
+        }
+
+        // Safety check for HMR or state inconsistency
+        if (!allSteps[currentStep]) {
+            return <LoadingStep />;
         }
 
         const activeStep = allSteps[currentStep];
@@ -275,7 +356,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     onOverallDiscountTypeChange={(type) => handleDetailChange('overallDiscountType', type)}
                     onOverallDiscountValueChange={(val) => handleDetailChange('overallDiscountValue', val)}
                     onOverallDiscountRemarksChange={(remarks) => handleDetailChange('overallDiscountRemarks', remarks)}
-                    groupSize={Number(report.groupSize)}
+
+                    groupSize={Number(report.groupSize) || 1}
+                    onGroupSizeChange={(size) => handleDetailChange('groupSize', size)}
                     serviceCharge={Number(report.serviceCharge)}
                     setServiceCharge={(val) => handleDetailChange('serviceCharge', val)}
                     includeServiceChargeInPdf={true}
@@ -292,9 +375,15 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                 onRowChange={handleRowChange}
                 onAddRow={() => handleSectionUpdate(activeStep.id, (prev) => ({ ...prev, rows: [...prev.rows, createNewRow()] }))}
                 onRemoveRow={(id) => handleSectionUpdate(activeStep.id, (prev) => ({ ...prev, rows: prev.rows.filter(r => r.id !== id) }))}
-                onDiscountTypeChange={(type) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountType: type as any }))}
-                onDiscountValueChange={(val) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountValue: Number(val) }))}
-                onDiscountRemarksChange={(rem) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountRemarks: rem }))}
+                onDiscountTypeChange={(_, type) => {
+                    console.log('Discount type changing:', type);
+                    handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountType: type as any }));
+                }}
+                onDiscountValueChange={(_, val) => {
+                    console.log('Discount value changing:', val);
+                    handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountValue: Number(val) }));
+                }}
+                onDiscountRemarksChange={(_, rem) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountRemarks: rem }))}
             />
         );
     };
@@ -346,7 +435,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
 
             <div className="flex justify-between items-center bg-background/80 backdrop-blur-sm sticky bottom-0 py-4 border-t z-10">
                 <div className="text-lg font-bold">
-                    Total: <span className="text-primary">{formatCurrency(totalCost)}</span>
+                    Total: <span className="text-primary">{formatCurrency(totalWithService)}</span>
                 </div>
                 <div className="flex gap-2">
                     {currentStep > 0 && (

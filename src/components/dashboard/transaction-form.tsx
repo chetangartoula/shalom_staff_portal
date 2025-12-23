@@ -22,7 +22,8 @@ import { Checkbox } from "@/components/ui/shadcn/checkbox";
 import { cn } from '@/lib/utils';
 import type { Report, Transaction } from '@/lib/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchMergePackages, updateMergePackages, makePayment, type APIPaymentRequest } from '@/lib/api-service';
+import { fetchMergePackages, updateMergePackages, makePayment } from '@/lib/api-service';
+import type { APIPaymentRequest } from '@/lib/api-types';
 
 // Define interface for merged package
 interface MergedPackage {

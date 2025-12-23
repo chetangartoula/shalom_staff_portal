@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/shadcn/button";
 import { Input } from "@/components/ui/shadcn/input";
 import { Label } from "@/components/ui/shadcn/label";
@@ -49,6 +49,11 @@ export function CostTable({
 }: CostTableProps) {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [tempDescription, setTempDescription] = useState('');
+  const [localDiscount, setLocalDiscount] = useState(section.discountValue?.toString() || '');
+
+  useEffect(() => {
+    setLocalDiscount(section.discountValue?.toString() || '');
+  }, [section.discountValue]);
 
   const handleEditRow = (row: CostRow) => {
     setEditingRowId(row.id);
@@ -67,12 +72,14 @@ export function CostTable({
   };
 
   const calculateSectionTotals = () => {
-    const subtotal = section.rows.reduce((acc, row) => acc + row.total, 0);
+    const subtotal = section.rows.reduce((acc, row) => acc + (row.total || 0), 0);
+    const discountVal = Number(section.discountValue || 0);
+    console.log(`CostTable: subtotal=${subtotal}, discountVal=${discountVal}, type=${section.discountType}`);
     const discountAmount = section.discountType === 'percentage'
-      ? (subtotal * (section.discountValue / 100))
-      : section.discountValue;
+      ? (subtotal * (discountVal / 100))
+      : discountVal;
     const total = subtotal - discountAmount;
-    return { subtotal, total, discountAmount };
+    return { subtotal: subtotal || 0, total: total || 0, discountAmount: discountAmount || 0 };
   };
 
   const totals = calculateSectionTotals();
@@ -244,8 +251,16 @@ export function CostTable({
                 </ToggleGroup>
                 <Input
                   type="number"
-                  value={section.discountValue ?? 0}
-                  onChange={(e) => onDiscountValueChange(section.id, Number(e.target.value))}
+                  value={localDiscount}
+                  onChange={(e) => {
+                    setLocalDiscount(e.target.value);
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) {
+                      onDiscountValueChange(section.id, val);
+                    } else if (e.target.value === '') {
+                      onDiscountValueChange(section.id, 0);
+                    }
+                  }}
                   placeholder="0.00"
                   className="w-24"
                 />
