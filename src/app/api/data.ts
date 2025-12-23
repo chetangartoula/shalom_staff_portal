@@ -1,11 +1,22 @@
 
 import type { Trek, Service, Guide, Porter, SectionState, Report, Transaction, PaymentStatus, AirportPickUp, Assignment } from '@/lib/types';
-import { initialTreks, services as staticServices, initialGuides, initialPorters, initialAirportPickUp } from '@/lib/mock-data';
+import { initialAirportPickUp, initialTreks, services, initialGuides, initialPorters } from '@/lib/mock-data';
 import fs from 'fs';
 import path from 'path';
 import { parseISO, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns';
 
 const dbPath = path.join(process.cwd(), 'db.json');
+
+const MOCK_CREATORS = [
+    "John Doe",
+    "Jane Smith",
+    "Alice Johnson",
+    "Bob Williams",
+    "Charlie Brown",
+    "David Miller",
+    "Eva Davis",
+    "Frank Wilson"
+];
 
 let cachedDb: any = null;
 
@@ -29,26 +40,48 @@ const readDB = () => {
                 assignments: data.assignments || [],
                 transactions: data.transactions || [],
             };
-            
+
+            let dataUpdated = false;
+
             // If airportPickUp is empty, initialize it with default data
             if (cachedDb.airportPickUp.length === 0) {
-                cachedDb.airportPickUp = initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() }));
-                writeDB(cachedDb); // Save the updated data back to file
+                cachedDb.airportPickUp = initialAirportPickUp.map((a: Omit<AirportPickUp, 'id'>) => ({ ...a, id: crypto.randomUUID() }));
+                dataUpdated = true;
             }
-            
+
+            // Backfill createdBy for reports if missing
+            if (cachedDb.reports.some((r: any) => !r.createdBy)) {
+                cachedDb.reports = cachedDb.reports.map((report: any) => {
+                    if (!report.createdBy) {
+                        return {
+                            ...report,
+                            createdBy: MOCK_CREATORS[Math.floor(Math.random() * MOCK_CREATORS.length)]
+                        };
+                    }
+                    return report;
+                });
+                dataUpdated = true;
+            }
+
+            if (dataUpdated) {
+                const currentData = cachedDb;
+                writeDB(currentData); // Save the updated data back to file
+                return currentData;
+            }
+
             return cachedDb;
         }
     } catch (error) {
         console.error("Error reading db.json:", error);
     }
-    
+
     // Return default structure if file doesn't exist or is empty/corrupt
     const defaultData = {
         treks: [...initialTreks],
-        services: staticServices.map(s => ({ ...s, id: crypto.randomUUID() })),
-        guides: initialGuides.map(g => ({ ...g, id: crypto.randomUUID() })),
-        porters: initialPorters.map(p => ({ ...p, id: crypto.randomUUID() })),
-        airportPickUp: initialAirportPickUp.map(a => ({ ...a, id: crypto.randomUUID() })), // This was already correct
+        services: services.map((s: Omit<Service, 'id'>) => ({ ...s, id: crypto.randomUUID() })),
+        guides: initialGuides.map((g: Omit<Guide, 'id'>) => ({ ...g, id: crypto.randomUUID() })),
+        porters: initialPorters.map((p: Omit<Porter, 'id'>) => ({ ...p, id: crypto.randomUUID() })),
+        airportPickUp: initialAirportPickUp.map((a: Omit<AirportPickUp, 'id'>) => ({ ...a, id: crypto.randomUUID() })), // This was already correct
         reports: [],
         travelers: [],
         assignments: [],
@@ -344,7 +377,7 @@ export const getAllTransactions = () => {
 export const getPaginatedTransactions = (page: number, limit: number, filters: { from?: string, to?: string, type?: 'payment' | 'refund' | 'all' }) => {
     const db = getDB();
     const reportMap = new Map(db.reports.map((r: Report) => [r.groupId, { trekName: r.trekName, groupName: r.groupName }]));
-    
+
     // Start with all transactions, sorted
     let allTransactions = [...db.transactions].sort((a: Transaction, b: Transaction) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -360,12 +393,12 @@ export const getPaginatedTransactions = (page: number, limit: number, filters: {
         const interval = { start: startOfDay(parseISO(from)), end: endOfDay(parseISO(to)) };
         filteredTransactions = filteredTransactions.filter((t: Transaction) => isWithinInterval(parseISO(t.date), interval));
     }
-    
+
     // Calculate totals on the filtered data *before* pagination
     const totalPayments = filteredTransactions
         .filter((t: Transaction) => t.type === 'payment')
         .reduce((sum, t: Transaction) => sum + t.amount, 0);
-    
+
     const totalRefunds = filteredTransactions
         .filter((t: Transaction) => t.type === 'refund')
         .reduce((sum, t: Transaction) => sum + t.amount, 0);

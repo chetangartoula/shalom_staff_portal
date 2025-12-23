@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect } from 'react';
+
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Checkbox } from '@/components/ui/shadcn/checkbox';
@@ -12,6 +15,36 @@ import { Badge } from '@/components/ui/shadcn/badge';
 import { Loader2, Save, Search, User, X, Users2, Backpack } from 'lucide-react';
 import type { Guide, Porter, Assignment } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+// Add this function to call the assign team API
+const assignTeamToPackage = async (guides: number[], porters: number[], packageId: number) => {
+  try {
+    const response = await fetch('/api/assign-team', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guides, porters, package: packageId }),
+    });
+
+    if (!response.ok) {
+      // Try to get error details from the response
+      let errorMessage = 'Failed to assign team';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (parseError) {
+        // If we can't parse the error, use the status text
+        errorMessage = `Failed to assign team: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error assigning team:', error);
+    throw error;
+  }
+};
 
 interface Report {
     groupId: string;
@@ -23,10 +56,11 @@ interface AssignmentPageContentProps {
     report: Report;
     allGuides: Guide[];
     allPorters: Porter[];
-    initialAssignments: Assignment | null;
+    initialAssignments?: Assignment | null;
 }
 
 export function AssignmentPageContent({ report, allGuides, allPorters, initialAssignments }: AssignmentPageContentProps) {
+    const queryClient = useQueryClient();
     const [selectedGuideIds, setSelectedGuideIds] = useState<string[]>(initialAssignments?.guideIds || []);
     const [selectedPorterIds, setSelectedPorterIds] = useState<string[]>(initialAssignments?.porterIds || []);
     const [guideSearch, setGuideSearch] = useState('');
@@ -34,6 +68,16 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+
+    // Show a message when no existing assignment is found
+    useEffect(() => {
+        if (initialAssignments === null) {
+            toast({
+                title: 'New Assignment',
+                description: 'No existing assignment found. You can create a new assignment below.',
+            });
+        }
+    }, [initialAssignments, toast]);
 
     const handleGuideSelect = (guideId: string) => {
         setSelectedGuideIds(prev =>
@@ -51,11 +95,15 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     const isPorterAssigned = (porterId: string) => selectedPorterIds.includes(porterId);
 
     const availableGuides = useMemo(() => {
-        return allGuides.filter(guide => guide.status === 'Available' || isGuideAssigned(guide.id));
+        return allGuides.filter(guide => 
+            guide.status.toLowerCase() === 'available' || isGuideAssigned(guide.id)
+        );
     }, [allGuides, selectedGuideIds]);
 
     const availablePorters = useMemo(() => {
-        return allPorters.filter(porter => porter.status === 'Available' || isPorterAssigned(porter.id));
+        return allPorters.filter(porter => 
+            porter.status.toLowerCase() === 'available' || isPorterAssigned(porter.id)
+        );
     }, [allPorters, selectedPorterIds]);
 
     const filteredGuides = useMemo(() => {
@@ -76,16 +124,18 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const response = await fetch(`/api/assignments/${report.groupId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ guideIds: selectedGuideIds, porterIds: selectedPorterIds }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to save assignments');
-            }
-
+            // Convert string IDs to numbers for the API
+            const guideIds = selectedGuideIds.map(id => parseInt(id, 10));
+            const porterIds = selectedPorterIds.map(id => parseInt(id, 10));
+            const packageId = parseInt(report.groupId, 10);
+            
+            // Assign team to package using the new API
+            await assignTeamToPackage(guideIds, porterIds, packageId);
+            
+            // Invalidate guides and porters queries to refetch updated data
+            queryClient.invalidateQueries({ queryKey: ['guides'] });
+            queryClient.invalidateQueries({ queryKey: ['porters'] });
+            
             toast({
                 title: 'Success!',
                 description: 'Team assignments have been saved.',
@@ -96,7 +146,7 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: (error as Error).message,
+                description: (error as Error).message || 'Failed to save assignments',
             });
         } finally {
             setIsSaving(false);
@@ -128,15 +178,15 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
                                 id={`${title}-${item.id}`}
                                 checked={selectedIds.includes(item.id)}
                                 onCheckedChange={() => onSelect(item.id)}
-                                disabled={!selectedIds.includes(item.id) && item.status !== 'Available'}
+                                disabled={!selectedIds.includes(item.id) && item.status.toLowerCase() !== 'available'}
                             />
                             <Label htmlFor={`${title}-${item.id}`} className={cn(
                                 "flex-grow cursor-pointer",
-                                !selectedIds.includes(item.id) && item.status !== 'Available' && "cursor-not-allowed opacity-50"
+                                !selectedIds.includes(item.id) && item.status.toLowerCase() !== 'available' && "cursor-not-allowed opacity-50"
                             )}>
                                 <div className="flex justify-between items-center">
                                   <span>{item.name}</span>
-                                  {getStatus(item)}
+                                  {getStatus(item, title.toLowerCase() as 'guide' | 'porter')}
                                 </div>
                             </Label>
                         </div>
@@ -148,12 +198,14 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
         </Card>
     );
 
-    const getStatusBadge = (member: Guide | Porter) => {
-        const isSelected = selectedGuideIds.includes(member.id) || selectedPorterIds.includes(member.id);
+    const getStatusBadge = (member: Guide | Porter, type: 'guide' | 'porter') => {
+        const isSelected = type === 'guide' 
+            ? selectedGuideIds.includes(member.id) 
+            : selectedPorterIds.includes(member.id);
         if (isSelected) {
             return <Badge variant="outline" className="bg-primary/20 border-primary/50 text-primary">Assigned to this group</Badge>;
         }
-        if (member.status !== 'Available') {
+        if (member.status.toLowerCase() !== 'available') {
             return <Badge variant="outline" className="border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">{member.status}</Badge>;
         }
         return <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400">Available</Badge>;
@@ -162,9 +214,14 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Assign Team Members</h1>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                    {initialAssignments ? 'Edit Team Assignment' : 'Create New Team Assignment'}
+                </h1>
                 <p className="text-muted-foreground text-sm md:text-base">
-                    Assign guides and porters for trek <span className="font-semibold text-primary">{report.trekName}</span> (Group: {report.groupName}).
+                    {initialAssignments 
+                        ? 'Edit the assigned guides and porters for this trek.' 
+                        : 'Assign guides and porters for trek'}{' '}
+                    <span className="font-semibold text-primary">{report.trekName}</span> (Group: {report.groupName}).
                 </p>
             </div>
 
@@ -229,7 +286,7 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
                 <Button onClick={handleSave} disabled={isSaving} size="lg">
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     <Save className="mr-2 h-4 w-4" />
-                    Save Assignments
+                    {initialAssignments ? 'Update Assignments' : 'Create Assignments'}
                 </Button>
             </div>
         </div>

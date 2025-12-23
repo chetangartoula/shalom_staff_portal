@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { AirportPickUp, AirportPickUpStatus } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '../ui/shadcn/button';
 import {
   DropdownMenu,
@@ -19,8 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 const statusColors: Record<AirportPickUpStatus, string> = {
     Available: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400",
     'On Duty': "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -28,7 +26,25 @@ const statusColors: Record<AirportPickUpStatus, string> = {
 };
 
 export function AirportPickUpContent() {
-  const { data, error } = useSWR('/api/airport-pick-up', fetcher);
+  // Use React Query to fetch airport pickup personnel from the real API
+  const { data, error, isLoading } = useQuery({
+    queryKey: ['airportPickUp'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/airport-pick-up');
+        if (!response.ok) {
+          throw new Error('Failed to fetch airport pickup personnel');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching airport pickup personnel:', error);
+        throw error;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | AirportPickUpStatus>('all');
   
@@ -46,7 +62,7 @@ export function AirportPickUpContent() {
     });
   }, [searchTerm, airportPickUp, statusFilter]);
   
-  if (!data && !error) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 

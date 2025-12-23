@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Search, Edit, Users, Backpack, UserCheck, MoreVertical, Loader2, Plane } from 'lucide-react';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/shadcn/input';
 import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, Porter, AirportPickUp } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu";
 
-const GuideTripDetailsModal = lazy(() => import('@/components/dashboard/guide-trip-details-modal'));
 
 interface Assignment {
     groupId: string;
@@ -31,13 +30,21 @@ interface Assignment {
     airportPickUp: AirportPickUp[];
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export function AssignmentsContent() {
-    const { data, error } = useSWR('/api/assignments', fetcher);
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['assignments'],
+        queryFn: async () => {
+            const response = await fetch('/api/assignments');
+            if (!response.ok) {
+                throw new Error('Failed to fetch assignments');
+            }
+            return response.json();
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        retry: 2
+    });
+    
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
     const assignments: Assignment[] = data?.assignments || [];
@@ -50,12 +57,7 @@ export function AssignmentsContent() {
         );
     }, [searchTerm, assignments]);
 
-    const handleViewForGuide = (assignment: Assignment) => {
-        setSelectedAssignment(assignment);
-        setIsModalOpen(true);
-    };
-
-    if (!data && !error) {
+    if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
     }
 
@@ -135,14 +137,9 @@ export function AssignmentsContent() {
                                 </div>
                             </TableCell>
                             <TableCell className="text-right">
-                                <div className="flex justify-end items-center gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => handleViewForGuide(assignment)}>
-                                        <UserCheck className="mr-2 h-4 w-4" /> View for Guide
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => router.push(`/assignment/${assignment.groupId}`)}>
-                                        <Edit className="mr-2 h-4 w-4" /> Manage
-                                    </Button>
-                                </div>
+                                <Button variant="outline" size="sm" onClick={() => router.push(`/assignment/${assignment.groupId}`)}>
+                                    <Edit className="mr-2 h-4 w-4" /> Manage
+                                </Button>
                             </TableCell>
                         </TableRow>
                     ))}
@@ -170,9 +167,6 @@ export function AssignmentsContent() {
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuItem onClick={() => router.push(`/assignment/${assignment.groupId}`)}>
                                         <Edit className="mr-2 h-4 w-4" /> Manage
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleViewForGuide(assignment)}>
-                                        <UserCheck className="mr-2 h-4 w-4" /> View for Guide
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                         </DropdownMenu>
@@ -245,43 +239,34 @@ export function AssignmentsContent() {
 );
 
     return (
-        <>
-            <Suspense fallback={null}>
-                <GuideTripDetailsModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    assignment={selectedAssignment}
-                />
-            </Suspense>
-            <div className="space-y-4">
-                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Team Assignments</h1>
-                        <p className="text-muted-foreground text-sm md:text-base">View and manage guide and porter assignments for all groups.</p>
-                    </div>
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Search by trek or group name..."
-                            className="w-full sm:w-[300px] pl-8"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
+        <div className="space-y-4">
+             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Team Assignments</h1>
+                    <p className="text-muted-foreground text-sm md:text-base">View and manage guide and porter assignments for all groups.</p>
                 </div>
-                <Card>
-                    <CardContent className="pt-6">
-                        {renderDesktopTable()}
-                        {renderMobileCards()}
-                        {filteredAssignments.length === 0 && (
-                             <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
-                                No assignments found.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search by trek or group name..."
+                        className="w-full sm:w-[300px] pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
-        </>
+            <Card>
+                <CardContent className="pt-6">
+                    {renderDesktopTable()}
+                    {renderMobileCards()}
+                    {filteredAssignments.length === 0 && (
+                         <div className="h-24 text-center flex items-center justify-center text-muted-foreground">
+                            No assignments found.
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     );
 }

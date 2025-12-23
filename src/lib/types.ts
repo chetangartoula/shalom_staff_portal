@@ -2,6 +2,7 @@
 export interface Permit {
   name: string;
   rate: number;
+  times: number;
 }
 
 export interface Trek {
@@ -28,12 +29,12 @@ export interface CostRow {
 }
 
 export interface SectionState {
-    id: string;
-    name: string;
-    rows: CostRow[];
-    discountType: 'amount' | 'percentage';
-    discountValue: number;
-    discountRemarks?: string; // Added for individual discount remarks
+  id: string;
+  name: string;
+  rows: CostRow[];
+  discountType: 'amount' | 'percentage';
+  discountValue: number;
+  discountRemarks?: string; // Added for individual discount remarks
 }
 
 export type GuideStatus = 'Available' | 'On Tour' | 'On Leave';
@@ -104,12 +105,14 @@ export interface Transaction {
   type: 'payment' | 'refund';
   date: string;
   note?: string;
+  paymentMethod?: string; // Added for payment method
   mergeGroups?: string[]; // Added for merged groups functionality
 }
 
 export interface PaymentDetails {
   totalCost: number;
   totalPaid: number;
+  totalRefund?: number; // Added for refund tracking
   balance: number;
   paymentStatus: PaymentStatus;
 }
@@ -128,11 +131,19 @@ export interface Report {
   serviceCharge: number;
   reportUrl: string;
   clientCommunicationMethod?: string; // Added for client communication method
-  
+  createdBy?: string; // Added for tracking who created the quotation
+
+  // Overall discount fields
+  overallDiscountType?: 'amount' | 'percentage';
+  overallDiscountValue?: number;
+  overallDiscountRemarks?: string;
+
   // From augmentation
   joined: number;
   pending: number;
   paymentDetails: PaymentDetails;
+  isExtraInvoice?: boolean; // Flag to distinguish extra invoices from standard groups
+  parentGroupId?: string; // Reference to the parent group ID for extra invoices
 }
 
-    
+

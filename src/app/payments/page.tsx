@@ -1,5 +1,5 @@
 
-import { ReportsContent } from '@/components/dashboard/reports-content';
+import { PaymentsContent } from '@/components/dashboard/payments-content';
 import { DashboardLayout } from '@/components/layout/dashboard-layout';
 import { getUser } from '@/lib/auth';
 
@@ -8,11 +8,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function PaymentsPage() {
   const user = await getUser();
-  // initialReports are no longer fetched on the server.
-  // The ReportsContent component will now fetch its own data on the client.
   return (
     <DashboardLayout user={user}>
-      <ReportsContent pageType="payments" />
+      <PaymentsContent />
     </DashboardLayout>
   );
 }

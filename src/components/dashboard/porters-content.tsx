@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -8,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Porter, PorterStatus } from '@/lib/types';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchPorters } from '@/lib/api-service';
 import { Button } from '../ui/shadcn/button';
 import {
   DropdownMenu,
@@ -20,8 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/shadcn/dropdown-menu";
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 const statusColors: Record<PorterStatus, string> = {
     Available: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400",
     'On Trek': "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -29,9 +27,20 @@ const statusColors: Record<PorterStatus, string> = {
 };
 
 export function PortersContent() {
-  const { data, error } = useSWR('/api/porters', fetcher);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | PorterStatus>('all');
+
+  // React Query hook for fetching porters
+  const { data, error, isLoading } = useQuery<{ porters: Porter[] }, Error>({
+    queryKey: ['porters'],
+    queryFn: async () => {
+      const result = await fetchPorters();
+      return result;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2, // Retry failed requests up to 2 times
+  });
 
   const porters: Porter[] = data?.porters || [];
 
@@ -46,7 +55,7 @@ export function PortersContent() {
     });
   }, [searchTerm, porters, statusFilter]);
 
-  if (!data && !error) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 

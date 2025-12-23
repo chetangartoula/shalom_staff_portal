@@ -8,7 +8,7 @@ interface Params {
   };
 }
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params;
     const assignments = getAssignmentsByGroupId(groupId);
@@ -22,15 +22,15 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params }: Params) {
+export async function PUT(request: Request, { params }: { params: Promise<{ groupId: string }> }) {
   try {
     const { groupId } = await params;
     const body = await request.json();
     const { guideIds, porterIds, airportPickUpDetails } = body;
-    
+
     // Update assignments with guide and porter IDs
     const updated = updateAssignments(groupId, guideIds, porterIds);
-    
+
     // Update airport pickup details if provided
     let updatedAirportPickupDetails = null;
     if (airportPickUpDetails) {
@@ -38,8 +38,8 @@ export async function PUT(request: Request, { params }: Params) {
     }
 
     if (updated) {
-      return NextResponse.json({ 
-        message: 'Assignments updated successfully', 
+      return NextResponse.json({
+        message: 'Assignments updated successfully',
         assignments: updated,
         airportPickUpDetails: updatedAirportPickupDetails
       }, { status: 200 });

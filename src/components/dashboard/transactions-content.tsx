@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Loader2, PlusCircle, MinusCircle, ArrowDown, ArrowUp, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
@@ -25,12 +24,37 @@ import {
 } from "@/components/ui/shadcn/dropdown-menu";
 import type { DateRange } from 'react-day-picker';
 
+// Define interface for the new API response
+interface TransactionResult {
+  id: number;
+  package_id: number;
+  package_name: string;
+  amount: number;
+  payment_method: string;
+  payment_types: string | null;
+  remarks: string;
+  date: string;
+}
+
+interface TransactionsResults {
+  total_payments: number;
+  total_pay: number;
+  total_refund: number;
+  balance: number;
+  transactions: TransactionResult[];
+}
+
+interface TransactionsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: TransactionsResults;
+}
+
 interface TransactionWithContext extends Transaction {
     trekName: string;
     groupName: string;
 }
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export function TransactionsContent() {
   const [transactions, setTransactions] = useState<TransactionWithContext[]>([]);
@@ -53,9 +77,19 @@ export function TransactionsContent() {
     return params;
   }, [page, typeFilter, dateRange]);
   
-
-  const { data, error, isLoading, mutate } = useSWR(`/api/transactions/all?${queryParams.toString()}`, fetcher, {
-    keepPreviousData: true,
+  // Use React Query for fetching transactions
+  const { data, error, isLoading, refetch } = useQuery<TransactionsResponse, Error>({
+    queryKey: ['transactions', page, typeFilter, dateRange],
+    queryFn: async () => {
+        const response = await fetch(`/api/transactions?${queryParams.toString()}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch transactions');
+        }
+        return response.json();
+    },
+    placeholderData: (prevData) => prevData,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 2
   });
 
   useEffect(() => {
@@ -65,20 +99,36 @@ export function TransactionsContent() {
 
   useEffect(() => {
     if (data) {
+        // Transform API response to match existing UI
+        const transformedTransactions: TransactionWithContext[] = data.results.transactions.map(transaction => ({
+            id: transaction.id.toString(),
+            groupId: transaction.package_id.toString(),
+            amount: transaction.amount,
+            type: transaction.payment_types === 'refund' ? 'refund' : 'payment',
+            date: transaction.date,
+            note: transaction.remarks,
+            trekName: transaction.package_name,
+            groupName: transaction.package_name
+        }));
+
         if (page === 1) {
-            setTransactions(data.transactions);
+            setTransactions(transformedTransactions);
         } else {
             // Append new transactions if they don't already exist
             setTransactions(prev => {
                 const existingIds = new Set(prev.map(t => t.id));
-                const newTransactions = data.transactions.filter((t: Transaction) => !existingIds.has(t.id));
+                const newTransactions = transformedTransactions.filter((t) => !existingIds.has(t.id));
                 return [...prev, ...newTransactions];
             });
         }
-        setHasMore(data.hasMore);
-        if (data.summary) {
-            setSummary(data.summary);
-        }
+        setHasMore(!!data.next);
+        
+        // Update summary with data from the new API
+        setSummary({
+            totalPayments: data.results.total_pay,
+            totalRefunds: data.results.total_refund,
+            netTotal: data.results.balance
+        });
     }
   }, [data, page]);
 
@@ -300,5 +350,3 @@ export function TransactionsContent() {
       </div>
   );
 }
-
-    

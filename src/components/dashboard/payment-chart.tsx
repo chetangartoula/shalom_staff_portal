@@ -1,14 +1,10 @@
-
 "use client";
 
-import useSWR from 'swr';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 const chartConfig = {
     payments: {
@@ -21,14 +17,14 @@ const chartConfig = {
     },
 };
 
-export function PaymentChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/payments', fetcher);
+interface PaymentChartProps {
+    data?: {
+        chartData: Array<{ date: string; payments: number; refunds: number }>;
+    };
+}
 
-    if (isLoading) {
-        return <PaymentChartSkeleton />;
-    }
-    
-    if (error) {
+export function PaymentChart({ data }: PaymentChartProps) {
+    if (!data?.chartData || data.chartData.length === 0) {
         return (
             <Card>
                 <CardHeader>
@@ -36,12 +32,12 @@ export function PaymentChart() {
                     <CardDescription>Last 30 Days</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center">
-                    <p className="text-destructive">Could not load payment data.</p>
+                    <p className="text-muted-foreground">No payment data available.</p>
                 </CardContent>
             </Card>
         );
     }
-    
+
     return (
         <Card>
             <CardHeader>
@@ -80,7 +76,7 @@ export function PaymentChart() {
                                     compactDisplay: 'short'
                                 }).format(value);
                             }}
-                         />
+                        />
                         <ChartTooltip
                             cursor={false}
                             content={<ChartTooltipContent

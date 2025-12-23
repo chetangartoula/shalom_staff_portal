@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPaginatedReports, addReport, getAllReports } from '../data';
+import { fetchGroupsAndPackages } from '@/lib/api-service';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,28 +8,62 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const search = searchParams.get('search');
   
-  // If search parameter is provided, return filtered results
-  if (search) {
-    const allReports = getAllReports();
-    const filteredReports = allReports.filter(report => 
-      report.groupName.toLowerCase().includes(search.toLowerCase()) || 
-      report.groupId.toLowerCase().includes(search.toLowerCase())
-    );
+  // Extract the base URL from the request
+  const baseUrl = `${new URL(request.url).protocol}//${new URL(request.url).host}`;
+  
+  // Fetch from the real API
+  try {
+    const apiData = await fetchGroupsAndPackages(page, limit);
     
-    // Paginate the filtered results
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const paginatedReports = filteredReports.slice(startIndex, endIndex);
+    // Add the full URL to the reportUrl field
+    const transformedReports = apiData.reports.map(report => ({
+      ...report,
+      reportUrl: `${baseUrl}${report.reportUrl}`
+    }));
+    
+    // If search parameter is provided, filter the results
+    if (search) {
+      const filteredReports = transformedReports.filter(report => 
+        report.groupName.toLowerCase().includes(search.toLowerCase()) || 
+        report.groupId.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      return NextResponse.json({
+        reports: filteredReports,
+        total: filteredReports.length,
+        hasMore: filteredReports.length > limit,
+      });
+    }
     
     return NextResponse.json({
-      reports: paginatedReports,
-      total: filteredReports.length,
-      hasMore: endIndex < filteredReports.length,
+      ...apiData,
+      reports: transformedReports
     });
+  } catch (error) {
+    console.error('Error fetching from API, falling back to mock data:', error);
+    // Fallback to mock data if API fails
+    if (search) {
+      const allReports = getAllReports();
+      const filteredReports = allReports.filter(report => 
+        report.groupName.toLowerCase().includes(search.toLowerCase()) || 
+        report.groupId.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      // Paginate the filtered results
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+      const paginatedReports = filteredReports.slice(startIndex, endIndex);
+      
+      return NextResponse.json({
+        reports: paginatedReports,
+        total: filteredReports.length,
+        hasMore: endIndex < filteredReports.length,
+      });
+    }
+    
+    const data = getPaginatedReports(page, limit);
+    return NextResponse.json(data);
   }
-  
-  const data = getPaginatedReports(page, limit);
-  return NextResponse.json(data);
 }
 
 export async function POST(request: Request) {

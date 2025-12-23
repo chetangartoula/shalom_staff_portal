@@ -1,32 +1,28 @@
-
 "use client";
 
-import useSWR from 'swr';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
 import { Loader2 } from 'lucide-react';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 const COLORS = [
-    'hsl(var(--chart-1))', 
-    'hsl(var(--chart-2))', 
-    'hsl(var(--chart-3))', 
-    'hsl(var(--chart-4))', 
+    'hsl(var(--chart-1))',
+    'hsl(var(--chart-2))',
+    'hsl(var(--chart-3))',
+    'hsl(var(--chart-4))',
     'hsl(var(--chart-5))'
 ];
 
-export function TrekPopularityChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/trek-popularity', fetcher);
+interface TrekPopularityChartProps {
+    data?: {
+        chartData: Array<{ name: string; value: number }>;
+    };
+}
 
+export function TrekPopularityChart({ data }: TrekPopularityChartProps) {
     const chartData = data?.chartData || [];
-    
-    if (isLoading) {
-        return <TrekPopularityChartSkeleton />;
-    }
 
-    if (error || chartData.length === 0) {
+    if (chartData.length === 0) {
         return (
             <Card className="h-full">
                 <CardHeader>
@@ -34,14 +30,14 @@ export function TrekPopularityChart() {
                     <CardDescription>Distribution of trips across different treks.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[240px] flex items-center justify-center">
-                    <p className="text-muted-foreground">{error ? "Could not load data." : "No trip data available."}</p>
+                    <p className="text-muted-foreground">No trip data available.</p>
                 </CardContent>
             </Card>
         );
     }
 
     const totalValue = chartData.reduce((acc: number, entry: any) => acc + entry.value, 0);
-    
+
     return (
         <Card className="h-full">
             <CardHeader>

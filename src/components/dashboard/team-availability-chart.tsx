@@ -1,7 +1,5 @@
-
 "use client";
 
-import useSWR from 'swr';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
@@ -9,25 +7,23 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '../ui/shadcn/badge';
 import { cn } from '@/lib/utils';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-const statusColors: Record<string, {tw: string, hex: string}> = {
+const statusColors: Record<string, { tw: string, hex: string }> = {
     Available: { tw: "border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400", hex: "#22c55e" },
     'On Tour': { tw: "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-400", hex: "#3b82f6" },
-    'On Leave': { tw: "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400", hex: "#eab308"},
+    'On Leave': { tw: "border-yellow-500/50 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400", hex: "#eab308" },
 };
 
 
-export function TeamAvailabilityChart() {
-    const { data, error, isLoading } = useSWR('/api/stats/team-status', fetcher);
+interface TeamAvailabilityChartProps {
+    data?: {
+        chartData: Array<{ name: string; value: number }>;
+    };
+}
 
+export function TeamAvailabilityChart({ data }: TeamAvailabilityChartProps) {
     const chartData = data?.chartData || [];
 
-    if (isLoading) {
-        return <TeamAvailabilityChartSkeleton />;
-    }
-
-    if (error || chartData.length === 0) {
+    if (chartData.length === 0) {
         return (
             <Card className="h-full">
                 <CardHeader>
@@ -35,12 +31,12 @@ export function TeamAvailabilityChart() {
                     <CardDescription>Current status of all guides and porters.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[240px] flex items-center justify-center">
-                    <p className="text-muted-foreground">{error ? "Could not load data." : "No data available."}</p>
+                    <p className="text-muted-foreground">No data available.</p>
                 </CardContent>
             </Card>
         );
     }
-    
+
     return (
         <Card className="h-full">
             <CardHeader>
@@ -74,7 +70,7 @@ export function TeamAvailabilityChart() {
                     </ResponsiveContainer>
                     <div className="flex flex-col gap-2 text-sm">
                         {chartData.map((entry: any) => (
-                             <div key={entry.name} className="flex items-center justify-between">
+                            <div key={entry.name} className="flex items-center justify-between">
                                 <Badge variant="outline" className={cn("capitalize font-normal", statusColors[entry.name]?.tw)}>
                                     {entry.name}
                                 </Badge>

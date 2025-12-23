@@ -26,12 +26,12 @@ function GroupDetailsStepComponent({
   startDate,
   onStartDateChange,
   clientCommunicationMethod = '',
-  onClientCommunicationMethodChange = () => {}
+  onClientCommunicationMethodChange = () => { }
 }: GroupDetailsStepProps) {
   // Handle communication method changes for radio button behavior
   const handleCommunicationMethodChange = (method: string) => {
     if (!onClientCommunicationMethodChange) return;
-    
+
     // For radio button behavior, we only store the selected method
     // For "Other" option with notes, we need special handling
     if (method === 'Other' && clientCommunicationMethod?.startsWith('Other:')) {
@@ -52,140 +52,140 @@ function GroupDetailsStepComponent({
   };
 
   return (
-      <Card>
-          <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <div className="grid gap-2">
-                  <Label htmlFor="group-name">Group Name</Label>
-                  <Input
-                    id="group-name"
-                    type="text"
-                    placeholder="e.g. 'Family Trip to Manaslu'"
-                    value={groupName}
-                    onChange={(e) => onGroupNameChange(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="group-size">Group Size</Label>
-                  <Input
-                    id="group-size"
-                    type="number"
-                    value={groupSize}
-                    onChange={(e) => onGroupSizeChange(Number(e.target.value))}
-                    min="1"
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="start-date">Start Date</Label>
-                  <DatePicker date={startDate} setDate={onStartDateChange} />
-                </div>
-                
-                {/* Client Communication Method Section */}
-                <div className="md:col-span-3">
-                  <Label>Client Communication Method</Label>
-                  <div className="mt-2 space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Checkbox 
-                        id="send-email" 
-                        checked={isMethodSelected('Email')}
-                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Email')}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="send-email"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                        >
-                          <Mail className="h-4 w-4" /> Client communicated via Email
-                        </label>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Checkbox 
-                        id="send-whatsapp" 
-                        checked={isMethodSelected('WhatsApp')}
-                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('WhatsApp')}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="send-whatsapp"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                        >
-                          <Phone className="h-4 w-4" /> Client communicated via WhatsApp
-                        </label>
-                      </div>
-                    </div>
-                     <div className="flex items-center space-x-3">
-                      <Checkbox 
-                        id="send-office" 
-                        checked={isMethodSelected('office')}
-                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('office')}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="send-office"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                        >
-                          <Building className="h-4 w-4" /> Client communicated via Office
-                        </label>
-                      </div>
-                    </div>
-                     <div className="flex items-center space-x-3">
-                      <Checkbox 
-                        id="send-recommended" 
-                        checked={isMethodSelected('Recommended by Guide')}
-                        onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Recommended by Guide')}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="send-recommended"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                        >
-                          <Users className="h-4 w-4" /> Recommended by Guide
-                        </label>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Checkbox 
-                        id="send-other" 
-                        checked={isMethodSelected('Other')}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            handleCommunicationMethodChange('Other');
-                          } else {
-                            // When unchecking, clear the selection
-                            onClientCommunicationMethodChange('');
-                          }
-                        }}
-                      />
-                      <div className="grid gap-1.5 leading-none">
-                        <label
-                          htmlFor="send-other"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                        >
-                          <MessageSquare className="h-4 w-4" /> Other
-                        </label>
-                      </div>
-                    </div>
-                    {/* Additional notes field */}
-                    <div className="grid gap-2 mt-4">
-                      <Label htmlFor="communication-notes">Remarks / Notes / Reference</Label>
-                      <Textarea
-                        id="communication-notes"
-                        placeholder="Add any additional remarks, notes, or references about client communication..."
-                        value={clientCommunicationMethod?.startsWith('Other:') ? clientCommunicationMethod.substring(6) : ''}
-                        onChange={(e) => {
-                          const otherMethod = `Other:${e.target.value}`;
-                          onClientCommunicationMethodChange(otherMethod);
-                        }}
-                        className="min-h-[100px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-          </CardContent>
-      </Card>
+    <Card>
+      <CardHeader><CardTitle>Group Details</CardTitle></CardHeader>
+      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid gap-2">
+          <Label htmlFor="group-name">Group Name</Label>
+          <Input
+            id="group-name"
+            type="text"
+            placeholder="e.g. 'EN-1734891234567'"
+            value={groupName}
+            onChange={(e) => onGroupNameChange(e.target.value)}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="group-size">Group Size</Label>
+          <Input
+            id="group-size"
+            type="number"
+            value={groupSize}
+            onChange={(e) => onGroupSizeChange(Number(e.target.value))}
+            min="1"
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="start-date">Start Date</Label>
+          <DatePicker date={startDate} setDate={onStartDateChange} />
+        </div>
+
+        {/* Client Communication Method Section */}
+        <div className="md:col-span-3">
+          <Label>Client Communication Method</Label>
+          <div className="mt-2 space-y-4">
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="send-email"
+                checked={isMethodSelected('Email')}
+                onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Email')}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="send-email"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" /> Client communicated via Email
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="send-whatsapp"
+                checked={isMethodSelected('WhatsApp')}
+                onCheckedChange={(checked) => checked && handleCommunicationMethodChange('WhatsApp')}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="send-whatsapp"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <Phone className="h-4 w-4" /> Client communicated via WhatsApp
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="send-office"
+                checked={isMethodSelected('office')}
+                onCheckedChange={(checked) => checked && handleCommunicationMethodChange('office')}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="send-office"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <Building className="h-4 w-4" /> Client communicated via Office
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="send-recommended"
+                checked={isMethodSelected('Recommended by Guide')}
+                onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Recommended by Guide')}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="send-recommended"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <Users className="h-4 w-4" /> Recommended by Guide
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Checkbox
+                id="send-other"
+                checked={isMethodSelected('Other')}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    handleCommunicationMethodChange('Other');
+                  } else {
+                    // When unchecking, clear the selection
+                    onClientCommunicationMethodChange('');
+                  }
+                }}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="send-other"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                >
+                  <MessageSquare className="h-4 w-4" /> Other
+                </label>
+              </div>
+            </div>
+            {/* Additional notes field */}
+            <div className="grid gap-2 mt-4">
+              <Label htmlFor="communication-notes">Remarks / Notes / Reference</Label>
+              <Textarea
+                id="communication-notes"
+                placeholder="Add any additional remarks, notes, or references about client communication..."
+                value={clientCommunicationMethod?.startsWith('Other:') ? clientCommunicationMethod.substring(6) : ''}
+                onChange={(e) => {
+                  const otherMethod = `Other:${e.target.value}`;
+                  onClientCommunicationMethodChange(otherMethod);
+                }}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

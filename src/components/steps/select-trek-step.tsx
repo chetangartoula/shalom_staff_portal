@@ -1,4 +1,4 @@
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo, memo, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/shadcn/card";
 import { Input } from "@/components/ui/shadcn/input";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,11 @@ interface SelectTrekStepProps {
 
 function SelectTrekStepComponent({ treks, selectedTrekId, onSelectTrek }: SelectTrekStepProps) {
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Debug logging
+  useEffect(() => {
+    console.log('SelectTrekStep mounted with treks:', treks?.length);
+  }, [treks]);
 
   const filteredTreks = useMemo(() => {
     if (!searchTerm) return treks;
