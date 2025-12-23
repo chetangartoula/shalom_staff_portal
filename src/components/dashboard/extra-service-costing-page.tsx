@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
-import Link from "next/link";
+import React, { useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, PlusSquare, ArrowLeft, ArrowRight, Save, FileDown } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 
 import { Button } from "@/components/ui/shadcn/button";
@@ -37,6 +36,10 @@ interface ExtraServiceCostingPageProps {
     treks?: Trek[];
     user?: User | null;
 }
+
+const CheckIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>
+);
 
 function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null }: ExtraServiceCostingPageProps) {
     const { toast } = useToast();
@@ -114,18 +117,6 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         }));
     }, [handleSectionUpdate]);
 
-    const handleDiscountTypeChange = useCallback((sectionId: string, type: 'amount' | 'percentage') => {
-        handleSectionUpdate(sectionId, (section) => ({ ...section, discountType: type }));
-    }, [handleSectionUpdate]);
-
-    const handleDiscountValueChange = useCallback((sectionId: string, value: number) => {
-        handleSectionUpdate(sectionId, (section) => ({ ...section, discountValue: value }));
-    }, [handleSectionUpdate]);
-
-    const handleDiscountRemarksChange = useCallback((sectionId: string, remarks: string) => {
-        handleSectionUpdate(sectionId, (section) => ({ ...section, discountRemarks: remarks }));
-    }, [handleSectionUpdate]);
-
     const handleTrekSelect = useCallback((trekId: string) => {
         const newSelectedTrek = treks?.find(t => t.id === trekId);
         if (!newSelectedTrek) return;
@@ -150,20 +141,6 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     }, [treks]);
 
     const getTransformedPayload = useCallback(() => {
-        const permitsData = report.permits.rows.map(row => ({
-            name: row.description,
-            rate: row.rate,
-            numbers: row.no,
-            times: row.times
-        }));
-
-        const servicesData = report.services.rows.map(row => ({
-            name: row.description,
-            rate: row.rate,
-            numbers: row.no,
-            times: row.times
-        }));
-
         const extraServicesMap = new Map();
         report.extraDetails.rows.forEach(row => {
             if (!extraServicesMap.has(row.description)) {
@@ -183,8 +160,8 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                 trip: parseInt(report.trekId || '0')
             },
             status: "draft",
-            permits: permitsData,
-            services: servicesData,
+            permits: report.permits.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
+            services: report.services.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
             extra_services: Array.from(extraServicesMap.values()),
             service_discount: String(report.services.discountValue || 0),
             service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
@@ -207,11 +184,10 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         const payload = getTransformedPayload();
 
         try {
-            let response;
             if (initialData.isNew) {
-                response = await postExtraInvoice(report.groupId, payload);
+                await postExtraInvoice(report.groupId, payload);
             } else {
-                response = await updateExtraInvoice(report.groupId, payload);
+                await updateExtraInvoice(report.groupId, payload);
             }
 
             toast({
@@ -234,7 +210,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         } finally {
             setIsSaving(false);
         }
-    }, [getTransformedPayload, initialData, report.groupId, router, toast]);
+    }, [getTransformedPayload, initialData, report.groupId, report.parentGroupId, router, toast]);
 
     const allSteps = useMemo(() => [
         { id: 'permits', name: 'Permits & Food', data: report.permits },
@@ -243,6 +219,15 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         ...report.customSections.map(s => ({ id: s.id, name: s.name, data: s })),
         { id: 'final', name: 'Final Summary' }
     ], [report]);
+
+    const createNewRow = useCallback(() => ({
+        id: crypto.randomUUID(),
+        description: "",
+        rate: 0,
+        no: Number(report.groupSize),
+        times: 1,
+        total: 0
+    }), [report.groupSize]);
 
     const renderStepContent = () => {
         if (currentStep === 0 && !report.trekId) {
@@ -255,13 +240,10 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                 <FinalStep
                     extraDetailsState={report.extraDetails}
                     onRowChange={handleRowChange}
-                    onDiscountTypeChange={handleDiscountTypeChange}
-                    onDiscountValueChange={handleDiscountValueChange}
-                    onDiscountRemarksChange={handleDiscountRemarksChange}
-                    onAddRow={() => {
-                        const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: Number(report.groupSize), times: 1, total: 0 };
-                        handleSectionUpdate('extraDetails', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
-                    }}
+                    onDiscountTypeChange={(sectionId, type) => handleSectionUpdate(sectionId, (s) => ({ ...s, discountType: type }))}
+                    onDiscountValueChange={(sectionId, value) => handleSectionUpdate(sectionId, (s) => ({ ...s, discountValue: value }))}
+                    onDiscountRemarksChange={(sectionId, remarks) => handleSectionUpdate(sectionId, (s) => ({ ...s, discountRemarks: remarks }))}
+                    onAddRow={() => handleSectionUpdate('extraDetails', (prev) => ({ ...prev, rows: [...prev.rows, createNewRow()] }))}
                     onRemoveRow={(id) => handleSectionUpdate('extraDetails', (prev) => ({ ...prev, rows: prev.rows.filter(r => r.id !== id) }))}
                     onExportPDF={async () => {
                         if (!selectedTrek) return;
@@ -279,10 +261,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     }}
                     onExportExcel={async () => {
                         try {
-                            await handleExportExcel({
-                                report: report as any,
-                                calculateSectionTotals,
-                            });
+                            await handleExportExcel({ report: report as any, calculateSectionTotals });
                         } catch (err) {
                             console.error(err);
                         }
@@ -311,10 +290,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             <CostTable
                 section={activeStep.data as any}
                 onRowChange={handleRowChange}
-                onAddRow={() => {
-                    const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: Number(report.groupSize), times: 1, total: 0 };
-                    handleSectionUpdate(activeStep.id, (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
-                }}
+                onAddRow={() => handleSectionUpdate(activeStep.id, (prev) => ({ ...prev, rows: [...prev.rows, createNewRow()] }))}
                 onRemoveRow={(id) => handleSectionUpdate(activeStep.id, (prev) => ({ ...prev, rows: prev.rows.filter(r => r.id !== id) }))}
                 onDiscountTypeChange={(type) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountType: type as any }))}
                 onDiscountValueChange={(val) => handleSectionUpdate(activeStep.id, (s) => ({ ...s, discountValue: Number(val) }))}
@@ -340,11 +316,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     </Breadcrumb>
                     <h1 className="text-3xl font-bold mt-2 text-primary">{report.trekName || 'Additional Service'}</h1>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => router.back()}>
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Back
-                    </Button>
-                </div>
+                <Button variant="outline" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                </Button>
             </div>
 
             <div className="flex overflow-x-auto pb-4 mb-8 gap-4 no-scrollbar border-b">
@@ -402,8 +376,4 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     );
 }
 
-const CheckIcon = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12" /></svg>
-);
-
-export const ExtraServiceCostingPage = memo(ExtraServiceCostingPageComponent);
+export const ExtraServiceCostingPage = React.memo(ExtraServiceCostingPageComponent);

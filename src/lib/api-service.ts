@@ -1,7 +1,7 @@
 import type { Trek, Report, SectionState } from '@/lib/types';
 
-// Base URL for the external API
-const BASE_URL = 'http://localhost:8000/api/v1';
+// Base URL for the external API - use environment variable with fallback
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
 
 // Generic fetch function with error handling
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
@@ -1101,6 +1101,57 @@ export async function fetchAllTravelers(): Promise<APITraveler[]> {
     return data;
   } catch (error) {
     console.error('Error fetching all travelers:', error);
+    throw error;
+  }
+}
+
+// Define interface for dashboard stats API response
+interface APIDashboardStats {
+  stats: {
+    reports: number;
+    travelers: number;
+    treks: number;
+    guides: number;
+    porters: number;
+  };
+  recentReports: {
+    reports: Array<{
+      groupId: string;
+      trekName: string;
+      groupName: string;
+      groupSize: number;
+      startDate: string;
+    }>;
+    total: number;
+  };
+  trekPopularity: {
+    chartData: Array<{
+      name: string;
+      value: number;
+    }>;
+  };
+  teamAvailability: {
+    chartData: Array<{
+      name: string;
+      value: number;
+    }>;
+  };
+  paymentAnalytics: {
+    chartData: Array<{
+      date: string;
+      payments: number;
+      refunds: number;
+    }>;
+  };
+}
+
+// Fetch dashboard stats from the real API
+export async function fetchDashboardStats(): Promise<APIDashboardStats> {
+  try {
+    const data = await fetchFromAPI<APIDashboardStats>('/staff/stats/');
+    return data;
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
     throw error;
   }
 }

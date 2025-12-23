@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { ChartTooltip, ChartTooltipContent } from '@/components/ui/shadcn/chart';
@@ -18,31 +17,14 @@ const chartConfig = {
     },
 };
 
-export function PaymentChart() {
-    // Use React Query to fetch payment data
-    const { data, error, isLoading } = useQuery({
-        queryKey: ['paymentAnalytics'],
-        queryFn: async () => {
-            try {
-                const response = await fetch('/api/stats/payments');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch payment data');
-                }
-                return response.json();
-            } catch (error) {
-                console.error('Error fetching payment data:', error);
-                throw error;
-            }
-        },
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        retry: 2
-    });
+interface PaymentChartProps {
+    data?: {
+        chartData: Array<{ date: string; payments: number; refunds: number }>;
+    };
+}
 
-    if (isLoading) {
-        return <PaymentChartSkeleton />;
-    }
-    
-    if (error) {
+export function PaymentChart({ data }: PaymentChartProps) {
+    if (!data?.chartData || data.chartData.length === 0) {
         return (
             <Card>
                 <CardHeader>
@@ -50,12 +32,12 @@ export function PaymentChart() {
                     <CardDescription>Last 30 Days</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center">
-                    <p className="text-destructive">Could not load payment data.</p>
+                    <p className="text-muted-foreground">No payment data available.</p>
                 </CardContent>
             </Card>
         );
     }
-    
+
     return (
         <Card>
             <CardHeader>
@@ -94,7 +76,7 @@ export function PaymentChart() {
                                     compactDisplay: 'short'
                                 }).format(value);
                             }}
-                         />
+                        />
                         <ChartTooltip
                             cursor={false}
                             content={<ChartTooltipContent
