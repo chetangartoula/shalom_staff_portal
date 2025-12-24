@@ -31,7 +31,7 @@ export default function RootLayout({
           {children}
         </ReactQueryProvider>
         <PWAManager />
-        <PWAInstallPrompt />
+        {/* <PWAInstallPrompt /> */}
         <Toaster />
       </body>
     </html>
