@@ -4,20 +4,9 @@
 import React, { useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, PlusSquare, Check, Copy, Edit, Save, ArrowLeft, ArrowRight, FileDown } from "lucide-react";
+import { Loader2, Check, Copy, Edit, Save, ArrowLeft, ArrowRight, FileDown } from "lucide-react";
 
 import { Button } from "@/components/ui/shadcn/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/shadcn/dialog";
-import { Input } from "@/components/ui/shadcn/input";
-import { Label } from "@/components/ui/shadcn/label";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -32,8 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import type { User } from '@/lib/auth';
 import { postGroupsAndPackage, updateGroupsAndPackage, updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
-import { useAllServices } from '@/hooks/use-all-services';
-import { useAllExtraServices } from '@/hooks/use-all-extra-services';
 
 type ReportState = {
   groupId: string;
@@ -148,109 +135,48 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   
 
   
-  // Function to calculate permit total based on the new permit properties
   const calculatePermitTotal = (permit: any, no: number, times: number) => {
-    let total = permit.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (permit.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (permit.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
     if (permit.one_time) {
-      // For one_time permits, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = permit.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (permit.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (permit.per_day) {
-        total *= times;
-      }
+      return permit.rate;
+    } else if (permit.per_person && permit.per_day) {
+      return permit.rate * no * times;
+    } else if (permit.per_person) {
+      return permit.rate * no;
+    } else if (permit.per_day) {
+      return permit.rate * times;
+    } else {
+      return permit.rate * no * times;
     }
-    
-    return total;
   };
   
-  // Function to calculate service total based on the new service properties
   const calculateServiceTotal = (service: any, no: number, times: number) => {
-    let total = service.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (service.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (service.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
     if (service.one_time) {
-      // For one_time services, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = service.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (service.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (service.per_day) {
-        total *= times;
-      }
+      return service.rate;
+    } else if (service.per_person && service.per_day) {
+      return service.rate * no * times;
+    } else if (service.per_person) {
+      return service.rate * no;
+    } else if (service.per_day) {
+      return service.rate * times;
+    } else {
+      return service.rate * no * times;
     }
-    
-    return total;
   };
   
-  // Function to calculate extra service total based on the new extra service properties
   const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
-    let total = extraService.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (extraService.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (extraService.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
     if (extraService.one_time) {
-      // For one_time extra services, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = extraService.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (extraService.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (extraService.per_day) {
-        total *= times;
-      }
+      return extraService.rate;
+    } else if (extraService.per_person && extraService.per_day) {
+      return extraService.rate * no * times;
+    } else if (extraService.per_person) {
+      return extraService.rate * no;
+    } else if (extraService.per_day) {
+      return extraService.rate * times;
+    } else {
+      return extraService.rate * no * times;
     }
-    
-    return total;
   };
 
-  // Initialize from initialData and update when permits/services data arrives
   useEffect(() => {
     if (initialData && initialData.trekId) {
       console.log('TrekCostingPage: initialData changed', {
@@ -727,20 +653,38 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [savedReportUrl, toast]);
 
   const getTransformedPayload = useCallback(() => {
-    // Transform permits data
+    // Transform permits data - include all required fields with proper integer formatting
     const permitsData = report.permits.rows.map(row => ({
+      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
-      rate: row.rate,
-      numbers: row.no,
-      times: row.times
+      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      per_person: row.per_person || false,
+      per_day: row.per_day || false,
+      one_time: row.one_time || false,
+      is_default: row.is_default || false,
+      is_editable: row.is_editable !== undefined ? row.is_editable : true,
+      max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+      from_place: row.from_place || '',
+      to_place: row.to_place || ''
     }));
 
-    // Transform services data
+    // Transform services data - include all required fields with proper integer formatting
     const servicesData = report.services.rows.map(row => ({
+      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
-      rate: row.rate,
-      numbers: row.no,
-      times: row.times
+      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      per_person: row.per_person || false,
+      per_day: row.per_day || false,
+      one_time: row.one_time || false,
+      is_default: row.is_default || false,
+      is_editable: row.is_editable !== undefined ? row.is_editable : true,
+      max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+      from_place: row.from_place || '',
+      to_place: row.to_place || ''
     }));
 
     // Transform extra services data
@@ -766,10 +710,19 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         });
       }
       extraServicesMap.get(service_name).params.push({
+        id: parseInt(row.id?.toString() || '0'), // Convert id to integer
         name: param_name,
-        rate: row.rate,
-        numbers: row.no,
-        times: row.times
+        rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+        times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+        numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        is_default: row.is_default || false,
+        is_editable: row.is_editable !== undefined ? row.is_editable : true,
+        max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+        from_place: row.from_place || '',
+        to_place: row.to_place || ''
       });
     });
 

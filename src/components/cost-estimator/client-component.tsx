@@ -32,104 +32,65 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
   
   // Function to calculate permit total based on the new permit properties
   const calculatePermitTotal = (permit: any, no: number, times: number) => {
-    let total = permit.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (permit.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (permit.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
+    // Apply calculation based on boolean flags
     if (permit.one_time) {
-      // For one_time permits, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = permit.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (permit.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (permit.per_day) {
-        total *= times;
-      }
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return permit.rate;
+    } else if (permit.per_person && permit.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return permit.rate * no * times;
+    } else if (permit.per_person) {
+      // If per_person is true, calculate as rate * no
+      return permit.rate * no;
+    } else if (permit.per_day) {
+      // If per_day is true, calculate as rate * times
+      return permit.rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return permit.rate * no * times;
     }
-    
-    return total;
   };
   
   // Function to calculate service total based on the new service properties
   const calculateServiceTotal = (service: any, no: number, times: number) => {
-    let total = service.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (service.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (service.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
+    // Apply calculation based on boolean flags
     if (service.one_time) {
-      // For one_time services, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = service.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (service.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (service.per_day) {
-        total *= times;
-      }
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return service.rate;
+    } else if (service.per_person && service.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return service.rate * no * times;
+    } else if (service.per_person) {
+      // If per_person is true, calculate as rate * no
+      return service.rate * no;
+    } else if (service.per_day) {
+      // If per_day is true, calculate as rate * times
+      return service.rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return service.rate * no * times;
     }
-    
-    return total;
   };
   
   // Function to calculate extra service total based on the new extra service properties
   const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
-    let total = extraService.rate;
-    
-    // If it's per_person, multiply by number of people
-    if (extraService.per_person) {
-      total *= no;
-    }
-    
-    // If it's per_day, multiply by number of days/times
-    if (extraService.per_day) {
-      total *= times;
-    }
-    
-    // If it's one_time, it's a single occurrence regardless of other factors
+    // Apply calculation based on boolean flags
     if (extraService.one_time) {
-      // For one_time extra services, we don't multiply by no or times
-      // unless they're also per_person or per_day
-      total = extraService.rate;
-      
-      // But if it's also per_person, apply that calculation
-      if (extraService.per_person) {
-        total *= no;
-      }
-      
-      // If it's also per_day, apply that calculation
-      if (extraService.per_day) {
-        total *= times;
-      }
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return extraService.rate;
+    } else if (extraService.per_person && extraService.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return extraService.rate * no * times;
+    } else if (extraService.per_person) {
+      // If per_person is true, calculate as rate * no
+      return extraService.rate * no;
+    } else if (extraService.per_day) {
+      // If per_day is true, calculate as rate * times
+      return extraService.rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return extraService.rate * no * times;
     }
-    
-    return total;
   };
   
   // Handle trek selection
@@ -208,7 +169,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               rate: permit.rate,
               no: groupSize,
               times: permit.times,
-              total: calculatePermitTotal({ ...permit, no: groupSize }, groupSize, permit.times),
+              total: calculatePermitTotal(permit, groupSize, permit.times),
               // Include new permit properties
               per_person: permit.per_person,
               per_day: permit.per_day,
@@ -241,7 +202,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               rate: service.rate,
               no: groupSize,
               times: service.times,
-              total: calculateServiceTotal({ ...service, no: groupSize }, groupSize, service.times),
+              total: calculateServiceTotal(service, groupSize, service.times),
               // Include new service properties
               per_person: service.per_person,
               per_day: service.per_day,
@@ -267,50 +228,26 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
         data.extraDetails = {
           id: 'extraDetails',
           name: 'Extra Details',
-          rows: defaultExtraServices.flatMap((extraService: any) => {
-            if (extraService.params && extraService.params.length > 0) {
-              // Create separate rows for each param and split by max_capacity
-              return extraService.params.flatMap((param: any, index: number) => 
-                splitRowByMaxCapacity({
-                  id: `${extraService.id}-${index}`,
-                  description: `${extraService.serviceName} - ${param.name}`,
-                  rate: param.rate,
-                  no: groupSize,
-                  times: extraService.times,
-                  total: calculateExtraServiceTotal({ ...param, no: groupSize }, groupSize, extraService.times),
-                  // Include new extra service properties
-                  per_person: extraService.per_person,
-                  per_day: extraService.per_day,
-                  one_time: extraService.one_time,
-                  is_default: extraService.is_default,
-                  is_editable: extraService.is_editable,
-                  max_capacity: extraService.max_capacity,
-                  from_place: extraService.from_place,
-                  to_place: extraService.to_place,
-                  location: extraService.from_place && extraService.to_place ? `${extraService.from_place} to ${extraService.to_place}` : extraService.name
-                }, groupSize)
-              );
-            } else {
-              return splitRowByMaxCapacity({
-                id: extraService.id,
-                description: extraService.serviceName,
-                rate: 0,
-                no: groupSize,
-                times: extraService.times,
-                total: 0,
-                // Include new extra service properties
-                per_person: extraService.per_person,
-                per_day: extraService.per_day,
-                one_time: extraService.one_time,
-                is_default: extraService.is_default,
-                is_editable: extraService.is_editable,
-                max_capacity: extraService.max_capacity,
-                from_place: extraService.from_place,
-                to_place: extraService.to_place,
-                location: extraService.from_place && extraService.to_place ? `${extraService.from_place} to ${extraService.to_place}` : extraService.name
-              }, groupSize);
-            }
-          }),
+          rows: defaultExtraServices.flatMap((extraService: any) => 
+            splitRowByMaxCapacity({
+              id: extraService.id,
+              description: extraService.description || `${extraService.serviceName} - ${extraService.name}`,
+              rate: extraService.rate,
+              no: groupSize,
+              times: extraService.times,
+              total: calculateExtraServiceTotal(extraService, groupSize, extraService.times),
+              // Include new extra service properties
+              per_person: extraService.per_person,
+              per_day: extraService.per_day,
+              one_time: extraService.one_time,
+              is_default: extraService.is_default,
+              is_editable: extraService.is_editable,
+              max_capacity: extraService.max_capacity,
+              from_place: extraService.from_place,
+              to_place: extraService.to_place,
+              location: extraService.from_place && extraService.to_place ? `${extraService.from_place} to ${extraService.to_place}` : (extraService.serviceName || extraService.name)
+            }, groupSize)
+          ),
           discountType: 'amount' as const,
           discountValue: 0,
           discountRemarks: ''
@@ -365,7 +302,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       rate: permitToAdd.rate,
       no: initialData.groupSize || 1,
       times: permitToAdd.times,
-      total: calculatePermitTotal({ ...permitToAdd, no: initialData.groupSize || 1 }, initialData.groupSize || 1, permitToAdd.times),
+      total: calculatePermitTotal(permitToAdd, initialData.groupSize || 1, permitToAdd.times),
       // Include new permit properties
       per_person: permitToAdd.per_person,
       per_day: permitToAdd.per_day,
@@ -405,7 +342,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       rate: serviceToAdd.rate,
       no: initialData.groupSize || 1,
       times: serviceToAdd.times,
-      total: calculateServiceTotal({ ...serviceToAdd, no: initialData.groupSize || 1 }, initialData.groupSize || 1, serviceToAdd.times),
+      total: calculateServiceTotal(serviceToAdd, initialData.groupSize || 1, serviceToAdd.times),
       // Include new service properties
       per_person: serviceToAdd.per_person,
       per_day: serviceToAdd.per_day,
@@ -441,11 +378,11 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     // Create a new extra service row with all the required properties
     const newExtraServiceRow = {
       id: crypto.randomUUID(), // Generate a unique ID for each added extra service
-      description: (extraServiceToAdd.serviceName && extraServiceToAdd.name) ? `${extraServiceToAdd.serviceName} - ${extraServiceToAdd.name}` : (extraServiceToAdd.description || extraServiceToAdd.serviceName || extraServiceToAdd.name),
+      description: (extraServiceToAdd.service_name && extraServiceToAdd.name) ? `${extraServiceToAdd.service_name} - ${extraServiceToAdd.name}` : (extraServiceToAdd.description || extraServiceToAdd.service_name || extraServiceToAdd.name),
       rate: extraServiceToAdd.rate,
       no: initialData.groupSize || 1,
       times: extraServiceToAdd.times,
-      total: calculateExtraServiceTotal({ ...extraServiceToAdd, no: initialData.groupSize || 1 }, initialData.groupSize || 1, extraServiceToAdd.times),
+      total: calculateExtraServiceTotal(extraServiceToAdd, initialData.groupSize || 1, extraServiceToAdd.times),
       // Include new extra service properties
       per_person: extraServiceToAdd.per_person,
       per_day: extraServiceToAdd.per_day,
@@ -455,7 +392,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       max_capacity: extraServiceToAdd.max_capacity,
       from_place: extraServiceToAdd.from_place,
       to_place: extraServiceToAdd.to_place,
-      location: extraServiceToAdd.from_place && extraServiceToAdd.to_place ? `${extraServiceToAdd.from_place} to ${extraServiceToAdd.to_place}` : (extraServiceToAdd.serviceName || extraServiceToAdd.name)
+      location: extraServiceToAdd.from_place && extraServiceToAdd.to_place ? `${extraServiceToAdd.from_place} to ${extraServiceToAdd.to_place}` : (extraServiceToAdd.service_name || extraServiceToAdd.name)
     };
     
     // Update the extra services override state

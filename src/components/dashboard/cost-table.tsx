@@ -149,8 +149,11 @@ export function CostTable({
   // Filter extra services based on search term
   const filteredExtraServices = allExtraServices?.filter(extraService => {
     const searchLower = searchTerm.toLowerCase();
+    const combinedDescription = extraService.description || `${extraService.serviceName} - ${extraService.name}`;
     return (
       extraService.serviceName?.toLowerCase().includes(searchLower) ||
+      extraService.name?.toLowerCase().includes(searchLower) ||
+      combinedDescription.toLowerCase().includes(searchLower) ||
       (extraService.from_place && extraService.from_place.toLowerCase().includes(searchLower)) ||
       (extraService.to_place && extraService.to_place.toLowerCase().includes(searchLower))
     );
@@ -275,10 +278,10 @@ export function CostTable({
                     value={row.rate || 0}
                     onChange={(e) => onRowChange(row.id, 'rate', Number(e.target.value), section.id)}
                     className="text-right"
-                    readOnly={isReadOnly || isRateReadOnly || (section.id === 'permits' && row.is_editable === false)}
-                    disabled={isReadOnly || isRateReadOnly || (section.id === 'permits' && row.is_editable === false)}
+                    readOnly={isReadOnly || isRateReadOnly || row.is_editable === false}
+                    disabled={isReadOnly || isRateReadOnly || row.is_editable === false}
                   />
-                  {section.id === 'permits' && row.is_editable === false && (
+                  {row.is_editable === false && (
                     <div className="text-xs text-muted-foreground mt-1">Rate is locked</div>
                   )}
                 </td>
@@ -292,8 +295,8 @@ export function CostTable({
                       onRowChange(row.id, 'no', finalValue, section.id);
                     }}
                     className="text-right"
-                    readOnly={isReadOnly}
-                    disabled={isReadOnly}
+                    readOnly={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_person)}
+                    disabled={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_person)}
                   />
                   {row.max_capacity !== undefined && row.no !== undefined && row.no > row.max_capacity && (
                     <div className="text-xs text-red-500 mt-1">Max capacity: {row.max_capacity}</div>
@@ -305,8 +308,8 @@ export function CostTable({
                     value={row.times || 0}
                     onChange={(e) => onRowChange(row.id, 'times', Number(e.target.value), section.id)}
                     className="text-right"
-                    readOnly={isReadOnly}
-                    disabled={isReadOnly}
+                    readOnly={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_day)}
+                    disabled={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_day)}
                   />
                 </td>
                 <td className="p-4 text-right font-medium">
@@ -616,7 +619,7 @@ export function CostTable({
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
-                          <div className="font-medium">{extraService.serviceName}</div>
+                          <div className="font-medium">{extraService.description || `${extraService.serviceName} - ${extraService.name}`}</div>
                           {extraService.from_place && extraService.to_place && (
                             <div className="text-sm text-muted-foreground">{extraService.from_place} to {extraService.to_place}</div>
                           )}

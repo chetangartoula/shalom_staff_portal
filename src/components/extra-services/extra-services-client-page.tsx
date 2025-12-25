@@ -31,6 +31,27 @@ import { FinalStep } from "@/components/steps/final-step";
 import type { User } from '@/lib/auth';
 import { postExtraInvoice } from '@/lib/api-service';
 
+// Function to calculate extra service total based on the boolean flags
+const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
+  // Apply calculation based on boolean flags
+  if (extraService.one_time) {
+    // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+    return extraService.rate;
+  } else if (extraService.per_person && extraService.per_day) {
+    // If both per_person and per_day are true, calculate as rate * no * times
+    return extraService.rate * no * times;
+  } else if (extraService.per_person) {
+    // If per_person is true, calculate as rate * no
+    return extraService.rate * no;
+  } else if (extraService.per_day) {
+    // If per_day is true, calculate as rate * times
+    return extraService.rate * times;
+  } else {
+    // If none of the above flags are true, calculate as rate * no * times (default)
+    return extraService.rate * no * times;
+  }
+};
+
 type ReportState = {
   groupId: string;
   groupName: string;
@@ -182,7 +203,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
     setReport(currentReport => {
       const updateRowPax = (row: CostRow) => {
         const newNo = value ? currentReport.groupSize : 1;
-        return { ...row, no: newNo, total: (row.rate || 0) * newNo * (row.times || 0) };
+        // Calculate total based on properties if it has boolean flags
+        const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
+          ? calculateExtraServiceTotal(row, newNo, row.times || 0)
+          : (row.rate || 0) * newNo * (row.times || 0);
+        return { ...row, no: newNo, total };
       };
 
       const updateSection = (section: SectionState) => ({
@@ -209,11 +234,13 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         if (usePax[section.id]) {
           return {
             ...section,
-            rows: section.rows.map(row => ({
-              ...row,
-              no: size,
-              total: (row.rate || 0) * size * (row.times || 0)
-            }))
+            rows: section.rows.map(row => {
+              // Calculate total based on properties if it has boolean flags
+              const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
+                ? calculateExtraServiceTotal(row, size, row.times || 0)
+                : (row.rate || 0) * size * (row.times || 0);
+              return { ...row, no: size, total };
+            })
           };
         }
         return section;
@@ -253,7 +280,12 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         if (row.id === id) {
           const newRow = { ...row, [field]: value };
           if (field === 'no' || field === 'rate' || field === 'times') {
-            newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+            // Calculate total based on properties if it has boolean flags
+            if (newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
+              newRow.total = calculateExtraServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
+            } else {
+              newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+            }
           }
           return newRow;
         }
@@ -438,17 +470,22 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       }));
 
       // Transform extra services data
-      // Group extra details by description to match the required structure
+      // Group extra details by service_name to match the required structure
       const extraServicesMap = new Map();
       report.extraDetails.rows.forEach(row => {
-        if (!extraServicesMap.has(row.description)) {
-          extraServicesMap.set(row.description, {
-            service_name: row.description,
+        // Split the combined description to get service_name and param name
+        const parts = row.description.split(' - ');
+        const service_name = parts[0] || row.description; // If no separator, use the full description as service_name
+        const param_name = parts[1] || row.description; // If no separator, use the full description as param name
+        
+        if (!extraServicesMap.has(service_name)) {
+          extraServicesMap.set(service_name, {
+            service_name: service_name,
             params: []
           });
         }
-        extraServicesMap.get(row.description).params.push({
-          name: row.description,
+        extraServicesMap.get(service_name).params.push({
+          name: param_name,
           rate: row.rate,
           numbers: row.no,
           times: row.times

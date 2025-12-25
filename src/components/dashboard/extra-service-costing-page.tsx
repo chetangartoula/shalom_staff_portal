@@ -19,7 +19,28 @@ import type { Trek, CostRow, SectionState, Report } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/lib/auth";
 import { updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from '@/lib/utils';
+
+// Function to calculate extra service total based on the boolean flags
+const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
+    // Apply calculation based on boolean flags
+    if (extraService.one_time) {
+        // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+        return extraService.rate;
+    } else if (extraService.per_person && extraService.per_day) {
+        // If both per_person and per_day are true, calculate as rate * no * times
+        return extraService.rate * no * times;
+    } else if (extraService.per_person) {
+        // If per_person is true, calculate as rate * no
+        return extraService.rate * no;
+    } else if (extraService.per_day) {
+        // If per_day is true, calculate as rate * times
+        return extraService.rate * times;
+    } else {
+        // If none of the above flags are true, calculate as rate * no * times (default)
+        return extraService.rate * no * times;
+    }
+};
 
 const LoadingStep = () => (
     <div className="flex justify-center items-center h-96">
@@ -64,7 +85,16 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                             rate: Number(param.rate),
                             no: Number(param.numbers),
                             times: Number(param.times),
-                            total: Number(param.rate) * Number(param.numbers) * Number(param.times)
+                            total: calculateExtraServiceTotal(param, Number(param.numbers), Number(param.times)),
+                            // Include boolean flags
+                            per_person: param.per_person,
+                            per_day: param.per_day,
+                            one_time: param.one_time,
+                            is_default: param.is_default,
+                            is_editable: param.is_editable,
+                            max_capacity: param.max_capacity,
+                            from_place: param.from_place,
+                            to_place: param.to_place
                         });
                     });
                 }
@@ -183,7 +213,8 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                         const rate = Number(newRow.rate || 0);
                         const no = Number(newRow.no || 0);
                         const times = Number(newRow.times || 0);
-                        newRow.total = rate * no * times;
+                        // Calculate using the proper boolean flag logic
+                        newRow.total = calculateExtraServiceTotal(newRow, no, times);
                     }
                     return newRow;
                 }
