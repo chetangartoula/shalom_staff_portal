@@ -747,14 +747,26 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     // Group extra details by description to match the required structure
     const extraServicesMap = new Map();
     report.extraDetails.rows.forEach(row => {
-      if (!extraServicesMap.has(row.description)) {
-        extraServicesMap.set(row.description, {
-          service_name: row.description,
+      // Parse the combined description to extract service_name and param name
+      let service_name, param_name;
+      if (row.description.includes(' - ')) {
+        const parts = row.description.split(' - ');
+        service_name = parts[0];
+        param_name = parts.slice(1).join(' - '); // In case param name itself contains ' - '
+      } else {
+        // Fallback: if no separator found, use the entire description as service_name
+        service_name = row.description;
+        param_name = row.description;
+      }
+      
+      if (!extraServicesMap.has(service_name)) {
+        extraServicesMap.set(service_name, {
+          service_name: service_name,
           params: []
         });
       }
-      extraServicesMap.get(row.description).params.push({
-        name: row.description,
+      extraServicesMap.get(service_name).params.push({
+        name: param_name,
         rate: row.rate,
         numbers: row.no,
         times: row.times
