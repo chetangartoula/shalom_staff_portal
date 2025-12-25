@@ -12,7 +12,7 @@
 export interface APITrip {
     id: number;
     title: string;
-    sub_title: string;
+    combined_info: string;
 }
 
 // ============================================================================
@@ -24,6 +24,14 @@ export interface APIPermit {
     name: string;
     rate: string; // API returns rate as string
     times: number;
+    per_person: boolean;
+    per_day: boolean;
+    one_time: boolean;
+    is_default: boolean;
+    is_editable: boolean;
+    max_capacity: number;
+    from_place: string;
+    to_place: string;
     is_active: boolean;
     order: number;
 }
@@ -38,11 +46,26 @@ export interface APIService {
     rate: string; // API returns rate as string
     times: number;
     max_num: number;
+    per_person?: boolean;
+    per_day?: boolean;
+    one_time?: boolean;
+    is_default?: boolean;
+    is_editable?: boolean;
+    from_place?: string;
+    to_place?: string;
 }
 
 export interface APIExtraServiceParam {
     name: string;
     rate: number;
+    per_person?: boolean;
+    per_day?: boolean;
+    one_time?: boolean;
+    is_default?: boolean;
+    is_editable?: boolean;
+    max_capacity?: number;
+    from_place?: string;
+    to_place?: string;
 }
 
 export interface APIExtraService {
@@ -50,6 +73,14 @@ export interface APIExtraService {
     service_name: string;
     params: APIExtraServiceParam[];
     times: number;
+    per_person?: boolean;
+    per_day?: boolean;
+    one_time?: boolean;
+    is_default?: boolean;
+    is_editable?: boolean;
+    max_num?: number;
+    from_place?: string;
+    to_place?: string;
 }
 
 // ============================================================================

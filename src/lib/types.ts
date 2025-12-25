@@ -17,6 +17,14 @@ export interface Service {
   name: string;
   rate: number;
   times: number;
+  per_person?: boolean;
+  per_day?: boolean;
+  one_time?: boolean;
+  is_default?: boolean;
+  is_editable?: boolean;
+  max_capacity?: number;
+  from_place?: string;
+  to_place?: string;
 }
 
 export interface CostRow {
@@ -26,6 +34,16 @@ export interface CostRow {
   no: number;
   times: number;
   total: number;
+  // New permit-specific properties
+  per_person?: boolean;
+  per_day?: boolean;
+  one_time?: boolean;
+  is_default?: boolean;
+  is_editable?: boolean;
+  max_capacity?: number;
+  from_place?: string;
+  to_place?: string;
+  location?: string;
 }
 
 export interface SectionState {

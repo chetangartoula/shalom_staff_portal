@@ -51,6 +51,10 @@ interface FinalStepProps {
     onSubmit: () => void;
     isRateReadOnly?: boolean;
     hideAddRow?: boolean;
+    // Additional props for extra services section
+    onAddExtraService?: (extraService: any) => void;
+    allExtraServices?: any[];
+    isLoadingAllExtraServices?: boolean;
 }
 
 function FinalStepComponent({
@@ -83,7 +87,10 @@ function FinalStepComponent({
     isSubmitting,
     onSubmit,
     isRateReadOnly = false,
-    hideAddRow = false
+    hideAddRow = false,
+    onAddExtraService,
+    allExtraServices,
+    isLoadingAllExtraServices
 }: FinalStepProps) {
     const totalWithService = totalCost + (totalCost * (serviceCharge / 100));
     const costPerPersonWithoutService = groupSize > 0 ? totalCost / groupSize : 0;
@@ -119,6 +126,10 @@ function FinalStepComponent({
                 onRemoveRow={onRemoveRow}
                 isRateReadOnly={isRateReadOnly}
                 hideAddRow={hideAddRow}
+                // Additional props for extra services section
+                onAddExtraService={onAddExtraService}
+                allExtraServices={allExtraServices}
+                isLoadingAllExtraServices={isLoadingAllExtraServices}
             />
 
             <Card>

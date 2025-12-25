@@ -30,8 +30,10 @@ import {
 import type { Trek, CostRow, SectionState } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
-import type { User } from "@/lib/auth";
+import type { User } from '@/lib/auth';
 import { postGroupsAndPackage, updateGroupsAndPackage, updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
+import { useAllServices } from '@/hooks/use-all-services';
+import { useAllExtraServices } from '@/hooks/use-all-extra-services';
 
 type ReportState = {
   groupId: string;
@@ -46,7 +48,7 @@ type ReportState = {
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl?: string;
-  clientCommunicationMethod?: string; // Added for client communication method
+  clientCommunicationMethod?: string;
   overallDiscountType: 'amount' | 'percentage';
   overallDiscountValue: number;
   overallDiscountRemarks: string;
@@ -117,9 +119,18 @@ interface TrekCostingPageProps {
   skipGroupDetails?: boolean;
   groupId?: string;
   isReadOnly?: boolean; // New prop to distinguish between cost estimator and cost matrix
+  onAddPermit?: (permit: any) => void; // Callback to add a permit
+  onAddService?: (service: any) => void; // Callback to add a service
+  onAddExtraService?: (extraService: any) => void; // Callback to add an extra service
+  allPermits?: any[]; // All available permits
+  allServices?: any[]; // All available services
+  allExtraServices?: any[]; // All available extra services
+  isLoadingAllPermits?: boolean; // Loading state for all permits
+  isLoadingAllServices?: boolean; // Loading state for all services
+  isLoadingAllExtraServices?: boolean; // Loading state for all extra services
 }
 
-function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect, skipGroupDetails = false, groupId, isReadOnly = false }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect, skipGroupDetails = false, groupId, isReadOnly = false, onAddPermit, onAddService, onAddExtraService, allPermits, allServices, allExtraServices, isLoadingAllPermits, isLoadingAllServices, isLoadingAllExtraServices }: TrekCostingPageProps) {
   const { toast } = useToast();
   const router = useRouter();
 
@@ -134,6 +145,110 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   const [editingSection, setEditingSection] = useState<any | null>(null);
   const [newSectionName, setNewSectionName] = useState("");
   const [includeServiceChargeInPdf, setIncludeServiceChargeInPdf] = useState(true);
+  
+
+  
+  // Function to calculate permit total based on the new permit properties
+  const calculatePermitTotal = (permit: any, no: number, times: number) => {
+    let total = permit.rate;
+    
+    // If it's per_person, multiply by number of people
+    if (permit.per_person) {
+      total *= no;
+    }
+    
+    // If it's per_day, multiply by number of days/times
+    if (permit.per_day) {
+      total *= times;
+    }
+    
+    // If it's one_time, it's a single occurrence regardless of other factors
+    if (permit.one_time) {
+      // For one_time permits, we don't multiply by no or times
+      // unless they're also per_person or per_day
+      total = permit.rate;
+      
+      // But if it's also per_person, apply that calculation
+      if (permit.per_person) {
+        total *= no;
+      }
+      
+      // If it's also per_day, apply that calculation
+      if (permit.per_day) {
+        total *= times;
+      }
+    }
+    
+    return total;
+  };
+  
+  // Function to calculate service total based on the new service properties
+  const calculateServiceTotal = (service: any, no: number, times: number) => {
+    let total = service.rate;
+    
+    // If it's per_person, multiply by number of people
+    if (service.per_person) {
+      total *= no;
+    }
+    
+    // If it's per_day, multiply by number of days/times
+    if (service.per_day) {
+      total *= times;
+    }
+    
+    // If it's one_time, it's a single occurrence regardless of other factors
+    if (service.one_time) {
+      // For one_time services, we don't multiply by no or times
+      // unless they're also per_person or per_day
+      total = service.rate;
+      
+      // But if it's also per_person, apply that calculation
+      if (service.per_person) {
+        total *= no;
+      }
+      
+      // If it's also per_day, apply that calculation
+      if (service.per_day) {
+        total *= times;
+      }
+    }
+    
+    return total;
+  };
+  
+  // Function to calculate extra service total based on the new extra service properties
+  const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
+    let total = extraService.rate;
+    
+    // If it's per_person, multiply by number of people
+    if (extraService.per_person) {
+      total *= no;
+    }
+    
+    // If it's per_day, multiply by number of days/times
+    if (extraService.per_day) {
+      total *= times;
+    }
+    
+    // If it's one_time, it's a single occurrence regardless of other factors
+    if (extraService.one_time) {
+      // For one_time extra services, we don't multiply by no or times
+      // unless they're also per_person or per_day
+      total = extraService.rate;
+      
+      // But if it's also per_person, apply that calculation
+      if (extraService.per_person) {
+        total *= no;
+      }
+      
+      // If it's also per_day, apply that calculation
+      if (extraService.per_day) {
+        total *= times;
+      }
+    }
+    
+    return total;
+  };
 
   // Initialize from initialData and update when permits/services data arrives
   useEffect(() => {
@@ -202,9 +317,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       // Special handling for new extra invoices - start at trek selection if no trekId
       if (initialData.isNew && !initialData.trekId) {
         setCurrentStep(0);
-      } else {
-        // Only set step to 0 if we don't already have a currentStep set
-        setCurrentStep(prev => prev === 0 && (report.trekId || initialData.trekId) ? prev : 0);
       }
     }
   }, [initialData, report.trekId]);
@@ -238,19 +350,110 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     return subtotalBeforeOverallDiscount - overallDiscountAmount;
   }, [subtotalBeforeOverallDiscount, overallDiscountAmount]);
 
+  // Function to consolidate rows that were split due to max_capacity
+  const consolidateSplitRows = (rows: CostRow[]): CostRow[] => {
+    // Group rows by their original ID (before splitting)
+    const groupedRows: Record<string, CostRow[]> = {};
+    
+    for (const row of rows) {
+      // Extract the original ID from split row IDs (e.g., originalId-split-1 -> originalId)
+      const originalId = row.id.replace(/-split-\d+$/, '');
+      if (!groupedRows[originalId]) {
+        groupedRows[originalId] = [];
+      }
+      groupedRows[originalId].push(row);
+    }
+    
+    const consolidatedRows: CostRow[] = [];
+    
+    for (const [originalId, group] of Object.entries(groupedRows)) {
+      if (group.length === 1) {
+        // Not a split row, add as is
+        consolidatedRows.push(group[0]);
+      } else {
+        // This is a split row, consolidate it
+        const originalRow = { ...group[0] };
+        // Remove the split suffix from ID
+        originalRow.id = originalId;
+        // Remove split-specific description suffixes
+        originalRow.description = originalRow.description.replace(/ \(max capacity\)| \(additional capacity\)$/g, '');
+        
+        // Sum up the quantities
+        const totalNo = group.reduce((sum, row) => sum + (row.no || 0), 0);
+        originalRow.no = totalNo;
+        
+        consolidatedRows.push(originalRow);
+      }
+    }
+    
+    return consolidatedRows;
+  };
+  
+  // Function to split rows based on max_capacity and group size
+  const splitRowByMaxCapacity = (row: CostRow, groupSize: number) => {
+    const rows: CostRow[] = [];
+    
+    // If max_capacity is not defined or group size is less than or equal to max_capacity, return original row
+    if (!row.max_capacity || groupSize <= row.max_capacity) {
+      return [{ ...row, no: groupSize }];
+    }
+    
+    // Create the first row with max_capacity quantity
+    const firstRow = {
+      ...row,
+      id: `${row.id}-split-1`,
+      no: row.max_capacity,
+      description: `${row.description} (max capacity)`
+    };
+    
+    // Calculate remaining capacity
+    const remainingCapacity = groupSize - row.max_capacity;
+    
+    // Create additional row with remaining capacity
+    const additionalRow = {
+      ...row,
+      id: `${row.id}-split-2`,
+      no: remainingCapacity,
+      description: `${row.description} (additional capacity)`
+    };
+    
+    rows.push(firstRow);
+    rows.push(additionalRow);
+    
+    return rows;
+  };
+  
   const handleGroupSizeChange = useCallback((size: number) => {
     setReport(currentReport => {
       const newReport = { ...currentReport, groupSize: size };
 
-      // Update all sections to use the new group size
       const updateSectionForPax = (section: SectionState) => {
+        // First, consolidate any existing split rows to get back to original state
+        const consolidatedRows = consolidateSplitRows(section.rows);
+        
         return {
           ...section,
-          rows: section.rows.map(row => ({
-            ...row,
-            no: size,
-            total: (row.rate || 0) * size * (row.times || 0)
-          }))
+          rows: consolidatedRows.flatMap(row => {
+            let newTotal; 
+            if (section.id === 'permits' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
+              newTotal = calculatePermitTotal(row, size, row.times || 0);
+            } else if (section.id === 'services' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
+              newTotal = calculateServiceTotal(row, size, row.times || 0);
+            } else if (section.id === 'extraDetails' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
+              newTotal = calculateExtraServiceTotal(row, size, row.times || 0);
+            } else {
+              newTotal = (row.rate || 0) * size * (row.times || 0);
+            }
+            
+            // Apply max_capacity logic
+            const updatedRow: CostRow = {
+              ...row,
+              no: size,
+              total: newTotal
+            };
+            
+            return splitRowByMaxCapacity(updatedRow, size);
+          })
         };
       };
 
@@ -282,19 +485,88 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, []);
 
   const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
-    handleSectionUpdate(sectionId, (section) => ({
-      ...section,
-      rows: section.rows.map((row) => {
-        if (row.id === id) {
-          const newRow = { ...row, [field]: value };
-          if (field === 'no' || field === 'rate' || field === 'times') {
-            newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
-          }
-          return newRow;
+    handleSectionUpdate(sectionId, (section) => {
+      // Find the row to update
+      const rowToUpdate = section.rows.find(row => row.id === id);
+      
+      if (!rowToUpdate) {
+        return section; // If row not found, return section unchanged
+      }
+      
+      // Create updated row
+      const updatedRow = { ...rowToUpdate, [field]: value };
+      
+      // If quantity (no) field is being changed, check max_capacity constraint
+      if (field === 'no' && updatedRow.max_capacity && updatedRow.no > updatedRow.max_capacity) {
+        // Remove the original row and create two new rows based on max_capacity
+        const newRows = section.rows.filter(row => row.id !== id);
+        
+        // Create the first row with max_capacity quantity
+        const firstRow = {
+          ...updatedRow,
+          id: `${updatedRow.id}-split-1`,
+          no: updatedRow.max_capacity,
+          description: `${updatedRow.description} (max capacity)`
+        };
+        
+        // Calculate remaining capacity
+        const remainingCapacity = updatedRow.no - updatedRow.max_capacity;
+        
+        // Create additional row with remaining capacity
+        const additionalRow = {
+          ...updatedRow,
+          id: `${updatedRow.id}-split-2`,
+          no: remainingCapacity,
+          description: `${updatedRow.description} (additional capacity)`
+        };
+        
+        // Calculate totals for both rows
+        if (sectionId === 'permits' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
+          firstRow.total = calculatePermitTotal(firstRow, firstRow.no, firstRow.times);
+          additionalRow.total = calculatePermitTotal(additionalRow, additionalRow.no, additionalRow.times);
+        } else if (sectionId === 'services' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
+          firstRow.total = calculateServiceTotal(firstRow, firstRow.no, firstRow.times);
+          additionalRow.total = calculateServiceTotal(additionalRow, additionalRow.no, additionalRow.times);
+        } else if (sectionId === 'extraDetails' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
+          firstRow.total = calculateExtraServiceTotal(firstRow, firstRow.no, firstRow.times);
+          additionalRow.total = calculateExtraServiceTotal(additionalRow, additionalRow.no, additionalRow.times);
+        } else {
+          firstRow.total = (firstRow.rate || 0) * firstRow.no * (firstRow.times || 0);
+          additionalRow.total = (additionalRow.rate || 0) * additionalRow.no * (additionalRow.times || 0);
         }
-        return row;
-      })
-    }));
+        
+        return {
+          ...section,
+          rows: [...newRows, firstRow, additionalRow]
+        };
+      } else {
+        // For regular updates, just update the row
+        const updatedRows = section.rows.map(row => {
+          if (row.id === id) {
+            const newRow = { ...row, [field]: value };
+            if (field === 'no' || field === 'rate' || field === 'times') {
+              // Calculate total based on properties if it's a permit row
+              if (sectionId === 'permits' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
+                newRow.total = calculatePermitTotal(newRow, newRow.no || 0, newRow.times || 0);
+              } else if (sectionId === 'services' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
+                newRow.total = calculateServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
+              } else if (sectionId === 'extraDetails' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
+                newRow.total = calculateExtraServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
+              } else {
+                newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+              }
+            }
+            return newRow;
+          }
+          return row;
+        });
+        
+        return {
+          ...section,
+          rows: updatedRows
+        };
+      }
+    });
   }, [handleSectionUpdate]);
 
   const handleDiscountTypeChange = useCallback((sectionId: string, type: 'amount' | 'percentage') => {
@@ -361,9 +633,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
       };
     });
-    // Set to step 0 to show Group Details (which is at index 0 in allCostingStepsMetadata)
-    // When initialData exists, stepIndex = currentStep, so currentStep 0 = Group Details
-    setCurrentStep(0);
+    // Trek selection is complete, do not change the current step
+    // The current step should remain as it is to maintain user's workflow position
   }, [treks, onTrekSelect]);
 
   const addRow = useCallback((sectionId: string) => {
@@ -649,11 +920,38 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           onSubmit={handleFinish}
           isRateReadOnly={true}
           hideAddRow={true}
+          // Additional props for extra services section
+          onAddExtraService={onAddExtraService}
+          allExtraServices={allExtraServices}
+          isLoadingAllExtraServices={isLoadingAllExtraServices}
         />
       );
     }
 
-    if (activeStepData.id === 'permits' || activeStepData.id === 'services' || report.customSections.some(cs => cs.id === activeStepData.id)) {
+    if (activeStepData.id === 'permits') {
+      return (
+        <CostTable
+          section={report[activeStepData.id as keyof ReportState] as SectionState}
+          isCustom={false}
+          isDescriptionEditable={!isReadOnly}
+          isReadOnly={isReadOnly}
+          onRowChange={handleRowChange}
+          onDiscountTypeChange={handleDiscountTypeChange}
+          onDiscountValueChange={handleDiscountValueChange}
+          onDiscountRemarksChange={handleDiscountRemarksChange}
+          onAddRow={undefined}
+          onRemoveRow={isReadOnly ? undefined : removeRow}
+          onEditSection={isReadOnly ? undefined : handleOpenEditSectionModal}
+          onRemoveSection={isReadOnly ? undefined : removeSection}
+          isRateReadOnly={false}
+          hideAddRow={true}
+          // Additional props for permits section
+          onAddPermit={onAddPermit}
+          allPermits={allPermits}
+          isLoadingAllPermits={isLoadingAllPermits}
+        />
+      );
+    } else if (activeStepData.id === 'services' || report.customSections.some(cs => cs.id === activeStepData.id)) {
       return (
         <CostTable
           section={report[activeStepData.id as keyof ReportState] as SectionState || report.customSections.find(cs => cs.id === activeStepData.id)!}
@@ -668,8 +966,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           onRemoveRow={isReadOnly ? undefined : removeRow}
           onEditSection={isReadOnly ? undefined : handleOpenEditSectionModal}
           onRemoveSection={isReadOnly ? undefined : removeSection}
-          isRateReadOnly={activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'extraDetails'}
+          isRateReadOnly={activeStepData.id === 'services' || activeStepData.id === 'extraDetails'}
           hideAddRow={true}
+          // Additional props for services and extra services sections
+          onAddService={activeStepData.id === 'services' ? onAddService : undefined}
+          onAddExtraService={activeStepData.id === 'extraDetails' ? onAddExtraService : undefined}
+          allServices={activeStepData.id === 'services' ? allServices : undefined}
+          allExtraServices={activeStepData.id === 'extraDetails' ? allExtraServices : undefined}
+          isLoadingAllServices={activeStepData.id === 'services' ? isLoadingAllServices : undefined}
+          isLoadingAllExtraServices={activeStepData.id === 'extraDetails' ? isLoadingAllExtraServices : undefined}
         />
       );
     }

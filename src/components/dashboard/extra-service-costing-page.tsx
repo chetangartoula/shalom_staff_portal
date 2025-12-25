@@ -60,7 +60,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     service.params.forEach((param: any) => {
                         extraRows.push({
                             id: crypto.randomUUID(),
-                            description: param.name || service.service_name,
+                            description: `${service.service_name} - ${param.name}`,
                             rate: Number(param.rate),
                             no: Number(param.numbers),
                             times: Number(param.times),
@@ -218,11 +218,16 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     const getTransformedPayload = useCallback(() => {
         const extraServicesMap = new Map();
         report.extraDetails.rows.forEach(row => {
-            if (!extraServicesMap.has(row.description)) {
-                extraServicesMap.set(row.description, { service_name: row.description, params: [] });
+            // Split the combined description to get service_name and param name
+            const parts = row.description.split(' - ');
+            const service_name = parts[0] || row.description; // If no separator, use the full description as service_name
+            const param_name = parts[1] || row.description; // If no separator, use the full description as param name
+            
+            if (!extraServicesMap.has(service_name)) {
+                extraServicesMap.set(service_name, { service_name: service_name, params: [] });
             }
-            extraServicesMap.get(row.description).params.push({
-                name: row.description, rate: row.rate, numbers: row.no, times: row.times
+            extraServicesMap.get(service_name).params.push({
+                name: param_name, rate: row.rate, numbers: row.no, times: row.times
             });
         });
 
