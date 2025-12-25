@@ -33,39 +33,96 @@ const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:80
 
 // Generic fetch function with error handling
 async function fetchFromAPI<T>(endpoint: string): Promise<T> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const controller = new AbortController();
+  const TIMEOUT_MS = 30000; // 30 seconds timeout
+  
+  // Set a timeout to abort the request if it takes too long
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
+  try {
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
       },
+      credentials: 'include',
     });
 
+    // Clear the timeout as we got a response
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      // Handle specific HTTP status codes
-      if (response.status === 404) {
-        throw new Error(`404: Resource not found at ${endpoint}`);
-      } else if (response.status === 401) {
-        throw new Error(`401: Unauthorized access to ${endpoint}`);
-      } else if (response.status === 500) {
-        throw new Error(`500: Internal server error at ${endpoint}`);
-      } else {
-        throw new Error(`API request failed with status ${response.status} for ${endpoint}`);
+      let errorMessage = `API request failed with status ${response.status} for ${endpoint}`;
+      
+      // Try to get more detailed error message from response
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.message) {
+          errorMessage = `${response.status}: ${errorData.message}`;
+        }
+      } catch (e) {
+        // If we can't parse the error response, use the status code
+        switch (response.status) {
+          case 400:
+            errorMessage = `400: Bad request - The request was invalid or cannot be served`;
+            break;
+          case 401:
+            errorMessage = `401: Unauthorized - Authentication is required and has failed or has not been provided`;
+            break;
+          case 403:
+            errorMessage = `403: Forbidden - The server understood the request but refuses to authorize it`;
+            break;
+          case 404:
+            errorMessage = `404: Not Found - The requested resource was not found at ${endpoint}`;
+            break;
+          case 408:
+            errorMessage = `408: Request Timeout - The server timed out waiting for the request`;
+            break;
+          case 500:
+            errorMessage = `500: Internal Server Error - The server encountered an unexpected condition`;
+            break;
+          case 502:
+            errorMessage = `502: Bad Gateway - The server received an invalid response from the upstream server`;
+            break;
+          case 503:
+            errorMessage = `503: Service Unavailable - The server is currently unavailable`;
+            break;
+          case 504:
+            errorMessage = `504: Gateway Timeout - The server did not receive a timely response from the upstream server`;
+            break;
+        }
+      }
+      
+      // Log the error for debugging
+      console.error(`API Error (${response.status}): ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+
+    // Parse and return the response data
+    try {
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw new Error(`Failed to parse JSON response from ${endpoint}`);
+    }
+  } catch (error) {
+    // Clean up the timeout if the request completes with an error
+    clearTimeout(timeoutId);
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout - The server took too long to respond (${TIMEOUT_MS/1000} seconds)`);
+      }
+      
+      // Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        throw new Error('Network error - Unable to connect to the server. Please check your internet connection.');
       }
     }
-
-    const data = await response.json();
-
-    return data;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Request timeout - the server took too long to respond');
-    }
+    
+    // Re-throw the original error if we don't have a specific handler for it
     throw error;
   }
 }

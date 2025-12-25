@@ -8,6 +8,7 @@ import { TrekPopularityChart } from './trek-popularity-chart';
 import { TeamAvailabilityChart } from './team-availability-chart';
 import { PaymentChart } from './payment-chart';
 import { fetchDashboardStats } from '@/lib/api-service';
+import { ErrorMessage } from '@/components/ui/error-message';
 
 export function DashboardContent() {
     // Use React Query for fetching all dashboard data from single endpoint
@@ -28,8 +29,17 @@ export function DashboardContent() {
 
     if (error) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <p className="text-destructive">Failed to load dashboard data. Please try again.</p>
+            <div className="container mx-auto p-6 max-w-6xl">
+                <ErrorMessage 
+                    title="Dashboard Unavailable"
+                    message={
+                        error instanceof Error 
+                            ? error.message 
+                            : 'Failed to load dashboard data. Please check your connection and try again.'
+                    }
+                    onRetry={() => window.location.reload()}
+                    className="min-h-[400px] my-8"
+                />
             </div>
         );
     }
