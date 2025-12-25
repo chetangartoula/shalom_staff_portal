@@ -4,7 +4,15 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/shadcn/button";
 import { Input } from "@/components/ui/shadcn/input";
 import { Label } from "@/components/ui/shadcn/label";
-import { Trash2, Plus, Edit, Save, X, DollarSign, Percent } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/shadcn/dialog";
+import { Trash2, Plus, Edit, Save, X, DollarSign, Percent, Loader2 } from 'lucide-react';
 import { formatCurrency } from "@/lib/utils";
 import type { CostRow, SectionState } from "@/lib/types";
 import { Checkbox } from '../ui/shadcn/checkbox';
@@ -27,6 +35,18 @@ interface CostTableProps {
   hideAddRow?: boolean;
   onEditSection?: (section: SectionState) => void;
   onRemoveSection?: (sectionId: string) => void;
+  // Additional props for permits section
+  onAddPermit?: (permit: any) => void;
+  allPermits?: any[];
+  isLoadingAllPermits?: boolean;
+  // Additional props for services section
+  onAddService?: (service: any) => void;
+  allServices?: any[];
+  isLoadingAllServices?: boolean;
+  // Additional props for extra services section
+  onAddExtraService?: (extraService: any) => void;
+  allExtraServices?: any[];
+  isLoadingAllExtraServices?: boolean;
 }
 
 export function CostTable({
@@ -45,11 +65,27 @@ export function CostTable({
   onEditSection,
   onRemoveSection,
   isRateReadOnly = false,
-  hideAddRow = false
+  hideAddRow = false,
+  onAddPermit,
+  allPermits,
+  isLoadingAllPermits,
+  onAddService,
+  allServices,
+  isLoadingAllServices,
+  onAddExtraService,
+  allExtraServices,
+  isLoadingAllExtraServices
 }: CostTableProps) {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [tempDescription, setTempDescription] = useState('');
   const [localDiscount, setLocalDiscount] = useState(section.discountValue?.toString() || '');
+  const [isAddPermitDialogOpen, setIsAddPermitDialogOpen] = useState(false);
+  const [isAddServiceDialogOpen, setIsAddServiceDialogOpen] = useState(false);
+  const [isAddExtraServiceDialogOpen, setIsAddExtraServiceDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPermits, setSelectedPermits] = useState<Set<string>>(new Set());
+  const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
+  const [selectedExtraServices, setSelectedExtraServices] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLocalDiscount(section.discountValue?.toString() || '');
@@ -71,6 +107,14 @@ export function CostTable({
     setTempDescription('');
   };
 
+  // Function to enforce max_capacity constraint
+  const enforceMaxCapacity = (row: CostRow, newValue: number) => {
+    if (row.max_capacity !== undefined && newValue > row.max_capacity) {
+      return row.max_capacity;
+    }
+    return newValue;
+  };
+
   const calculateSectionTotals = () => {
     const subtotal = section.rows.reduce((acc, row) => acc + (row.total || 0), 0);
     const discountVal = Number(section.discountValue || 0);
@@ -82,6 +126,36 @@ export function CostTable({
     return { subtotal: subtotal || 0, total: total || 0, discountAmount: discountAmount || 0 };
   };
 
+  // Filter permits based on search term
+  const filteredPermits = allPermits?.filter(permit => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      permit.name.toLowerCase().includes(searchLower) ||
+      (permit.from_place && permit.from_place.toLowerCase().includes(searchLower)) ||
+      (permit.to_place && permit.to_place.toLowerCase().includes(searchLower))
+    );
+  });
+  
+  // Filter services based on search term
+  const filteredServices = allServices?.filter(service => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      service.name.toLowerCase().includes(searchLower) ||
+      (service.from_place && service.from_place.toLowerCase().includes(searchLower)) ||
+      (service.to_place && service.to_place.toLowerCase().includes(searchLower))
+    );
+  });
+  
+  // Filter extra services based on search term
+  const filteredExtraServices = allExtraServices?.filter(extraService => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      extraService.serviceName?.toLowerCase().includes(searchLower) ||
+      (extraService.from_place && extraService.from_place.toLowerCase().includes(searchLower)) ||
+      (extraService.to_place && extraService.to_place.toLowerCase().includes(searchLower))
+    );
+  });
+  
   const totals = calculateSectionTotals();
 
   return (
@@ -100,16 +174,36 @@ export function CostTable({
             </Button>
           )}
         </div>
-        {isCustom && onRemoveSection && !isReadOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onRemoveSection(section.id)}
-            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-          >
-            <Trash2 className="mr-2 h-4 w-4" /> Remove Section
-          </Button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Add Permits button for permits section */}
+          {section.id === 'permits' && onAddPermit && (
+            <Button onClick={() => setIsAddPermitDialogOpen(true)} variant="outline" className="border-dashed">
+              <Plus className="mr-2 h-4 w-4" /> Add Permits
+            </Button>
+          )}
+          {/* Add Services button for services section */}
+          {section.id === 'services' && onAddService && (
+            <Button onClick={() => setIsAddServiceDialogOpen(true)} variant="outline" className="border-dashed">
+              <Plus className="mr-2 h-4 w-4" /> Add Services
+            </Button>
+          )}
+          {/* Add Extra Services button for extra services section */}
+          {section.id === 'extraDetails' && onAddExtraService && (
+            <Button onClick={() => setIsAddExtraServiceDialogOpen(true)} variant="outline" className="border-dashed">
+              <Plus className="mr-2 h-4 w-4" /> Add Extra Services
+            </Button>
+          )}
+          {isCustom && onRemoveSection && !isReadOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onRemoveSection(section.id)}
+              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Remove Section
+            </Button>
+          )}
+        </div>
       </div>
 
 
@@ -157,14 +251,17 @@ export function CostTable({
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col">
                       <span>{row.description}</span>
+                      {row.location && (
+                        <span className="text-xs text-muted-foreground">{row.location}</span>
+                      )}
                       {isDescriptionEditable && !isReadOnly && (
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditRow(row)}
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity self-start"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -178,19 +275,29 @@ export function CostTable({
                     value={row.rate || 0}
                     onChange={(e) => onRowChange(row.id, 'rate', Number(e.target.value), section.id)}
                     className="text-right"
-                    readOnly={isReadOnly || isRateReadOnly}
-                    disabled={isReadOnly || isRateReadOnly}
+                    readOnly={isReadOnly || isRateReadOnly || (section.id === 'permits' && row.is_editable === false)}
+                    disabled={isReadOnly || isRateReadOnly || (section.id === 'permits' && row.is_editable === false)}
                   />
+                  {section.id === 'permits' && row.is_editable === false && (
+                    <div className="text-xs text-muted-foreground mt-1">Rate is locked</div>
+                  )}
                 </td>
                 <td className="p-4">
                   <Input
                     type="number"
                     value={row.no || 0}
-                    onChange={(e) => onRowChange(row.id, 'no', Number(e.target.value), section.id)}
+                    onChange={(e) => {
+                      const newValue = Number(e.target.value);
+                      const finalValue = enforceMaxCapacity(row, newValue);
+                      onRowChange(row.id, 'no', finalValue, section.id);
+                    }}
                     className="text-right"
                     readOnly={isReadOnly}
                     disabled={isReadOnly}
                   />
+                  {row.max_capacity !== undefined && row.no !== undefined && row.no > row.max_capacity && (
+                    <div className="text-xs text-red-500 mt-1">Max capacity: {row.max_capacity}</div>
+                  )}
                 </td>
                 <td className="p-4">
                   <Input
@@ -275,6 +382,306 @@ export function CostTable({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Permits Dialog */}
+      {section.id === 'permits' && onAddPermit && (
+        <Dialog open={isAddPermitDialogOpen} onOpenChange={setIsAddPermitDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Permits</DialogTitle>
+              <DialogDescription>
+                Select permits to add to your cost calculation
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAllPermits ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading permits...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <Input
+                  placeholder="Search permits..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
+                  {filteredPermits && filteredPermits.length > 0 ? (
+                    filteredPermits.map((permit) => (
+                      <div 
+                        key={permit.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium">{permit.name}</div>
+                          {permit.from_place && permit.to_place && (
+                            <div className="text-sm text-muted-foreground">{permit.from_place} to {permit.to_place}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground">Rate: {formatCurrency(parseFloat(permit.rate))}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-1 mt-1">
+                            {permit.per_person && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Per Person</span>}
+                            {permit.per_day && <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">Per Day</span>}
+                            {permit.one_time && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">One Time</span>}
+                            {!permit.per_person && !permit.per_day && !permit.one_time && (
+                              <span className="text-muted-foreground italic">Standard</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const newSelected = new Set(selectedPermits);
+                            if (selectedPermits.has(permit.id)) {
+                              newSelected.delete(permit.id);
+                            } else {
+                              newSelected.add(permit.id);
+                            }
+                            setSelectedPermits(newSelected);
+                          }}
+                          variant="outline"
+                          className={selectedPermits.has(permit.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                        >
+                          {selectedPermits.has(permit.id) ? 'Selected' : 'Select'}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No permits found</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between">
+              <Button 
+                onClick={() => setIsAddPermitDialogOpen(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add all selected permits
+                  if (allPermits && selectedPermits.size > 0) {
+                    const permitsToAdd = allPermits.filter((permit: any) => selectedPermits.has(permit.id));
+                    permitsToAdd.forEach(permit => {
+                      onAddPermit(permit);
+                    });
+                  }
+                  setIsAddPermitDialogOpen(false);
+                  // Clear selected permits
+                  setSelectedPermits(new Set());
+                }}
+                variant="default"
+                disabled={selectedPermits.size === 0}
+              >
+                Add Selected ({selectedPermits.size})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Services Dialog */}
+      {section.id === 'services' && onAddService && (
+        <Dialog open={isAddServiceDialogOpen} onOpenChange={setIsAddServiceDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Services</DialogTitle>
+              <DialogDescription>
+                Select services to add to your cost calculation
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAllServices ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading services...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <Input
+                  placeholder="Search services..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
+                  {filteredServices && filteredServices.length > 0 ? (
+                    filteredServices.map((service) => (
+                      <div 
+                        key={service.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium">{service.name}</div>
+                          {service.from_place && service.to_place && (
+                            <div className="text-sm text-muted-foreground">{service.from_place} to {service.to_place}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground">Rate: {formatCurrency(parseFloat(service.rate))}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-1 mt-1">
+                            {service.per_person && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Per Person</span>}
+                            {service.per_day && <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">Per Day</span>}
+                            {service.one_time && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">One Time</span>}
+                            {!service.per_person && !service.per_day && !service.one_time && (
+                              <span className="text-muted-foreground italic">Standard</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const newSelected = new Set(selectedServices);
+                            if (selectedServices.has(service.id)) {
+                              newSelected.delete(service.id);
+                            } else {
+                              newSelected.add(service.id);
+                            }
+                            setSelectedServices(newSelected);
+                          }}
+                          variant="outline"
+                          className={selectedServices.has(service.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                        >
+                          {selectedServices.has(service.id) ? 'Selected' : 'Select'}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No services found</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between">
+              <Button 
+                onClick={() => setIsAddServiceDialogOpen(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add all selected services
+                  if (allServices && selectedServices.size > 0) {
+                    const servicesToAdd = allServices.filter((service: any) => selectedServices.has(service.id));
+                    servicesToAdd.forEach(service => {
+                      onAddService(service);
+                    });
+                  }
+                  setIsAddServiceDialogOpen(false);
+                  // Clear selected services
+                  setSelectedServices(new Set());
+                }}
+                variant="default"
+                disabled={selectedServices.size === 0}
+              >
+                Add Selected ({selectedServices.size})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Extra Services Dialog */}
+      {section.id === 'extraDetails' && onAddExtraService && (
+        <Dialog open={isAddExtraServiceDialogOpen} onOpenChange={setIsAddExtraServiceDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Extra Services</DialogTitle>
+              <DialogDescription>
+                Select extra services to add to your cost calculation
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAllExtraServices ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading extra services...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <Input
+                  placeholder="Search extra services..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
+                  {filteredExtraServices && filteredExtraServices.length > 0 ? (
+                    filteredExtraServices.map((extraService) => (
+                      <div 
+                        key={extraService.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium">{extraService.serviceName}</div>
+                          {extraService.from_place && extraService.to_place && (
+                            <div className="text-sm text-muted-foreground">{extraService.from_place} to {extraService.to_place}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground">Rate: {formatCurrency(parseFloat(extraService.rate))}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-1 mt-1">
+                            {extraService.per_person && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Per Person</span>}
+                            {extraService.per_day && <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">Per Day</span>}
+                            {extraService.one_time && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">One Time</span>}
+                            {!extraService.per_person && !extraService.per_day && !extraService.one_time && (
+                              <span className="text-muted-foreground italic">Standard</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const newSelected = new Set(selectedExtraServices);
+                            if (selectedExtraServices.has(extraService.id)) {
+                              newSelected.delete(extraService.id);
+                            } else {
+                              newSelected.add(extraService.id);
+                            }
+                            setSelectedExtraServices(newSelected);
+                          }}
+                          variant="outline"
+                          className={selectedExtraServices.has(extraService.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                        >
+                          {selectedExtraServices.has(extraService.id) ? 'Selected' : 'Select'}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No extra services found</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between">
+              <Button 
+                onClick={() => setIsAddExtraServiceDialogOpen(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add all selected extra services
+                  if (allExtraServices && selectedExtraServices.size > 0) {
+                    const extraServicesToAdd = allExtraServices.filter((extraService: any) => selectedExtraServices.has(extraService.id));
+                    extraServicesToAdd.forEach(extraService => {
+                      onAddExtraService(extraService);
+                    });
+                  }
+                  setIsAddExtraServiceDialogOpen(false);
+                  // Clear selected extra services
+                  setSelectedExtraServices(new Set());
+                }}
+                variant="default"
+                disabled={selectedExtraServices.size === 0}
+              >
+                Add Selected ({selectedExtraServices.size})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       <div className="flex flex-col sm:flex-row justify-end gap-4">

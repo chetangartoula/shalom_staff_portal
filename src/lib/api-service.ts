@@ -288,7 +288,7 @@ export async function fetchTrips(): Promise<{ trips: Trek[] }> {
     const transformedTrips: Trek[] = data.trips.map(trip => ({
       id: trip.id.toString(),
       name: trip.title,
-      description: trip.sub_title,
+      description: trip.combined_info,
       permits: [] // Permits would need to be fetched separately or added manually
     }));
 
@@ -308,7 +308,42 @@ export async function fetchPermits(tripId: string): Promise<any[]> {
       id: permit.id.toString(),
       name: permit.name,
       rate: parseFloat(permit.rate), // Convert string rate to number
-      times: permit.times
+      times: permit.times,
+      per_person: permit.per_person,
+      per_day: permit.per_day,
+      one_time: permit.one_time,
+      is_default: permit.is_default,
+      is_editable: permit.is_editable,
+      max_capacity: permit.max_capacity,
+      from_place: permit.from_place,
+      to_place: permit.to_place
+    }));
+
+    return transformedPermits;
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Fetch all permits for a specific trip
+export async function fetchAllPermits(tripId: string): Promise<any[]> {
+  try {
+    const data = await fetchFromAPI<APIPermit[]>(`/staff/permit-list/${tripId}/`);
+
+    // Transform the API response to match our Permit type
+    const transformedPermits = data.map(permit => ({
+      id: permit.id.toString(),
+      name: permit.name,
+      rate: parseFloat(permit.rate), // Convert string rate to number
+      times: permit.times,
+      per_person: permit.per_person,
+      per_day: permit.per_day,
+      one_time: permit.one_time,
+      is_default: permit.is_default,
+      is_editable: permit.is_editable,
+      max_capacity: permit.max_capacity,
+      from_place: permit.from_place,
+      to_place: permit.to_place
     }));
 
     return transformedPermits;
@@ -327,7 +362,16 @@ export async function fetchServices(tripId: string = '32'): Promise<any[]> {
       id: service.id.toString(),
       name: service.name,
       rate: parseFloat(service.rate), // Convert string rate to number
-      times: service.times
+      times: service.times,
+      // Add the same properties as permits for consistency
+      per_person: service.per_person || false,
+      per_day: service.per_day || false,
+      one_time: service.one_time || false,
+      is_default: service.is_default || false,
+      is_editable: service.is_editable || true,
+      max_capacity: service.max_num,
+      from_place: service.from_place || '',
+      to_place: service.to_place || ''
     }));
 
     return transformedServices;
@@ -341,13 +385,26 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
   try {
     const data = await fetchFromAPI<APIExtraService[]>(`/staff/extra-service-list/${tripId}/`);
 
-    // Transform the API response
-    const transformedExtraServices = data.map(extraService => ({
-      id: extraService.id.toString(),
-      serviceName: extraService.service_name,
-      params: extraService.params,
-      times: extraService.times
-    }));
+    // Transform the API response - flatten the params structure to make each param a separate service
+    const transformedExtraServices = data.flatMap(extraService => {
+      return extraService.params.map(param => ({
+        id: `${extraService.id}-${param.name.replace(/\s+/g, '-')}`, // Create unique ID
+        serviceName: extraService.service_name,
+        name: param.name,
+        description: `${extraService.service_name} - ${param.name}`,
+        rate: parseFloat(param.rate.toString()),
+        times: extraService.times,
+        // Use the param-level properties if available, fallback to service-level
+        per_person: param.per_person !== undefined ? param.per_person : (extraService.per_person || false),
+        per_day: param.per_day !== undefined ? param.per_day : (extraService.per_day || false),
+        one_time: param.one_time !== undefined ? param.one_time : (extraService.one_time || false),
+        is_default: param.is_default !== undefined ? param.is_default : (extraService.is_default || false),
+        is_editable: param.is_editable !== undefined ? param.is_editable : (extraService.is_editable || true),
+        max_capacity: param.max_capacity !== undefined ? param.max_capacity : (extraService.max_num || null),
+        from_place: param.from_place || extraService.from_place || '',
+        to_place: param.to_place || extraService.to_place || ''
+      }));
+    });
 
     return transformedExtraServices;
   } catch (error) {
@@ -408,7 +465,7 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
         rows: item.extra_services.flatMap((extraService, serviceIndex) =>
           extraService.params.map((param, paramIndex) => ({
             id: `extra-${serviceIndex}-${paramIndex}`,
-            description: param.name,
+            description: `${extraService.service_name} - ${param.name}`,
             rate: param.rate,
             no: param.numbers,
             times: param.times,
@@ -507,7 +564,7 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
       rows: item.extra_services.flatMap((extraService, serviceIndex) =>
         extraService.params.map((param, paramIndex) => ({
           id: `extra-${serviceIndex}-${paramIndex}`,
-          description: param.name,
+          description: `${extraService.service_name} - ${param.name}`,
           rate: param.rate,
           no: param.numbers,
           times: param.times,
