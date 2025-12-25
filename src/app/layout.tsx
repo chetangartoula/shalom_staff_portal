@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Toaster } from "@/components/ui/shadcn/toaster";
 import { PWAManager } from "@/components/pwa-register";
@@ -30,7 +29,6 @@ export default function RootLayout({
       <body className="bg-muted/40">
         <ReactQueryProvider>
           {children}
-          <SpeedInsights />
         </ReactQueryProvider>
         <PWAManager />
         {/* <PWAInstallPrompt /> */}

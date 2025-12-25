@@ -38,11 +38,17 @@ const nextConfig: NextConfig = {
         port: '8000',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'mercury.shalomtrek.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
-  env: {
-    NEXT_PUBLIC_APP_URL: 'https://shalom-staff-portal.vercel.app',
-  },
+  // env: {
+  //   NEXT_PUBLIC_APP_URL: 'https://shalom-staff-portal.vercel.app',
+  // },
 
   compiler: {
     reactRemoveProperties: process.env.NODE_ENV === 'production',

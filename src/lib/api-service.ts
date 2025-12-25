@@ -45,9 +45,8 @@ async function fetchFromAPI<T>(endpoint: string): Promise<T> {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
       },
-      credentials: 'include',
+      // credentials: 'include',
     });
 
     // Clear the timeout as we got a response
