@@ -183,6 +183,18 @@ export interface APIGroupAndPackage {
         times: number;
         numbers: number;
     }>;
+    accommodation: Array<{
+        name: string;
+        rate: number;
+        times: number;
+        numbers: number;
+    }>;
+    transportation: Array<{
+        name: string;
+        rate: number;
+        times: number;
+        numbers: number;
+    }>;
     extra_services: Array<{
         service_name: string;
         params: Array<{
@@ -201,6 +213,12 @@ export interface APIGroupAndPackage {
     permit_discount: string;
     permit_discount_type: string;
     permit_discount_remarks: string;
+    accommodation_discount: string;
+    accommodation_discount_type: string;
+    accommodation_discount_remarks: string;
+    transportation_discount: string;
+    transportation_discount_type: string;
+    transportation_discount_remarks: string;
     overall_discount: string;
     overall_discount_type: string;
     overall_discount_remarks: string;

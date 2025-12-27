@@ -24,6 +24,7 @@ interface CostTableProps {
   onSetUsePax?: (sectionId: string, value: boolean) => void;
   isCustom?: boolean;
   isDescriptionEditable?: boolean;
+  isDescriptionInlineEditable?: boolean; // New prop to allow direct inline editing of descriptions
   isReadOnly?: boolean; // New prop to make the table read-only
   onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
   onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
@@ -47,6 +48,14 @@ interface CostTableProps {
   onAddExtraService?: (extraService: any) => void;
   allExtraServices?: any[];
   isLoadingAllExtraServices?: boolean;
+  // Additional props for accommodation section
+  onAddAccommodation?: (accommodation: any) => void;
+  allAccommodations?: any[];
+  isLoadingAllAccommodations?: boolean;
+  // Additional props for transportation section
+  onAddTransportation?: (transportation: any) => void;
+  allTransportations?: any[];
+  isLoadingAllTransportations?: boolean;
 }
 
 export function CostTable({
@@ -55,6 +64,7 @@ export function CostTable({
   onSetUsePax = () => { },
   isCustom = false,
   isDescriptionEditable = true,
+  isDescriptionInlineEditable = false,
   isReadOnly = false,
   onRowChange,
   onDiscountTypeChange,
@@ -74,7 +84,13 @@ export function CostTable({
   isLoadingAllServices,
   onAddExtraService,
   allExtraServices,
-  isLoadingAllExtraServices
+  isLoadingAllExtraServices,
+  onAddAccommodation,
+  allAccommodations,
+  isLoadingAllAccommodations,
+  onAddTransportation,
+  allTransportations,
+  isLoadingAllTransportations
 }: CostTableProps) {
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [tempDescription, setTempDescription] = useState('');
@@ -82,10 +98,14 @@ export function CostTable({
   const [isAddPermitDialogOpen, setIsAddPermitDialogOpen] = useState(false);
   const [isAddServiceDialogOpen, setIsAddServiceDialogOpen] = useState(false);
   const [isAddExtraServiceDialogOpen, setIsAddExtraServiceDialogOpen] = useState(false);
+  const [isAddAccommodationDialogOpen, setIsAddAccommodationDialogOpen] = useState(false);
+  const [isAddTransportationDialogOpen, setIsAddTransportationDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPermits, setSelectedPermits] = useState<Set<string>>(new Set());
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
   const [selectedExtraServices, setSelectedExtraServices] = useState<Set<string>>(new Set());
+  const [selectedAccommodations, setSelectedAccommodations] = useState<Set<string>>(new Set());
+  const [selectedTransportations, setSelectedTransportations] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setLocalDiscount(section.discountValue?.toString() || '');
@@ -159,6 +179,25 @@ export function CostTable({
     );
   });
   
+  // Filter accommodations based on search term
+  const filteredAccommodations = allAccommodations?.filter(accommodation => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      accommodation.name.toLowerCase().includes(searchLower) ||
+      (accommodation.from_place && accommodation.from_place.toLowerCase().includes(searchLower))
+    );
+  });
+  
+  // Filter transportations based on search term
+  const filteredTransportations = allTransportations?.filter(transportation => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      transportation.name.toLowerCase().includes(searchLower) ||
+      (transportation.from_place && transportation.from_place.toLowerCase().includes(searchLower)) ||
+      (transportation.to_place && transportation.to_place.toLowerCase().includes(searchLower))
+    );
+  });
+  
   const totals = calculateSectionTotals();
 
   return (
@@ -194,6 +233,18 @@ export function CostTable({
           {section.id === 'extraDetails' && onAddExtraService && (
             <Button onClick={() => setIsAddExtraServiceDialogOpen(true)} variant="outline" className="border-dashed">
               <Plus className="mr-2 h-4 w-4" /> Add Extra Services
+            </Button>
+          )}
+          {/* Add Accommodations button for accommodation section */}
+          {section.id === 'accommodation' && onAddAccommodation && (
+            <Button onClick={() => setIsAddAccommodationDialogOpen(true)} variant="outline" className="border-dashed">
+              <Plus className="mr-2 h-4 w-4" /> Add Accommodations
+            </Button>
+          )}
+          {/* Add Transportation button for transportation section */}
+          {section.id === 'transportation' && onAddTransportation && (
+            <Button onClick={() => setIsAddTransportationDialogOpen(true)} variant="outline" className="border-dashed">
+              <Plus className="mr-2 h-4 w-4" /> Add Transportation
             </Button>
           )}
           {isCustom && onRemoveSection && !isReadOnly && (
@@ -253,6 +304,13 @@ export function CostTable({
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
+                  ) : isDescriptionInlineEditable && !isReadOnly ? (
+                    <Input
+                      value={row.description}
+                      onChange={(e) => onRowChange(row.id, 'description', e.target.value, section.id)}
+                      className="w-full"
+                      placeholder="Enter description"
+                    />
                   ) : (
                     <div className="flex flex-col">
                       <span>{row.description}</span>
@@ -295,8 +353,8 @@ export function CostTable({
                       onRowChange(row.id, 'no', finalValue, section.id);
                     }}
                     className="text-right"
-                    readOnly={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_person)}
-                    disabled={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_person)}
+                    readOnly={isReadOnly}
+                    disabled={isReadOnly}
                   />
                   {row.max_capacity !== undefined && row.no !== undefined && row.no > row.max_capacity && (
                     <div className="text-xs text-red-500 mt-1">Max capacity: {row.max_capacity}</div>
@@ -308,8 +366,8 @@ export function CostTable({
                     value={row.times || 0}
                     onChange={(e) => onRowChange(row.id, 'times', Number(e.target.value), section.id)}
                     className="text-right"
-                    readOnly={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_day)}
-                    disabled={isReadOnly || row.one_time || (!row.one_time && !row.per_person && !row.per_day ? false : !row.per_day)}
+                    readOnly={isReadOnly}
+                    disabled={isReadOnly}
                   />
                 </td>
                 <td className="p-4 text-right font-medium">
@@ -681,6 +739,206 @@ export function CostTable({
                 disabled={selectedExtraServices.size === 0}
               >
                 Add Selected ({selectedExtraServices.size})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Accommodations Dialog */}
+      {section.id === 'accommodation' && onAddAccommodation && (
+        <Dialog open={isAddAccommodationDialogOpen} onOpenChange={setIsAddAccommodationDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Accommodations</DialogTitle>
+              <DialogDescription>
+                Select accommodations to add to your cost calculation
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAllAccommodations ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading accommodations...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <Input
+                  placeholder="Search accommodations..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
+                  {filteredAccommodations && filteredAccommodations.length > 0 ? (
+                    filteredAccommodations.map((accommodation) => (
+                      <div 
+                        key={accommodation.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium">{accommodation.name}</div>
+                          {accommodation.from_place && (
+                            <div className="text-sm text-muted-foreground">Location: {accommodation.from_place}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground">Rate: {formatCurrency(parseFloat(accommodation.rate))}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-1 mt-1">
+                            {accommodation.per_person && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Per Person</span>}
+                            {accommodation.per_day && <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">Per Day</span>}
+                            {accommodation.one_time && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">One Time</span>}
+                            {!accommodation.per_person && !accommodation.per_day && !accommodation.one_time && (
+                              <span className="text-muted-foreground italic">Standard</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const newSelected = new Set(selectedAccommodations);
+                            if (selectedAccommodations.has(accommodation.id)) {
+                              newSelected.delete(accommodation.id);
+                            } else {
+                              newSelected.add(accommodation.id);
+                            }
+                            setSelectedAccommodations(newSelected);
+                          }}
+                          variant="outline"
+                          className={selectedAccommodations.has(accommodation.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                        >
+                          {selectedAccommodations.has(accommodation.id) ? 'Selected' : 'Select'}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No accommodations found</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between">
+              <Button 
+                onClick={() => setIsAddAccommodationDialogOpen(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add all selected accommodations
+                  if (allAccommodations && selectedAccommodations.size > 0) {
+                    const accommodationsToAdd = allAccommodations.filter((accommodation: any) => selectedAccommodations.has(accommodation.id));
+                    accommodationsToAdd.forEach(accommodation => {
+                      onAddAccommodation(accommodation);
+                    });
+                  }
+                  setIsAddAccommodationDialogOpen(false);
+                  // Clear selected accommodations
+                  setSelectedAccommodations(new Set());
+                }}
+                variant="default"
+                disabled={selectedAccommodations.size === 0}
+              >
+                Add Selected ({selectedAccommodations.size})
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Transportation Dialog */}
+      {section.id === 'transportation' && onAddTransportation && (
+        <Dialog open={isAddTransportationDialogOpen} onOpenChange={setIsAddTransportationDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Transportation</DialogTitle>
+              <DialogDescription>
+                Select transportation options to add to your cost calculation
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAllTransportations ? (
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading transportation options...</span>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                <Input
+                  placeholder="Search transportation options..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
+                  {filteredTransportations && filteredTransportations.length > 0 ? (
+                    filteredTransportations.map((transportation) => (
+                      <div 
+                        key={transportation.id} 
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium">{transportation.name}</div>
+                          {transportation.from_place && transportation.to_place && (
+                            <div className="text-sm text-muted-foreground">{transportation.from_place} to {transportation.to_place}</div>
+                          )}
+                          <div className="text-sm text-muted-foreground">Rate: {formatCurrency(parseFloat(transportation.rate))}</div>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-1 mt-1">
+                            {transportation.per_person && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Per Person</span>}
+                            {transportation.per_day && <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded">Per Day</span>}
+                            {transportation.one_time && <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded">One Time</span>}
+                            {!transportation.per_person && !transportation.per_day && !transportation.one_time && (
+                              <span className="text-muted-foreground italic">Standard</span>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            const newSelected = new Set(selectedTransportations);
+                            if (selectedTransportations.has(transportation.id)) {
+                              newSelected.delete(transportation.id);
+                            } else {
+                              newSelected.add(transportation.id);
+                            }
+                            setSelectedTransportations(newSelected);
+                          }}
+                          variant="outline"
+                          className={selectedTransportations.has(transportation.id) ? 'bg-primary text-primary-foreground' : 'bg-transparent'}
+                        >
+                          {selectedTransportations.has(transportation.id) ? 'Selected' : 'Select'}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No transportation options found</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter className="flex justify-between">
+              <Button 
+                onClick={() => setIsAddTransportationDialogOpen(false)}
+                variant="outline"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => {
+                  // Add all selected transportation options
+                  if (allTransportations && selectedTransportations.size > 0) {
+                    const transportationsToAdd = allTransportations.filter((transportation: any) => selectedTransportations.has(transportation.id));
+                    transportationsToAdd.forEach(transportation => {
+                      onAddTransportation(transportation);
+                    });
+                  }
+                  setIsAddTransportationDialogOpen(false);
+                  // Clear selected transportation options
+                  setSelectedTransportations(new Set());
+                }}
+                variant="default"
+                disabled={selectedTransportations.size === 0}
+              >
+                Add Selected ({selectedTransportations.size})
               </Button>
             </DialogFooter>
           </DialogContent>

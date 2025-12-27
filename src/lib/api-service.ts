@@ -32,7 +32,7 @@ import type {
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
 
 // Generic fetch function with error handling
-async function fetchFromAPI<T>(endpoint: string): Promise<T> {
+export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const controller = new AbortController();
   const TIMEOUT_MS = 30000; // 30 seconds timeout
   
@@ -430,7 +430,7 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       startDate: item.package.start_date,
       permits: {
         id: 'permits',
-        name: 'Permits & Food',
+        name: 'Permits & Documents',
         rows: item.permits.map((permit, index) => ({
           id: `permit-${index}`,
           description: permit.name,
@@ -474,6 +474,36 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
         discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.extra_service_discount),
         discountRemarks: item.extra_service_discount_remarks
+      },
+      accommodation: {
+        id: 'accommodation',
+        name: 'Accommodation',
+        rows: item.accommodation?.map((acc, index) => ({
+          id: `accommodation-${index}`,
+          description: acc.name,
+          rate: acc.rate,
+          no: acc.numbers,
+          times: acc.times,
+          total: acc.rate * acc.numbers * acc.times
+        })) || [],
+        discountType: item.accommodation_discount_type === 'percentage' ? 'percentage' : 'amount',
+        discountValue: parseFloat(item.accommodation_discount || '0'),
+        discountRemarks: item.accommodation_discount_remarks
+      },
+      transportation: {
+        id: 'transportation',
+        name: 'Transportation',
+        rows: item.transportation?.map((trans, index) => ({
+          id: `transportation-${index}`,
+          description: trans.name,
+          rate: trans.rate,
+          no: trans.numbers,
+          times: trans.times,
+          total: trans.rate * trans.numbers * trans.times
+        })) || [],
+        discountType: item.transportation_discount_type === 'percentage' ? 'percentage' : 'amount',
+        discountValue: parseFloat(item.transportation_discount || '0'),
+        discountRemarks: item.transportation_discount_remarks
       },
       customSections: [],
       serviceCharge: parseFloat(item.service_charge) || 0,
@@ -529,7 +559,7 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
     startDate: item.package?.start_date || new Date().toISOString(),
     permits: {
       id: 'permits',
-      name: 'Permits & Food',
+      name: 'Permits & Documents',
       rows: item.permits.map((permit, index) => ({
         id: `permit-${index}`,
         description: permit.name,
@@ -573,6 +603,36 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
       discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.extra_service_discount || '0'),
       discountRemarks: item.extra_service_discount_remarks
+    },
+    accommodation: {
+      id: 'accommodation',
+      name: 'Accommodation',
+      rows: item.accommodation?.map((acc, index) => ({
+        id: `accommodation-${index}`,
+        description: acc.name,
+        rate: acc.rate,
+        no: acc.numbers,
+        times: acc.times,
+        total: acc.rate * acc.numbers * acc.times
+      })) || [],
+      discountType: item.accommodation_discount_type === 'percentage' ? 'percentage' : 'amount',
+      discountValue: parseFloat(item.accommodation_discount || '0'),
+      discountRemarks: item.accommodation_discount_remarks
+    },
+    transportation: {
+      id: 'transportation',
+      name: 'Transportation',
+      rows: item.transportation?.map((trans, index) => ({
+        id: `transportation-${index}`,
+        description: trans.name,
+        rate: trans.rate,
+        no: trans.numbers,
+        times: trans.times,
+        total: trans.rate * trans.numbers * trans.times
+      })) || [],
+      discountType: item.transportation_discount_type === 'percentage' ? 'percentage' : 'amount',
+      discountValue: parseFloat(item.transportation_discount || '0'),
+      discountRemarks: item.transportation_discount_remarks
     },
     customSections: [],
     serviceCharge: parseFloat(item.service_charge || '0') || 0,
@@ -977,6 +1037,34 @@ export async function fetchAllTravelers(): Promise<APITraveler[]> {
 }
 
 
+
+// Fetch accommodation data for a specific trip
+export async function getAccommodationList(tripId: string): Promise<any[]> {
+  try {
+    const data = await fetchFromAPI<any[]>(`/staff/accommodation-list/${tripId}/`);
+    
+    // Transform the API response to match our expected structure
+    const transformedAccommodation = data.map(accommodation => ({
+      id: accommodation.id.toString(),
+      name: accommodation.name,
+      rate: parseFloat(accommodation.price), // Convert string price to number
+      times: accommodation.times || 1, // Default to 1 if not provided
+      per_person: accommodation.per_person || false,
+      per_day: accommodation.per_day || false,
+      one_time: accommodation.one_time || false,
+      is_default: accommodation.is_default || false,
+      is_editable: true, // Allow editing by default
+      max_capacity: accommodation.max_capacity || null,
+      from_place: accommodation.location || '',
+      to_place: '', // No to_place in the API response
+    }));
+    
+    return transformedAccommodation;
+  } catch (error) {
+    console.error('Error fetching accommodation:', error);
+    throw error;
+  }
+}
 
 // Fetch dashboard stats from the real API
 export async function fetchDashboardStats(): Promise<APIDashboardStats> {
