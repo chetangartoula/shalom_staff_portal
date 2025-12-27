@@ -144,6 +144,8 @@ export interface Report {
   startDate: string;
   permits: SectionState;
   services: SectionState;
+  accommodation: SectionState;
+  transportation: SectionState;
   extraDetails: SectionState;
   customSections: SectionState[];
   serviceCharge: number;

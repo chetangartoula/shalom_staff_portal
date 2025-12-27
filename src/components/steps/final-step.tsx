@@ -22,6 +22,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/shadcn/toggle-grou
 
 interface FinalStepProps {
     extraDetailsState: SectionState;
+    accommodationState?: SectionState;
+    transportationState?: SectionState;
     onRowChange: (id: string, field: keyof CostRow, value: any, sectionId: string) => void;
     onDiscountTypeChange: (sectionId: string, type: 'amount' | 'percentage') => void;
     onDiscountValueChange: (sectionId: string, value: number) => void;
@@ -59,6 +61,8 @@ interface FinalStepProps {
 
 function FinalStepComponent({
     extraDetailsState,
+    accommodationState,
+    transportationState,
     onRowChange,
     onDiscountTypeChange,
     onDiscountValueChange,
@@ -118,6 +122,7 @@ function FinalStepComponent({
                 section={extraDetailsState}
                 isCustom
                 isDescriptionEditable
+                isDescriptionInlineEditable
                 onRowChange={onRowChange}
                 onDiscountTypeChange={onDiscountTypeChange}
                 onDiscountValueChange={onDiscountValueChange}
@@ -131,6 +136,7 @@ function FinalStepComponent({
                 allExtraServices={allExtraServices}
                 isLoadingAllExtraServices={isLoadingAllExtraServices}
             />
+
 
             <Card>
                 <CardHeader>

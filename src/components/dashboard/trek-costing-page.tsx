@@ -17,10 +17,14 @@ import {
 } from "@/components/ui/shadcn/breadcrumb"
 
 import type { Trek, CostRow, SectionState } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
-import { handleExportPDF, handleExportExcel } from "@/lib/export";
+import { useToast } from '@/hooks/use-toast';
+import { handleExportPDF, handleExportExcel } from '@/lib/export';
 import type { User } from '@/lib/auth';
 import { postGroupsAndPackage, updateGroupsAndPackage, updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
+import { useAccommodation } from '@/hooks/use-accommodation';
+import { useTransportation } from '@/hooks/use-transportation';
+import { useAllAccommodations } from '@/hooks/use-all-accommodations';
+import { useAllTransportations } from '@/hooks/use-all-transportations';
 
 type ReportState = {
   groupId: string;
@@ -31,7 +35,10 @@ type ReportState = {
   startDate: Date | undefined;
   permits: SectionState;
   services: SectionState;
+  accommodation: SectionState;
+  transportation: SectionState;
   extraDetails: SectionState;
+  extraServices: SectionState; // New section for extra services
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl?: string;
@@ -59,10 +66,14 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   groupName: '',
   groupSize: 1,
   startDate: new Date(),
-  permits: createInitialSectionState('permits', 'Permits & Food'),
+  permits: createInitialSectionState('permits', 'Permits & Documents'),
   services: createInitialSectionState('services', 'Services'),
+  accommodation: createInitialSectionState('accommodation', 'Accommodation'),
+  transportation: createInitialSectionState('transportation', 'Transportation'),
   extraDetails: createInitialSectionState('extraDetails', 'Extra Details'),
+  extraServices: createInitialSectionState('extraServices', 'Extra Services'), // New section for extra services
   customSections: [],
+  
   serviceCharge: 10,
   clientCommunicationMethod: '', // Initialize client communication method
   overallDiscountType: 'amount',
@@ -109,19 +120,51 @@ interface TrekCostingPageProps {
   onAddPermit?: (permit: any) => void; // Callback to add a permit
   onAddService?: (service: any) => void; // Callback to add a service
   onAddExtraService?: (extraService: any) => void; // Callback to add an extra service
+  onAddAccommodation?: (accommodation: any) => void; // Callback to add an accommodation
+  onAddTransportation?: (transportation: any) => void; // Callback to add a transportation
   allPermits?: any[]; // All available permits
   allServices?: any[]; // All available services
   allExtraServices?: any[]; // All available extra services
+  allAccommodations?: any[]; // All available accommodations
+  allTransportations?: any[]; // All available transportations
   isLoadingAllPermits?: boolean; // Loading state for all permits
   isLoadingAllServices?: boolean; // Loading state for all services
   isLoadingAllExtraServices?: boolean; // Loading state for all extra services
+  isLoadingAllAccommodations?: boolean; // Loading state for all accommodations
+  isLoadingAllTransportations?: boolean; // Loading state for all transportations
 }
 
-function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect, skipGroupDetails = false, groupId, isReadOnly = false, onAddPermit, onAddService, onAddExtraService, allPermits, allServices, allExtraServices, isLoadingAllPermits, isLoadingAllServices, isLoadingAllExtraServices }: TrekCostingPageProps) {
+function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrekSelect, skipGroupDetails = false, groupId, isReadOnly = false, onAddPermit, onAddService, onAddExtraService, onAddAccommodation, onAddTransportation, allPermits, allServices, allExtraServices, allAccommodations, allTransportations, isLoadingAllPermits, isLoadingAllServices, isLoadingAllExtraServices, isLoadingAllAccommodations, isLoadingAllTransportations }: TrekCostingPageProps) {
   const { toast } = useToast();
   const router = useRouter();
 
   const [report, setReport] = useState<ReportState>(() => createInitialReportState(initialData?.groupId));
+  const [accommodationTrekId, setAccommodationTrekId] = useState<string>('');
+    
+  // Fetch accommodation data for the selected trek
+  const { data: accommodationData, isLoading: isLoadingAccommodation } = useAccommodation(accommodationTrekId);
+    
+  // Fetch transportation data for the selected trek
+  const { data: transportationData, isLoading: isLoadingTransportation } = useTransportation(accommodationTrekId);
+    
+  // Fetch all accommodations for the accommodation section
+  const { data: allAccommodationsData, isLoading: isLoadingAllAccommodationsData } = useAllAccommodations(accommodationTrekId);
+    
+  // Fetch all transportations for the transportation section
+  const { data: allTransportationsData, isLoading: isLoadingAllTransportationsData } = useAllTransportations(accommodationTrekId);
+  
+  // Use hook data or fallback to props
+  const finalAllAccommodations = allAccommodationsData || allAccommodations;
+  const finalIsLoadingAllAccommodations = isLoadingAllAccommodationsData || isLoadingAllAccommodations;
+  const finalAllTransportations = allTransportationsData || [];
+  const finalIsLoadingAllTransportations = isLoadingAllTransportationsData || false;
+  
+  // Update accommodation trek ID when report's trek ID changes
+  useEffect(() => {
+    if (report.trekId) {
+      setAccommodationTrekId(report.trekId);
+    }
+  }, [report.trekId]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -177,6 +220,34 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }
   };
 
+  const calculateAccommodationTotal = (accommodation: any, no: number, times: number) => {
+    if (accommodation.one_time) {
+      return accommodation.rate;
+    } else if (accommodation.per_person && accommodation.per_day) {
+      return accommodation.rate * no * times;
+    } else if (accommodation.per_person) {
+      return accommodation.rate * no;
+    } else if (accommodation.per_day) {
+      return accommodation.rate * times;
+    } else {
+      return accommodation.rate * no * times;
+    }
+  };
+
+  const calculateTransportationTotal = (transportation: any, no: number, times: number) => {
+    if (transportation.one_time) {
+      return transportation.rate;
+    } else if (transportation.per_person && transportation.per_day) {
+      return transportation.rate * no * times;
+    } else if (transportation.per_person) {
+      return transportation.rate * no;
+    } else if (transportation.per_day) {
+      return transportation.rate * times;
+    } else {
+      return transportation.rate * no * times;
+    }
+  };
+
   useEffect(() => {
     if (initialData && initialData.trekId) {
       console.log('TrekCostingPage: initialData changed', {
@@ -221,10 +292,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
             ...prev,
             // Update permits if they're provided in initialData
             permits: initialData.permits || prev.permits,
-            // Update services if they're provided in initialData
             services: initialData.services || prev.services,
-            // Update extraDetails if they're provided in initialData
+            accommodation: initialData.accommodation || prev.accommodation,
+            transportation: initialData.transportation || prev.transportation,
             extraDetails: initialData.extraDetails || prev.extraDetails,
+            extraServices: initialData.extraServices || prev.extraServices,
           };
 
           console.log('TrekCostingPage: Merging data for same trek', {
@@ -247,6 +319,76 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }
   }, [initialData, report.trekId]);
 
+  // Update accommodation data when it changes and trekId matches
+  useEffect(() => {
+    if (accommodationData && report.trekId && accommodationData.length > 0) {
+      setReport(prev => {
+        if (prev.trekId !== report.trekId) return prev; // Only update for current trek
+        
+        // Filter default accommodations from API data
+        const defaultAccommodations = accommodationData.filter(acc => acc.is_default).map(acc => ({
+          id: crypto.randomUUID(),
+          description: acc.name,
+          rate: acc.rate,
+          no: prev.groupSize,
+          times: acc.times,
+          total: calculateAccommodationTotal(acc, prev.groupSize, acc.times),
+          per_person: acc.per_person,
+          per_day: acc.per_day,
+          one_time: acc.one_time,
+          is_default: acc.is_default,
+          is_editable: acc.is_editable,
+          max_capacity: acc.max_capacity,
+          from_place: acc.from_place,
+          to_place: acc.to_place
+        }));
+        
+        return {
+          ...prev,
+          accommodation: {
+            ...prev.accommodation,
+            rows: defaultAccommodations
+          }
+        };
+      });
+    }
+  }, [accommodationData, report.trekId, report.groupSize]);
+
+  // Update transportation data when it changes and trekId matches
+  useEffect(() => {
+    if (transportationData && report.trekId && transportationData.length > 0) {
+      setReport(prev => {
+        if (prev.trekId !== report.trekId) return prev; // Only update for current trek
+        
+        // Filter default transportation from API data
+        const defaultTransportations = transportationData.filter(trans => trans.is_default).map(trans => ({
+          id: crypto.randomUUID(),
+          description: trans.name,
+          rate: trans.rate,
+          no: prev.groupSize,
+          times: trans.times,
+          total: calculateTransportationTotal(trans, prev.groupSize, trans.times),
+          per_person: trans.per_person,
+          per_day: trans.per_day,
+          one_time: trans.one_time,
+          is_default: trans.is_default,
+          is_editable: trans.is_editable,
+          max_capacity: trans.max_capacity,
+          from_place: trans.from_place,
+          to_place: trans.to_place
+        }));
+        
+        return {
+          ...prev,
+          transportation: {
+            ...prev.transportation,
+            rows: defaultTransportations
+          }
+        };
+      });
+    }
+  }, [transportationData, report.trekId, report.groupSize]);
+
   const selectedTrek = useMemo(
     () => treks?.find((trek) => trek.id === report.trekId),
     [report.trekId, treks]
@@ -262,7 +404,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, []);
 
   const subtotalBeforeOverallDiscount = useMemo(() => {
-    const sections = [report.permits, report.services, report.extraDetails, ...report.customSections];
+    const sections = [report.permits, report.services, report.accommodation, report.transportation, report.extraDetails, report.extraServices, ...report.customSections];
     return sections.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
   }, [report, calculateSectionTotals]);
 
@@ -365,6 +507,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
               newTotal = calculatePermitTotal(row, size, row.times || 0);
             } else if (section.id === 'services' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
               newTotal = calculateServiceTotal(row, size, row.times || 0);
+            } else if (section.id === 'accommodation' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
+              newTotal = calculateAccommodationTotal(row, size, row.times || 0);
+            } else if (section.id === 'transportation' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
+              newTotal = calculateServiceTotal(row, size, row.times || 0);
             } else if (section.id === 'extraDetails' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
               newTotal = calculateExtraServiceTotal(row, size, row.times || 0);
             } else {
@@ -385,7 +531,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
       newReport.permits = updateSectionForPax(newReport.permits);
       newReport.services = updateSectionForPax(newReport.services);
+      newReport.accommodation = updateSectionForPax(newReport.accommodation);
+      newReport.transportation = updateSectionForPax(newReport.transportation);
       newReport.extraDetails = updateSectionForPax(newReport.extraDetails);
+      newReport.extraServices = updateSectionForPax(newReport.extraServices);
       newReport.customSections = newReport.customSections.map(updateSectionForPax);
 
       return newReport;
@@ -399,8 +548,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   const handleSectionUpdate = useCallback((sectionId: string, updater: (s: SectionState) => SectionState) => {
     setReport(prevReport => {
       const newReport = { ...prevReport };
-      if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
-        newReport[sectionId as 'permits' | 'services' | 'extraDetails'] = updater(newReport[sectionId as 'permits' | 'services' | 'extraDetails']);
+      if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'accommodation' || sectionId === 'transportation' || sectionId === 'extraDetails' || sectionId === 'extraServices') {
+        const sectionKey = sectionId as 'permits' | 'services' | 'accommodation' | 'transportation' | 'extraDetails' | 'extraServices';
+        newReport[sectionKey] = updater(newReport[sectionKey]);
       } else {
         newReport.customSections = newReport.customSections.map(s =>
           s.id === sectionId ? updater(s) : s
@@ -453,6 +603,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         } else if (sectionId === 'services' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
           firstRow.total = calculateServiceTotal(firstRow, firstRow.no, firstRow.times);
           additionalRow.total = calculateServiceTotal(additionalRow, additionalRow.no, additionalRow.times);
+        } else if (sectionId === 'accommodation' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
+          firstRow.total = calculateAccommodationTotal(firstRow, firstRow.no, firstRow.times);
+          additionalRow.total = calculateAccommodationTotal(additionalRow, additionalRow.no, additionalRow.times);
         } else if (sectionId === 'extraDetails' && firstRow.per_person !== undefined && firstRow.per_day !== undefined && firstRow.one_time !== undefined) {
           firstRow.total = calculateExtraServiceTotal(firstRow, firstRow.no, firstRow.times);
           additionalRow.total = calculateExtraServiceTotal(additionalRow, additionalRow.no, additionalRow.times);
@@ -476,6 +629,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
                 newRow.total = calculatePermitTotal(newRow, newRow.no || 0, newRow.times || 0);
               } else if (sectionId === 'services' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
                 newRow.total = calculateServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
+              } else if (sectionId === 'accommodation' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
+                newRow.total = calculateAccommodationTotal(newRow, newRow.no || 0, newRow.times || 0);
               } else if (sectionId === 'extraDetails' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
                 newRow.total = calculateExtraServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
               } else {
@@ -530,6 +685,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       onTrekSelect(trekId);
     }
 
+    // Update accommodation trek ID immediately to trigger accommodation data loading
+    setAccommodationTrekId(trekId);
+
     // Always update local state regardless of callback
     setReport(prev => {
       const initialPermits = newSelectedTrek.permits?.map(p => ({
@@ -546,6 +704,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: prev.groupSize, times: 0, total: 0 }
       ];
 
+      // Initialize accommodation data - start with empty rows, accommodation data will be loaded separately
+      const initialAccommodation: CostRow[] = [];
+
       const trekShortName = getTrekShortName(newSelectedTrek.name);
       const timestamp = getCurrentTimestamp();
       const defaultGroupName = `${trekShortName}-${timestamp}`;
@@ -557,6 +718,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         groupName: defaultGroupName,
         permits: { ...prev.permits, rows: initialPermits },
         extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
+        accommodation: { ...prev.accommodation, rows: initialAccommodation as CostRow[] },
       };
     });
     // Trek selection is complete, do not change the current step
@@ -564,7 +726,18 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [treks, onTrekSelect]);
 
   const addRow = useCallback((sectionId: string) => {
-    const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: report.groupSize, times: 1, total: 0 };
+    const newRow: CostRow = { 
+      id: crypto.randomUUID(), 
+      description: "", 
+      rate: 0, 
+      no: report.groupSize, 
+      times: 1, 
+      total: 0,
+      is_editable: true, // Allow editing of all fields for custom rows
+      per_person: false, // Default to not per person
+      per_day: false,    // Default to not per day
+      one_time: false    // Default to not one time
+    };
     handleSectionUpdate(sectionId, (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   }, [handleSectionUpdate, report.groupSize]);
 
@@ -688,8 +861,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     }));
 
     // Transform extra services data
-    // Group extra details by description to match the required structure
+    // Group both extraDetails and extraServices by description to match the required structure
     const extraServicesMap = new Map();
+    
+    // Process report.extraDetails
     report.extraDetails.rows.forEach(row => {
       // Parse the combined description to extract service_name and param name
       let service_name, param_name;
@@ -725,8 +900,70 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         to_place: row.to_place || ''
       });
     });
+    
+    // Process report.extraServices
+    report.extraServices.rows.forEach(row => {
+      // For extraServices, treat each row as a separate service
+      const service_name = row.description || 'Extra Service';
+      
+      if (!extraServicesMap.has(service_name)) {
+        extraServicesMap.set(service_name, {
+          service_name: service_name,
+          params: []
+        });
+      }
+      extraServicesMap.get(service_name).params.push({
+        id: parseInt(row.id?.toString() || '0'), // Convert id to integer
+        name: row.description,
+        rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+        times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+        numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        is_default: row.is_default || false,
+        is_editable: row.is_editable !== undefined ? row.is_editable : true,
+        max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+        from_place: row.from_place || '',
+        to_place: row.to_place || ''
+      });
+    });
 
     const extraServicesData = Array.from(extraServicesMap.values());
+    
+    // Transform accommodation data
+    const accommodationData = report.accommodation.rows.map(row => ({
+      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
+      name: row.description,
+      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      per_person: row.per_person || false,
+      per_day: row.per_day || false,
+      one_time: row.one_time || false,
+      is_default: row.is_default || false,
+      is_editable: row.is_editable !== undefined ? row.is_editable : true,
+      max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+      from_place: row.from_place || '',
+      to_place: row.to_place || ''
+    }));
+    
+    // Transform transportation data
+    const transportationData = report.transportation.rows.map(row => ({
+      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
+      name: row.description,
+      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
+      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
+      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      per_person: row.per_person || false,
+      per_day: row.per_day || false,
+      one_time: row.one_time || false,
+      is_default: row.is_default || false,
+      is_editable: row.is_editable !== undefined ? row.is_editable : true,
+      max_capacity: row.max_capacity !== null && row.max_capacity !== undefined ? parseInt(row.max_capacity?.toString() || '0') : null, // Convert max_capacity to integer if not null
+      from_place: row.from_place || '',
+      to_place: row.to_place || ''
+    }));
 
     return {
       package: {
@@ -739,13 +976,21 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       status: "draft",
       permits: permitsData,
       services: servicesData,
+      accommodation: accommodationData,
+      transportation: transportationData,
       extra_services: extraServicesData,
       service_discount: String(report.services.discountValue || 0),
       service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
       service_discount_remarks: report.services.discountRemarks || "",
+      accommodation_discount: String(report.accommodation.discountValue || 0),
+      accommodation_discount_type: report.accommodation.discountType === 'percentage' ? 'percentage' : 'flat',
+      accommodation_discount_remarks: report.accommodation.discountRemarks || "",
+      transportation_discount: String(report.transportation.discountValue || 0),
+      transportation_discount_type: report.transportation.discountType === 'percentage' ? 'percentage' : 'flat',
+      transportation_discount_remarks: report.transportation.discountRemarks || "",
       extra_service_discount: String(report.extraDetails.discountValue || 0),
       extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
-      extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
+      extra_service_discount_remarks: report.extraDetails.discountRemarks || "", // Using extraDetails for backward compatibility
       permit_discount: String(report.permits.discountValue || 0),
       permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
       permit_discount_remarks: report.permits.discountRemarks || "",
@@ -817,12 +1062,14 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     steps.push(
       { ...report.permits },
       { ...report.services },
+      { id: 'accommodation', name: 'Accommodation' },
+      { id: 'transportation', name: 'Transportation' },
       ...report.customSections,
       { id: 'final', name: 'Final Summary' }
     );
 
     return steps;
-  }, [report.permits, report.services, report.customSections, skipGroupDetails]);
+  }, [report.permits, report.services, report.accommodation, report.transportation, report.extraServices, report.customSections, skipGroupDetails]);
 
   const renderStepContent = () => {
     if (isLoading) return <LoadingStep />;
@@ -883,8 +1130,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
           isSubmitting={isSaving}
           onSubmit={handleFinish}
-          isRateReadOnly={true}
-          hideAddRow={true}
+          isRateReadOnly={false}
+          hideAddRow={false}
           // Additional props for extra services section
           onAddExtraService={onAddExtraService}
           allExtraServices={allExtraServices}
@@ -916,30 +1163,37 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           isLoadingAllPermits={isLoadingAllPermits}
         />
       );
-    } else if (activeStepData.id === 'services' || report.customSections.some(cs => cs.id === activeStepData.id)) {
+    } else if (activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation' || report.customSections.some(cs => cs.id === activeStepData.id)) {
       return (
         <CostTable
           section={report[activeStepData.id as keyof ReportState] as SectionState || report.customSections.find(cs => cs.id === activeStepData.id)!}
           isCustom={report.customSections.some(cs => cs.id === activeStepData.id)}
           isDescriptionEditable={activeStepData.id !== 'permits' && !isReadOnly}
+          isDescriptionInlineEditable={activeStepData.id === 'extraDetails'}
           isReadOnly={isReadOnly}
           onRowChange={handleRowChange}
           onDiscountTypeChange={handleDiscountTypeChange}
           onDiscountValueChange={handleDiscountValueChange}
           onDiscountRemarksChange={handleDiscountRemarksChange}
-          onAddRow={undefined}
+          onAddRow={activeStepData.id === 'extraDetails' && !isReadOnly ? addRow : undefined}
           onRemoveRow={isReadOnly ? undefined : removeRow}
           onEditSection={isReadOnly ? undefined : handleOpenEditSectionModal}
           onRemoveSection={isReadOnly ? undefined : removeSection}
-          isRateReadOnly={activeStepData.id === 'services' || activeStepData.id === 'extraDetails'}
-          hideAddRow={true}
-          // Additional props for services and extra services sections
+          isRateReadOnly={activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation'}
+          hideAddRow={activeStepData.id === 'accommodation'}
+          // Additional props for services, accommodation, transportation, and extra services sections
           onAddService={activeStepData.id === 'services' ? onAddService : undefined}
           onAddExtraService={activeStepData.id === 'extraDetails' ? onAddExtraService : undefined}
+          onAddAccommodation={activeStepData.id === 'accommodation' ? onAddAccommodation : undefined}
+          onAddTransportation={activeStepData.id === 'transportation' ? onAddTransportation : undefined}
           allServices={activeStepData.id === 'services' ? allServices : undefined}
           allExtraServices={activeStepData.id === 'extraDetails' ? allExtraServices : undefined}
+          allAccommodations={activeStepData.id === 'accommodation' ? allAccommodations : undefined}
+          allTransportations={activeStepData.id === 'transportation' ? allTransportations : undefined}
           isLoadingAllServices={activeStepData.id === 'services' ? isLoadingAllServices : undefined}
           isLoadingAllExtraServices={activeStepData.id === 'extraDetails' ? isLoadingAllExtraServices : undefined}
+          isLoadingAllAccommodations={activeStepData.id === 'accommodation' ? isLoadingAllAccommodations : undefined}
+          isLoadingAllTransportations={activeStepData.id === 'transportation' ? isLoadingAllTransportations : undefined}
         />
       );
     }
