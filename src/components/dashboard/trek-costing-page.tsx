@@ -586,6 +586,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         // Create split rows based on max_capacity
         const splitRows = [];
         for (let i = 0; i < totalRows; i++) {
+          const quantity = i === totalRows - 1 ?
+            (updatedRow.no % updatedRow.max_capacity === 0 ? updatedRow.max_capacity : updatedRow.no % updatedRow.max_capacity) :
+            updatedRow.max_capacity;
+
           const row = {
             ...updatedRow,
             id: `${updatedRow.id}-split-${i + 1}`,
@@ -614,12 +618,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           rows: [...newRows, ...splitRows]
         };
       } else {
-        // For regular updates, just update the row
         const updatedRows = section.rows.map(row => {
           if (row.id === id) {
             const newRow = { ...row, [field]: value };
             if (field === 'no' || field === 'rate' || field === 'times') {
-              // Calculate total based on properties if it's a permit row
               if (sectionId === 'permits' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
                 newRow.total = calculatePermitTotal(newRow, newRow.no || 0, newRow.times || 0);
               } else if (sectionId === 'services' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
@@ -653,12 +655,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     handleSectionUpdate(sectionId, (section) => ({ ...section, discountValue: value }));
   }, [handleSectionUpdate]);
 
-  // Add a new handler for discount remarks
   const handleDiscountRemarksChange = useCallback((sectionId: string, remarks: string) => {
     handleSectionUpdate(sectionId, (section) => ({ ...section, discountRemarks: remarks }));
   }, [handleSectionUpdate]);
 
-  // Handlers for overall discount
   const handleOverallDiscountTypeChange = useCallback((type: 'amount' | 'percentage') => {
     setReport(prev => ({ ...prev, overallDiscountType: type }));
   }, []);
