@@ -169,46 +169,42 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
   const splitRowByMaxCapacity = (row: any, groupSize: number) => {
     const rows = [];
     
-    // If max_capacity is not defined or group size is less than or equal to max_capacity, return original row
     if (!row.max_capacity || groupSize <= row.max_capacity) {
       return [{ ...row, no: groupSize }];
     }
     
-    // Create the first row with max_capacity quantity
-    const firstRow = {
-      ...row,
-      id: `${row.id}-split-1`,
-      no: row.max_capacity,
-      description: `${row.description} (max capacity)`
-    };
+    // Calculate total number of rows needed using Math.ceil
+    const totalRows = Math.ceil(groupSize / row.max_capacity);
     
-    // Calculate remaining capacity
-    const remainingCapacity = groupSize - row.max_capacity;
-    
-    // Create additional row with remaining capacity
-    const additionalRow = {
-      ...row,
-      id: `${row.id}-split-2`,
-      no: remainingCapacity,
-      description: `${row.description} (additional capacity)`
-    };
-    
-    rows.push(firstRow);
-    rows.push(additionalRow);
+    for (let i = 0; i < totalRows; i++) {
+      // First row keeps original description, additional rows get "Additional" prefix
+      const isAdditional = i > 0;
+      // Calculate quantity for this row (max_capacity for all but potentially last row)
+      const quantity = i === totalRows - 1 ? 
+        // For the last row, use remaining capacity if there's a remainder
+        (groupSize % row.max_capacity === 0 ? row.max_capacity : groupSize % row.max_capacity) :
+        // For other rows, use max_capacity
+        row.max_capacity;
+      
+      rows.push({
+        ...row,
+        id: `${row.id}-split-${i + 1}`,
+        no: quantity,
+        description: isAdditional ? `Additional ${row.description}` : row.description
+      });
+    }
     
     return rows;
   };
   
-  // Prepare initialData for the costing page - memoize to avoid recreating on every render
   const initialData = useMemo(() => {
     const data: any = {};
-    const groupSize = 1; // Initial group size is 1
+    const groupSize = 1; 
     
     if (selectedTrekId) {
       data.trekId = selectedTrekId;
       
       if (permits && permits.length > 0) {
-        // Only include permits that are default (is_default: true)
         const defaultPermits = permits.filter((permit: any) => permit.is_default === true);
         
         data.permits = {
@@ -222,7 +218,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               no: groupSize,
               times: permit.times,
               total: calculatePermitTotal(permit, groupSize, permit.times),
-              // Include new permit properties
               per_person: permit.per_person,
               per_day: permit.per_day,
               one_time: permit.one_time,
@@ -241,7 +236,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       }
       
       if (services && services.length > 0) {
-        // Only include services that are default (is_default: true)
         const defaultServices = services.filter((service: any) => service.is_default === true);
         
         data.services = {
@@ -255,7 +249,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               no: groupSize,
               times: service.times,
               total: calculateServiceTotal(service, groupSize, service.times),
-              // Include new service properties
               per_person: service.per_person,
               per_day: service.per_day,
               one_time: service.one_time,
@@ -274,7 +267,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       }
       
       if (extraServices && extraServices.length > 0) {
-        // Only include extra services that are default (is_default: true)
         const defaultExtraServices = extraServices.filter((extraService: any) => extraService.is_default === true);
         
         data.extraDetails = {
@@ -288,7 +280,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               no: groupSize,
               times: extraService.times,
               total: calculateExtraServiceTotal(extraService, groupSize, extraService.times),
-              // Include new extra service properties
               per_person: extraService.per_person,
               per_day: extraService.per_day,
               one_time: extraService.one_time,
@@ -306,7 +297,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
         };
       }
       
-      // Initialize accommodation and transportation sections with default items if available
       data.accommodation = {
         id: 'accommodation',
         name: 'Accommodation',
@@ -320,7 +310,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
               no: groupSize,
               times: acc.times,
               total: calculateAccommodationTotal(acc, groupSize, acc.times),
-              // Include new accommodation properties
               per_person: acc.per_person,
               per_day: acc.per_day,
               one_time: acc.one_time,
@@ -404,19 +393,14 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     />;
   }
 
-  // Function to add a new permit to the permits section
   const handleAddPermit = (permitToAdd: any) => {
     if (!initialData) return;
     
-    // Create a new permit row with all the required properties
-    const newPermitRow = {
-      id: crypto.randomUUID(), // Generate a unique ID for each added permit
+    const baseRow = {
+      id: crypto.randomUUID(),
       description: permitToAdd.name,
       rate: permitToAdd.rate,
-      no: initialData.groupSize || 1,
       times: permitToAdd.times,
-      total: calculatePermitTotal(permitToAdd, initialData.groupSize || 1, permitToAdd.times),
-      // Include new permit properties
       per_person: permitToAdd.per_person,
       per_day: permitToAdd.per_day,
       one_time: permitToAdd.one_time,
@@ -428,35 +412,36 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       location: permitToAdd.from_place && permitToAdd.to_place ? `${permitToAdd.from_place} to ${permitToAdd.to_place}` : permitToAdd.name
     };
     
-    // Update the permits override state
+    const splitRows = splitRowByMaxCapacity(baseRow, initialData.groupSize || 1);
+    
+    const rowsWithTotals = splitRows.map(row => ({
+      ...row,
+      total: calculatePermitTotal(row, row.no, row.times)
+    }));
+    
     setPermitsOverride((prev: any) => {
       if (prev) {
         return {
           ...prev,
-          rows: [...prev.rows, newPermitRow]
+          rows: [...prev.rows, ...rowsWithTotals]
         };
       } else {
         return {
           ...initialData.permits,
-          rows: [...initialData.permits.rows, newPermitRow]
+          rows: [...initialData.permits.rows, ...rowsWithTotals]
         };
       }
     });
   };
 
-  // Function to add a new service to the services section
   const handleAddService = (serviceToAdd: any) => {
     if (!initialData) return;
     
-    // Create a new service row with all the required properties
-    const newServiceRow = {
-      id: crypto.randomUUID(), // Generate a unique ID for each added service
+    const baseRow = {
+      id: crypto.randomUUID(), 
       description: serviceToAdd.name,
       rate: serviceToAdd.rate,
-      no: initialData.groupSize || 1,
       times: serviceToAdd.times,
-      total: calculateServiceTotal(serviceToAdd, initialData.groupSize || 1, serviceToAdd.times),
-      // Include new service properties
       per_person: serviceToAdd.per_person,
       per_day: serviceToAdd.per_day,
       one_time: serviceToAdd.one_time,
@@ -468,35 +453,36 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       location: serviceToAdd.from_place && serviceToAdd.to_place ? `${serviceToAdd.from_place} to ${serviceToAdd.to_place}` : serviceToAdd.name
     };
     
-    // Update the services override state
+    const splitRows = splitRowByMaxCapacity(baseRow, initialData.groupSize || 1);
+    
+    const rowsWithTotals = splitRows.map(row => ({
+      ...row,
+      total: calculateServiceTotal(row, row.no, row.times)
+    }));
+    
     setServicesOverride((prev: any) => {
       if (prev) {
         return {
           ...prev,
-          rows: [...prev.rows, newServiceRow]
+          rows: [...prev.rows, ...rowsWithTotals]
         };
       } else {
         return {
           ...initialData.services,
-          rows: [...initialData.services.rows, newServiceRow]
+          rows: [...initialData.services.rows, ...rowsWithTotals]
         };
       }
     });
   };
 
-  // Function to add a new extra service to the extra services section
   const handleAddExtraService = (extraServiceToAdd: any) => {
     if (!initialData) return;
     
-    // Create a new extra service row with all the required properties
-    const newExtraServiceRow = {
-      id: crypto.randomUUID(), // Generate a unique ID for each added extra service
+    const baseRow = {
+      id: crypto.randomUUID(),
       description: (extraServiceToAdd.service_name && extraServiceToAdd.name) ? `${extraServiceToAdd.service_name} - ${extraServiceToAdd.name}` : (extraServiceToAdd.description || extraServiceToAdd.service_name || extraServiceToAdd.name),
       rate: extraServiceToAdd.rate,
-      no: initialData.groupSize || 1,
       times: extraServiceToAdd.times,
-      total: calculateExtraServiceTotal(extraServiceToAdd, initialData.groupSize || 1, extraServiceToAdd.times),
-      // Include new extra service properties
       per_person: extraServiceToAdd.per_person,
       per_day: extraServiceToAdd.per_day,
       one_time: extraServiceToAdd.one_time,
@@ -508,35 +494,36 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       location: extraServiceToAdd.from_place && extraServiceToAdd.to_place ? `${extraServiceToAdd.from_place} to ${extraServiceToAdd.to_place}` : (extraServiceToAdd.service_name || extraServiceToAdd.name)
     };
     
-    // Update the extra services override state
+    const splitRows = splitRowByMaxCapacity(baseRow, initialData.groupSize || 1);
+    
+    const rowsWithTotals = splitRows.map(row => ({
+      ...row,
+      total: calculateExtraServiceTotal(row, row.no, row.times)
+    }));
+    
     setExtraServicesOverride((prev: any) => {
       if (prev) {
         return {
           ...prev,
-          rows: [...prev.rows, newExtraServiceRow]
+          rows: [...prev.rows, ...rowsWithTotals]
         };
       } else {
         return {
           ...initialData.extraDetails,
-          rows: [...initialData.extraDetails.rows, newExtraServiceRow]
+          rows: [...initialData.extraDetails.rows, ...rowsWithTotals]
         };
       }
     });
   };
   
-  // Function to add a new accommodation to the accommodation section
   const handleAddAccommodation = (accommodationToAdd: any) => {
     if (!initialData) return;
     
-    // Create a new accommodation row with all the required properties
-    const newAccommodationRow = {
-      id: crypto.randomUUID(), // Generate a unique ID for each added accommodation
+    const baseRow = {
+      id: crypto.randomUUID(),
       description: accommodationToAdd.name,
       rate: accommodationToAdd.rate,
-      no: initialData.groupSize || 1,
       times: accommodationToAdd.times,
-      total: calculateAccommodationTotal(accommodationToAdd, initialData.groupSize || 1, accommodationToAdd.times),
-      // Include new accommodation properties
       per_person: accommodationToAdd.per_person,
       per_day: accommodationToAdd.per_day,
       one_time: accommodationToAdd.one_time,
@@ -548,35 +535,35 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       location: accommodationToAdd.from_place ? accommodationToAdd.from_place : accommodationToAdd.name
     };
     
-    // Update the accommodation override state
+    const splitRows = splitRowByMaxCapacity(baseRow, initialData.groupSize || 1);
+    const rowsWithTotals = splitRows.map(row => ({
+      ...row,
+      total: calculateAccommodationTotal(row, row.no, row.times)
+    }));
+    
     setAccommodationOverride((prev: any) => {
       if (prev) {
         return {
           ...prev,
-          rows: [...prev.rows, newAccommodationRow]
+          rows: [...prev.rows, ...rowsWithTotals]
         };
       } else {
         return {
           ...initialData.accommodation,
-          rows: [...initialData.accommodation.rows, newAccommodationRow]
+          rows: [...initialData.accommodation.rows, ...rowsWithTotals]
         };
       }
     });
   };
   
-  // Function to add a new transportation to the transportation section
   const handleAddTransportation = (transportationToAdd: any) => {
     if (!initialData) return;
     
-    // Create a new transportation row with all the required properties
-    const newTransportationRow = {
-      id: crypto.randomUUID(), // Generate a unique ID for each added transportation
+    const baseRow = {
+      id: crypto.randomUUID(),
       description: transportationToAdd.name,
       rate: transportationToAdd.rate,
-      no: initialData.groupSize || 1,
       times: transportationToAdd.times,
-      total: calculateTransportationTotal(transportationToAdd, initialData.groupSize || 1, transportationToAdd.times),
-      // Include new transportation properties
       per_person: transportationToAdd.per_person,
       per_day: transportationToAdd.per_day,
       one_time: transportationToAdd.one_time,
@@ -588,23 +575,28 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       location: transportationToAdd.from_place && transportationToAdd.to_place ? `${transportationToAdd.from_place} to ${transportationToAdd.to_place}` : transportationToAdd.name
     };
     
-    // Update the transportation override state
+    const splitRows = splitRowByMaxCapacity(baseRow, initialData.groupSize || 1);
+    
+    const rowsWithTotals = splitRows.map(row => ({
+      ...row,
+      total: calculateTransportationTotal(row, row.no, row.times)
+    }));
+    
     setTransportationOverride((prev: any) => {
       if (prev) {
         return {
           ...prev,
-          rows: [...prev.rows, newTransportationRow]
+          rows: [...prev.rows, ...rowsWithTotals]
         };
       } else {
         return {
           ...initialData.transportation,
-          rows: [...initialData.transportation.rows, newTransportationRow]
+          rows: [...initialData.transportation.rows, ...rowsWithTotals]
         };
       }
     });
   };
 
-  // Use permitsOverride, servicesOverride, extraServicesOverride, accommodationOverride, and transportationOverride if available, otherwise use initialData
   let finalInitialData = initialData;
   if (initialData) {
     finalInitialData = {
@@ -614,7 +606,6 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
       ...(extraServicesOverride ? { extraDetails: extraServicesOverride } : {}),
       ...(accommodationOverride ? { accommodation: accommodationOverride } : {}),
       ...(transportationOverride ? { transportation: transportationOverride } : {}),
-      // Accommodation and transportation overrides will be handled separately if needed
       accommodation: initialData?.accommodation || {
         id: 'accommodation',
         name: 'Accommodation',
