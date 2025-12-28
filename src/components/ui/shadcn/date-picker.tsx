@@ -13,12 +13,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/shadcn/popover"
 
-interface DatePickerProps {
-    date: Date | undefined;
-    setDate: (date: Date | undefined) => void;
+import { CalendarProps } from "@/components/ui/shadcn/calendar"
+
+interface DatePickerProps extends Omit<CalendarProps, "mode" | "selected" | "onSelect"> {
+  date: Date | undefined;
+  setDate: (date: Date | undefined) => void;
 }
 
-export function DatePicker({ date, setDate }: DatePickerProps) {
+export function DatePicker({ date, setDate, ...props }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
@@ -46,6 +48,7 @@ export function DatePicker({ date, setDate }: DatePickerProps) {
           selected={date}
           onSelect={handleDateSelect}
           initialFocus
+          {...props}
         />
       </PopoverContent>
     </Popover>

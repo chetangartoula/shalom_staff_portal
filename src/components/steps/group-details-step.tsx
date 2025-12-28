@@ -28,27 +28,39 @@ function GroupDetailsStepComponent({
   clientCommunicationMethod = '',
   onClientCommunicationMethodChange = () => { }
 }: GroupDetailsStepProps) {
-  // Handle communication method changes for radio button behavior
-  const handleCommunicationMethodChange = (method: string) => {
+  // Parse the current method and remarks
+  const separatorIndex = clientCommunicationMethod?.indexOf(':') ?? -1;
+  const currentMethod = separatorIndex !== -1
+    ? clientCommunicationMethod?.substring(0, separatorIndex)
+    : (clientCommunicationMethod ?? '');
+  const currentRemarks = separatorIndex !== -1
+    ? clientCommunicationMethod?.substring(separatorIndex + 1).trim()
+    : '';
+
+  // Handle communication method changes
+  const handleCommunicationMethodChange = (newMethod: string) => {
     if (!onClientCommunicationMethodChange) return;
 
-    // For radio button behavior, we only store the selected method
-    // For "Other" option with notes, we need special handling
-    if (method === 'Other' && clientCommunicationMethod?.startsWith('Other:')) {
-      // If selecting "Other" again and we already have notes, preserve them
-      onClientCommunicationMethodChange(clientCommunicationMethod);
-    } else {
-      onClientCommunicationMethodChange(method);
-    }
+    // Preserve existing remarks when switching methods
+    const remarksSuffix = currentRemarks ? `: ${currentRemarks}` : '';
+    onClientCommunicationMethodChange(`${newMethod}${remarksSuffix}`);
+  };
+
+  const handleRemarksChange = (newRemarks: string) => {
+    if (!onClientCommunicationMethodChange) return;
+
+    // If no method selected, maybe default to 'Other'? 
+    // Or just require a method to be selected first? 
+    // Logic: if currentMethod is empty, we can't really attach remarks meaningfully unless we default to something.
+    // Let's assume user must select a method first.
+    if (!currentMethod) return;
+
+    onClientCommunicationMethodChange(`${currentMethod}: ${newRemarks}`);
   };
 
   // Check if a method is selected
   const isMethodSelected = (method: string) => {
-    if (method === 'Other') {
-      // For "Other" option, check if it's selected either as plain "Other" or with notes
-      return clientCommunicationMethod === 'Other' || clientCommunicationMethod?.startsWith('Other:');
-    }
-    return clientCommunicationMethod === method;
+    return currentMethod === method;
   };
 
   return (
@@ -79,7 +91,11 @@ function GroupDetailsStepComponent({
         </div>
         <div className="grid gap-2">
           <Label htmlFor="start-date">Start Date</Label>
-          <DatePicker date={startDate} setDate={onStartDateChange} />
+          <DatePicker
+            date={startDate}
+            setDate={onStartDateChange}
+            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+          />
         </div>
 
         {/* Client Communication Method Section */}
@@ -150,14 +166,7 @@ function GroupDetailsStepComponent({
               <Checkbox
                 id="send-other"
                 checked={isMethodSelected('Other')}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    handleCommunicationMethodChange('Other');
-                  } else {
-                    // When unchecking, clear the selection
-                    onClientCommunicationMethodChange('');
-                  }
-                }}
+                onCheckedChange={(checked) => checked && handleCommunicationMethodChange('Other')}
               />
               <div className="grid gap-1.5 leading-none">
                 <label
@@ -174,13 +183,12 @@ function GroupDetailsStepComponent({
               <Textarea
                 id="communication-notes"
                 placeholder="Add any additional remarks, notes, or references about client communication..."
-                value={clientCommunicationMethod?.startsWith('Other:') ? clientCommunicationMethod.substring(6) : ''}
-                onChange={(e) => {
-                  const otherMethod = `Other:${e.target.value}`;
-                  onClientCommunicationMethodChange(otherMethod);
-                }}
+                value={currentRemarks}
+                onChange={(e) => handleRemarksChange(e.target.value)}
                 className="min-h-[100px]"
+                disabled={!currentMethod}
               />
+              {!currentMethod && <p className="text-xs text-muted-foreground">Please select a communication method to add remarks.</p>}
             </div>
           </div>
         </div>

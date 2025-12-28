@@ -50,6 +50,8 @@ export default async function EditCostMatrixPage({ params, searchParams }: EditC
             startDate: new Date().toISOString(),
             services: emptySection('services', 'Services'),
             permits: emptySection('permits', 'Permits & Food'),
+            accommodation: emptySection('accommodation', 'Accommodation'),
+            transportation: emptySection('transportation', 'Transportation'),
             extraDetails: emptySection('extraDetails', 'Extra Details'),
             serviceCharge: 10,
             customSections: [],
