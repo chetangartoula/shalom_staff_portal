@@ -38,7 +38,7 @@ type ReportState = {
   accommodation: SectionState;
   transportation: SectionState;
   extraDetails: SectionState;
-  extraServices: SectionState; // New section for extra services
+  extraServices: SectionState; 
   customSections: SectionState[];
   serviceCharge: number;
   reportUrl?: string;
@@ -826,13 +826,12 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [savedReportUrl, toast]);
 
   const getTransformedPayload = useCallback(() => {
-    // Transform permits data - include all required fields with proper integer formatting
+    
     const permitsData = report.permits.rows.map(row => ({
-      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
-      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
-      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
-      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      rate: row.rate?.toString() || '0',
+      times: parseInt(row.times?.toString() || '1'), 
+      numbers: parseInt(row.no?.toString() || '1'), 
       per_person: row.per_person || false,
       per_day: row.per_day || false,
       one_time: row.one_time || false,
@@ -843,13 +842,12 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       to_place: row.to_place || ''
     }));
 
-    // Transform services data - include all required fields with proper integer formatting
+    
     const servicesData = report.services.rows.map(row => ({
-      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
-      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
-      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
-      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      rate: row.rate?.toString() || '0',
+      times: parseInt(row.times?.toString() || '1'), 
+      numbers: parseInt(row.no?.toString() || '1'),
       per_person: row.per_person || false,
       per_day: row.per_day || false,
       one_time: row.one_time || false,
@@ -860,20 +858,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       to_place: row.to_place || ''
     }));
 
-    // Transform extra services data
-    // Group both extraDetails and extraServices by description to match the required structure
     const extraServicesMap = new Map();
     
-    // Process report.extraDetails
     report.extraDetails.rows.forEach(row => {
-      // Parse the combined description to extract service_name and param name
       let service_name, param_name;
       if (row.description.includes(' - ')) {
         const parts = row.description.split(' - ');
         service_name = parts[0];
-        param_name = parts.slice(1).join(' - '); // In case param name itself contains ' - '
+        param_name = parts.slice(1).join(' - ');
       } else {
-        // Fallback: if no separator found, use the entire description as service_name
         service_name = row.description;
         param_name = row.description;
       }
@@ -885,7 +878,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         });
       }
       extraServicesMap.get(service_name).params.push({
-        id: parseInt(row.id?.toString() || '0'), // Convert id to integer
         name: param_name,
         rate: row.rate?.toString() || '0', // Keep rate as string as required by API
         times: parseInt(row.times?.toString() || '1'), // Convert times to integer
@@ -913,7 +905,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         });
       }
       extraServicesMap.get(service_name).params.push({
-        id: parseInt(row.id?.toString() || '0'), // Convert id to integer
         name: row.description,
         rate: row.rate?.toString() || '0', // Keep rate as string as required by API
         times: parseInt(row.times?.toString() || '1'), // Convert times to integer
@@ -933,7 +924,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     
     // Transform accommodation data
     const accommodationData = report.accommodation.rows.map(row => ({
-      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
       rate: row.rate?.toString() || '0', // Keep rate as string as required by API
       times: parseInt(row.times?.toString() || '1'), // Convert times to integer
@@ -950,7 +940,6 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     
     // Transform transportation data
     const transportationData = report.transportation.rows.map(row => ({
-      id: parseInt(row.id?.toString() || '0'), // Convert id to integer
       name: row.description,
       rate: row.rate?.toString() || '0', // Keep rate as string as required by API
       times: parseInt(row.times?.toString() || '1'), // Convert times to integer
@@ -990,7 +979,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       transportation_discount_remarks: report.transportation.discountRemarks || "",
       extra_service_discount: String(report.extraDetails.discountValue || 0),
       extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
-      extra_service_discount_remarks: report.extraDetails.discountRemarks || "", // Using extraDetails for backward compatibility
+      extra_service_discount_remarks: report.extraDetails.discountRemarks || "", 
       permit_discount: String(report.permits.discountValue || 0),
       permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
       permit_discount_remarks: report.permits.discountRemarks || "",
