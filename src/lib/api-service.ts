@@ -35,7 +35,7 @@ const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:80
 export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   const controller = new AbortController();
   const TIMEOUT_MS = 30000; // 30 seconds timeout
-  
+
   // Set a timeout to abort the request if it takes too long
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -54,7 +54,7 @@ export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
 
     if (!response.ok) {
       let errorMessage = `API request failed with status ${response.status} for ${endpoint}`;
-      
+
       // Try to get more detailed error message from response
       try {
         const errorData = await response.json();
@@ -93,7 +93,7 @@ export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
             break;
         }
       }
-      
+
       // Log the error for debugging
       console.error(`API Error (${response.status}): ${errorMessage}`);
       throw new Error(errorMessage);
@@ -109,18 +109,18 @@ export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
   } catch (error) {
     // Clean up the timeout if the request completes with an error
     clearTimeout(timeoutId);
-    
+
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error(`Request timeout - The server took too long to respond (${TIMEOUT_MS/1000} seconds)`);
+        throw new Error(`Request timeout - The server took too long to respond (${TIMEOUT_MS / 1000} seconds)`);
       }
-      
+
       // Handle network errors
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         throw new Error('Network error - Unable to connect to the server. Please check your internet connection.');
       }
     }
-    
+
     // Re-throw the original error if we don't have a specific handler for it
     throw error;
   }
@@ -288,6 +288,7 @@ export async function fetchTrips(): Promise<{ trips: Trek[] }> {
       id: trip.id.toString(),
       name: trip.title,
       description: trip.combined_info,
+      times: trip.times || 1,
       permits: [] // Permits would need to be fetched separately or added manually
     }));
 
@@ -312,6 +313,7 @@ export async function fetchPermits(tripId: string): Promise<any[]> {
       per_day: permit.per_day,
       one_time: permit.one_time,
       is_default: permit.is_default,
+      is_compulsory: permit.is_compulsory,
       is_editable: permit.is_editable,
       max_capacity: permit.max_capacity,
       from_place: permit.from_place,
@@ -339,6 +341,7 @@ export async function fetchAllPermits(tripId: string): Promise<any[]> {
       per_day: permit.per_day,
       one_time: permit.one_time,
       is_default: permit.is_default,
+      is_compulsory: permit.is_compulsory,
       is_editable: permit.is_editable,
       max_capacity: permit.max_capacity,
       from_place: permit.from_place,
@@ -1042,7 +1045,7 @@ export async function fetchAllTravelers(): Promise<APITraveler[]> {
 export async function getAccommodationList(tripId: string): Promise<any[]> {
   try {
     const data = await fetchFromAPI<any[]>(`/staff/accommodation-list/${tripId}/`);
-    
+
     // Transform the API response to match our expected structure
     const transformedAccommodation = data.map(accommodation => ({
       id: accommodation.id.toString(),
@@ -1058,7 +1061,7 @@ export async function getAccommodationList(tripId: string): Promise<any[]> {
       from_place: accommodation.location || '',
       to_place: '', // No to_place in the API response
     }));
-    
+
     return transformedAccommodation;
   } catch (error) {
     console.error('Error fetching accommodation:', error);

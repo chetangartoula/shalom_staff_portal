@@ -13,6 +13,7 @@ export interface APITrip {
     id: number;
     title: string;
     combined_info: string;
+    times: number;
 }
 
 // ============================================================================
@@ -28,6 +29,7 @@ export interface APIPermit {
     per_day: boolean;
     one_time: boolean;
     is_default: boolean;
+    is_compulsory?: boolean;
     is_editable: boolean;
     max_capacity: number;
     from_place: string;
@@ -50,6 +52,7 @@ export interface APIService {
     per_day?: boolean;
     one_time?: boolean;
     is_default?: boolean;
+    is_compulsory?: boolean;
     is_editable?: boolean;
     from_place?: string;
     to_place?: string;
@@ -62,6 +65,7 @@ export interface APIExtraServiceParam {
     per_day?: boolean;
     one_time?: boolean;
     is_default?: boolean;
+    is_compulsory?: boolean;
     is_editable?: boolean;
     max_capacity?: number;
     from_place?: string;
@@ -77,6 +81,7 @@ export interface APIExtraService {
     per_day?: boolean;
     one_time?: boolean;
     is_default?: boolean;
+    is_compulsory?: boolean;
     is_editable?: boolean;
     max_num?: number;
     from_place?: string;

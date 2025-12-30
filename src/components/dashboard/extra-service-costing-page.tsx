@@ -21,25 +21,23 @@ import type { User } from "@/lib/auth";
 import { updateExtraInvoice, postExtraInvoice } from '@/lib/api-service';
 import { cn, formatCurrency } from '@/lib/utils';
 
-// Function to calculate extra service total based on the boolean flags
-const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
-    // Apply calculation based on boolean flags
-    if (extraService.one_time) {
-        // If one_time is true, calculate as rate (single occurrence regardless of other factors)
-        return extraService.rate;
-    } else if (extraService.per_person && extraService.per_day) {
-        // If both per_person and per_day are true, calculate as rate * no * times
-        return extraService.rate * no * times;
-    } else if (extraService.per_person) {
-        // If per_person is true, calculate as rate * no
-        return extraService.rate * no;
-    } else if (extraService.per_day) {
-        // If per_day is true, calculate as rate * times
-        return extraService.rate * times;
-    } else {
-        // If none of the above flags are true, calculate as rate * no * times (default)
-        return extraService.rate * no * times;
+// Function to calculate quantity (no) based on groupSize and max_capacity
+const calculateRowQuantity = (item: any, groupSize: number) => {
+    if (item.max_capacity && item.max_capacity > 0) {
+        return Math.ceil(groupSize / item.max_capacity);
     }
+
+    if (item.per_person) {
+        return groupSize;
+    }
+
+    return 1;
+};
+
+// Function to calculate extra service total: rate * no * times
+const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
+    const rate = extraService.rate || 0;
+    return rate * no * times;
 };
 
 const LoadingStep = () => (
@@ -73,19 +71,24 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         const parseDiscount = (val: any) => Number(val || 0);
         const parseType = (val: any) => val === 'percentage' ? 'percentage' : 'amount';
 
+        const groupSize = Number(initialData.groupSize || 1);
+
         // Map Extra Services from API structure (nested params) to flat rows
         let extraRows: CostRow[] = [];
         if (data.extra_services && Array.isArray(data.extra_services)) {
             data.extra_services.forEach((service: any) => {
                 if (service.params && Array.isArray(service.params)) {
                     service.params.forEach((param: any) => {
+                        const no = calculateRowQuantity(param, groupSize);
+                        const trekTimes = selectedTrek?.times || 1;
+                        const times = param.per_day ? trekTimes : (Number(param.times) || 1);
                         extraRows.push({
                             id: crypto.randomUUID(),
                             description: `${service.service_name} - ${param.name}`,
                             rate: Number(param.rate),
-                            no: Number(param.numbers),
-                            times: Number(param.times),
-                            total: calculateExtraServiceTotal(param, Number(param.numbers), Number(param.times)),
+                            no: no,
+                            times: times,
+                            total: calculateExtraServiceTotal(param, no, times),
                             // Include boolean flags
                             per_person: param.per_person,
                             per_day: param.per_day,
@@ -108,7 +111,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
 
         return {
             ...initialData,
-            groupSize: Number(initialData.groupSize || 1),
+            groupSize: groupSize,
             startDate: initialData.startDate || new Date().toISOString(),
             // Map Service Charge
             serviceCharge: Number(data.service_charge || initialData.serviceCharge || 0),
@@ -183,7 +186,33 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     }, [totalCost, report.serviceCharge]);
 
     const handleDetailChange = useCallback((field: keyof Report, value: any) => {
-        setReport(prev => ({ ...prev, [field]: value }));
+        setReport(prev => {
+            const next = { ...prev, [field]: value };
+
+            // If groupSize changed, update all row quantities
+            if (field === 'groupSize') {
+                const newSize = Number(value);
+
+                const updateSection = (section: SectionState) => ({
+                    ...section,
+                    rows: section.rows.map(row => {
+                        const newNo = calculateRowQuantity(row, newSize);
+                        return {
+                            ...row,
+                            no: newNo,
+                            total: calculateExtraServiceTotal(row, newNo, row.times)
+                        };
+                    })
+                });
+
+                next.permits = updateSection(next.permits);
+                next.services = updateSection(next.services);
+                next.extraDetails = updateSection(next.extraDetails);
+                next.customSections = next.customSections.map(updateSection);
+            }
+
+            return next;
+        });
     }, []);
 
     const handleSectionUpdate = useCallback((sectionId: string, updater: (s: SectionState) => SectionState) => {
@@ -227,20 +256,52 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         const newSelectedTrek = treks?.find(t => t.id === trekId);
         if (!newSelectedTrek) return;
 
+        const trekTimes = newSelectedTrek.times || 1;
+
         setReport(prev => ({
             ...prev,
             trekId: newSelectedTrek.id,
             trekName: newSelectedTrek.name,
             permits: {
                 ...prev.permits,
-                rows: newSelectedTrek.permits?.map(p => ({
-                    id: crypto.randomUUID(),
-                    description: p.name,
-                    rate: p.rate,
-                    no: prev.groupSize,
-                    times: 1,
-                    total: p.rate * prev.groupSize,
-                })) || []
+                rows: newSelectedTrek.permits?.map(p => {
+                    const permitTimes = p.per_day ? trekTimes : 1;
+                    const permitNo = calculateRowQuantity(p, prev.groupSize);
+                    return {
+                        id: crypto.randomUUID(),
+                        description: p.name,
+                        rate: p.rate,
+                        no: permitNo,
+                        times: permitTimes,
+                        total: calculateExtraServiceTotal(p, permitNo, permitTimes),
+                    };
+                }) || []
+            },
+            services: {
+                ...prev.services,
+                rows: prev.services.rows.map(row => {
+                    if (row.per_day) {
+                        return {
+                            ...row,
+                            times: trekTimes,
+                            total: calculateExtraServiceTotal(row, row.no, trekTimes)
+                        };
+                    }
+                    return row;
+                })
+            },
+            extraDetails: {
+                ...prev.extraDetails,
+                rows: prev.extraDetails.rows.map(row => {
+                    if (row.per_day) {
+                        return {
+                            ...row,
+                            times: trekTimes,
+                            total: calculateExtraServiceTotal(row, row.no, trekTimes)
+                        };
+                    }
+                    return row;
+                })
             }
         }));
         setCurrentStep(0);
@@ -253,7 +314,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             const parts = row.description.split(' - ');
             const service_name = parts[0] || row.description; // If no separator, use the full description as service_name
             const param_name = parts[1] || row.description; // If no separator, use the full description as param name
-            
+
             if (!extraServicesMap.has(service_name)) {
                 extraServicesMap.set(service_name, { service_name: service_name, params: [] });
             }
@@ -332,14 +393,22 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         }
     }, [allSteps.length, currentStep]);
 
-    const createNewRow = useCallback(() => ({
-        id: crypto.randomUUID(),
-        description: "",
-        rate: 0,
-        no: Number(report.groupSize),
-        times: 1,
-        total: 0
-    }), [report.groupSize]);
+    const createNewRow = useCallback(() => {
+        const trekTimes = selectedTrek?.times || 1;
+        const groupSize = Number(report.groupSize);
+        // For a new manually added row, we don't know the per_day status yet.
+        // Usually, new rows default to 1 time.
+        return {
+            id: crypto.randomUUID(),
+            description: "",
+            rate: 0,
+            no: groupSize,
+            times: 1,
+            total: 0,
+            per_person: false,
+            per_day: false
+        };
+    }, [report.groupSize, selectedTrek?.times]);
 
     const renderStepContent = () => {
         if (currentStep === 0 && !report.trekId) {

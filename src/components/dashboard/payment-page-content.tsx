@@ -353,10 +353,9 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
                 id: extraInvoice.trekId,
                 name: extraInvoice.trekName,
                 description: '',
+                times: 1,
                 permits: []
             };
-
-            // Map Report to ReportState format expected by handleExportPDF
             const reportForExport = {
                 ...extraInvoice,
                 startDate: extraInvoice.startDate ? new Date(extraInvoice.startDate) : undefined

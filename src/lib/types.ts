@@ -1,14 +1,25 @@
 
 export interface Permit {
+  id?: string;
   name: string;
   rate: number;
   times: number;
+  per_person?: boolean;
+  per_day?: boolean;
+  one_time?: boolean;
+  is_default?: boolean;
+  is_compulsory?: boolean;
+  is_editable?: boolean;
+  max_capacity?: number;
+  from_place?: string;
+  to_place?: string;
 }
 
 export interface Trek {
   id: string;
   name: string;
   description: string;
+  times: number;
   permits: Permit[];
 }
 
@@ -21,6 +32,7 @@ export interface Service {
   per_day?: boolean;
   one_time?: boolean;
   is_default?: boolean;
+  is_compulsory?: boolean;
   is_editable?: boolean;
   max_capacity?: number;
   from_place?: string;
@@ -39,6 +51,7 @@ export interface CostRow {
   per_day?: boolean;
   one_time?: boolean;
   is_default?: boolean;
+  is_compulsory?: boolean;
   is_editable?: boolean;
   max_capacity?: number;
   from_place?: string;
