@@ -581,8 +581,19 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         total: calculateRowTotal(e, e.no, e.times)
       }));
 
-      // Initialize accommodation data - start with empty rows
-      const initialAccommodation: CostRow[] = [];
+      const updateRowsForTrekChange = (rows: CostRow[]) => {
+        return rows.map(row => {
+          if (row.per_day) {
+            const newTimes = newSelectedTrek.times || 1;
+            return {
+              ...row,
+              times: newTimes,
+              total: calculateRowTotal(row, row.no, newTimes)
+            };
+          }
+          return row;
+        });
+      };
 
       const trekShortName = getTrekShortName(newSelectedTrek.name);
       const timestamp = getCurrentTimestamp();
@@ -594,8 +605,12 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         trekName: newSelectedTrek.name,
         groupName: defaultGroupName,
         permits: { ...prev.permits, rows: initialPermits },
+        services: { ...prev.services, rows: updateRowsForTrekChange(prev.services.rows) },
+        accommodation: { ...prev.accommodation, rows: updateRowsForTrekChange(prev.accommodation.rows) },
+        transportation: { ...prev.transportation, rows: updateRowsForTrekChange(prev.transportation.rows) },
         extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
-        accommodation: { ...prev.accommodation, rows: initialAccommodation },
+        extraServices: { ...prev.extraServices, rows: updateRowsForTrekChange(prev.extraServices.rows) },
+        customSections: prev.customSections.map(s => ({ ...s, rows: updateRowsForTrekChange(s.rows) }))
       };
     });
     // Trek selection is complete, do not change the current step
@@ -1061,14 +1076,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   const renderStepContent = () => {
     if (isLoading) return <LoadingStep />;
 
-    // Show trek selection step if we're on step 0 and don't have a trek selected yet
     if (currentStep === 0 && !report.trekId) {
       return <SelectTrekStep treks={treks || []} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
     }
-
-    // After trek is selected, determine which step to show based on currentStep
-    // When initialData exists or trek is selected: stepIndex = currentStep
-    // When no initialData and no trek: we show trek selection above
     const stepIndex = currentStep;
 
     const activeStepData = allCostingStepsMetadata[stepIndex];

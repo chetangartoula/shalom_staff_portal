@@ -347,9 +347,6 @@ export function CostTable({
                     readOnly={isReadOnly}
                     disabled={isReadOnly}
                   />
-                  {row.max_capacity !== undefined && row.no !== undefined && row.no > row.max_capacity && (
-                    <div className="text-xs text-red-500 mt-1">Max capacity: {row.max_capacity}</div>
-                  )}
                 </td>
                 <td className="p-4">
                   <Input
