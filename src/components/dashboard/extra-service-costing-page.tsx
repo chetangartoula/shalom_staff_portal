@@ -44,9 +44,9 @@ const calculateRowTimes = (item: any, trekTimes: number) => {
     return 1;
 };
 
-// Function to calculate extra service total: rate * no * times
-const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
-    const rate = extraService.rate || 0;
+// Function to calculate row total: rate * no * times
+const calculateRowTotal = (item: any, no: number, times: number) => {
+    const rate = item.rate || 0;
     return rate * no * times;
 };
 
@@ -98,7 +98,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                             rate: Number(param.rate),
                             no: no,
                             times: times,
-                            total: calculateExtraServiceTotal(param, no, times),
+                            total: calculateRowTotal(param, no, times),
                             // Include boolean flags
                             per_person: param.per_person,
                             per_day: param.per_day,
@@ -172,7 +172,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
     }, []);
 
     const subtotalBeforeOverallDiscount = useMemo(() => {
-        const sections = [report.permits, report.services, report.extraDetails, ...report.customSections];
+        const sections = [report.permits, report.services, report.accommodation, report.transportation, report.extraDetails, ...report.customSections];
         return sections.reduce((acc, section) => acc + calculateSectionTotals(section).total, 0);
     }, [report, calculateSectionTotals]);
 
@@ -210,7 +210,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                         return {
                             ...row,
                             no: newNo,
-                            total: calculateExtraServiceTotal(row, newNo, row.times)
+                            total: calculateRowTotal(row, newNo, row.times)
                         };
                     })
                 });
@@ -253,7 +253,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                         const no = Number(newRow.no || 0);
                         const times = Number(newRow.times || 0);
                         // Calculate using the proper boolean flag logic
-                        newRow.total = calculateExtraServiceTotal(newRow, no, times);
+                        newRow.total = calculateRowTotal(newRow, no, times);
                     }
                     return newRow;
                 }
@@ -283,7 +283,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                         rate: p.rate,
                         no: permitNo,
                         times: permitTimes,
-                        total: calculateExtraServiceTotal(p, permitNo, permitTimes),
+                        total: calculateRowTotal(p, permitNo, permitTimes),
                     };
                 }) || []
             },
@@ -294,7 +294,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateExtraServiceTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes)
                     };
                 })
             },
@@ -305,10 +305,43 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateExtraServiceTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes)
                     };
                 })
-            }
+            },
+            accommodation: {
+                ...prev.accommodation,
+                rows: prev.accommodation.rows.map(row => {
+                    const newTimes = calculateRowTimes(row, trekTimes);
+                    return {
+                        ...row,
+                        times: newTimes,
+                        total: calculateRowTotal(row, row.no, newTimes)
+                    };
+                })
+            },
+            transportation: {
+                ...prev.transportation,
+                rows: prev.transportation.rows.map(row => {
+                    const newTimes = calculateRowTimes(row, trekTimes);
+                    return {
+                        ...row,
+                        times: newTimes,
+                        total: calculateRowTotal(row, row.no, newTimes)
+                    };
+                })
+            },
+            customSections: prev.customSections.map(s => ({
+                ...s,
+                rows: s.rows.map(row => {
+                    const newTimes = calculateRowTimes(row, trekTimes);
+                    return {
+                        ...row,
+                        times: newTimes,
+                        total: calculateRowTotal(row, row.no, newTimes)
+                    };
+                })
+            }))
         }));
         setCurrentStep(0);
     }, [treks]);
@@ -332,18 +365,32 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
         return {
             package: Number(report.parentGroupId || 0),
             status: "draft",
-            permits: report.permits.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
-            services: report.services.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times })),
+            permits: report.permits.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times, per_person: !!row.per_person, per_day: !!row.per_day, one_time: !!row.one_time })),
+            services: report.services.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times, per_person: !!row.per_person, per_day: !!row.per_day, one_time: !!row.one_time })),
+            accommodation: report.accommodation.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times, per_person: !!row.per_person, per_day: !!row.per_day, one_time: !!row.one_time })),
+            transportation: report.transportation.rows.map(row => ({ name: row.description, rate: row.rate, numbers: row.no, times: row.times, per_person: !!row.per_person, per_day: !!row.per_day, one_time: !!row.one_time })),
             extra_services: Array.from(extraServicesMap.values()),
-            service_discount: String(report.services.discountValue || 0),
-            service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
-            service_discount_remarks: report.services.discountRemarks || "",
-            extra_service_discount: String(report.extraDetails.discountValue || 0),
-            extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
-            extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
+
             permit_discount: String(report.permits.discountValue || 0),
             permit_discount_type: report.permits.discountType === 'percentage' ? 'percentage' : 'flat',
             permit_discount_remarks: report.permits.discountRemarks || "",
+
+            service_discount: String(report.services.discountValue || 0),
+            service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
+            service_discount_remarks: report.services.discountRemarks || "",
+
+            accommodation_discount: String(report.accommodation.discountValue || 0),
+            accommodation_discount_type: report.accommodation.discountType === 'percentage' ? 'percentage' : 'flat',
+            accommodation_discount_remarks: report.accommodation.discountRemarks || "",
+
+            transportation_discount: String(report.transportation.discountValue || 0),
+            transportation_discount_type: report.transportation.discountType === 'percentage' ? 'percentage' : 'flat',
+            transportation_discount_remarks: report.transportation.discountRemarks || "",
+
+            extra_service_discount: String(report.extraDetails.discountValue || 0),
+            extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
+            extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
+
             overall_discount: String(report.overallDiscountValue || 0),
             overall_discount_type: report.overallDiscountType === 'percentage' ? 'percentage' : 'flat',
             overall_discount_remarks: report.overallDiscountRemarks || "",
