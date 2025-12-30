@@ -56,7 +56,7 @@ const createInitialSectionState = (id: string, name: string): SectionState => ({
   rows: [],
   discountType: 'amount',
   discountValue: 0,
-  discountRemarks: '', // Initialize discount remarks
+  discountRemarks: '',
 });
 
 const createInitialReportState = (groupId?: string): ReportState => ({
@@ -178,74 +178,45 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
 
 
-  const calculatePermitTotal = (permit: any, no: number, times: number) => {
-    if (permit.one_time) {
-      return permit.rate;
-    } else if (permit.per_person && permit.per_day) {
-      return permit.rate * no * times;
-    } else if (permit.per_person) {
-      return permit.rate * no;
-    } else if (permit.per_day) {
-      return permit.rate * times;
-    } else {
-      return permit.rate * no * times;
+  const calculateRowTotal = (item: any, no: number, times: number) => {
+    const rate = item.rate || 0;
+    // New simplified logic: Always rate * no * times
+    return rate * no * times;
+  };
+
+  // Function to calculate quantity (no) based on groupSize and max_capacity
+  const calculateRowQuantity = (item: any, groupSize: number) => {
+    if (item.max_capacity && item.max_capacity > 0) {
+      // Jeep max capacity 7 means it can hold a max of 7 people, if people +7, jeep number should be 2
+      // This applies to any item with max_capacity
+      return Math.ceil(groupSize / item.max_capacity);
     }
+
+    if (item.per_person) {
+      return groupSize;
+    }
+
+    return 1;
+  };
+
+  const calculatePermitTotal = (permit: any, no: number, times: number) => {
+    return calculateRowTotal(permit, no, times);
   };
 
   const calculateServiceTotal = (service: any, no: number, times: number) => {
-    if (service.one_time) {
-      return service.rate;
-    } else if (service.per_person && service.per_day) {
-      return service.rate * no * times;
-    } else if (service.per_person) {
-      return service.rate * no;
-    } else if (service.per_day) {
-      return service.rate * times;
-    } else {
-      return service.rate * no * times;
-    }
+    return calculateRowTotal(service, no, times);
   };
 
   const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
-    if (extraService.one_time) {
-      return extraService.rate;
-    } else if (extraService.per_person && extraService.per_day) {
-      return extraService.rate * no * times;
-    } else if (extraService.per_person) {
-      return extraService.rate * no;
-    } else if (extraService.per_day) {
-      return extraService.rate * times;
-    } else {
-      return extraService.rate * no * times;
-    }
+    return calculateRowTotal(extraService, no, times);
   };
 
   const calculateAccommodationTotal = (accommodation: any, no: number, times: number) => {
-    if (accommodation.one_time) {
-      return accommodation.rate;
-    } else if (accommodation.per_person && accommodation.per_day) {
-      return accommodation.rate * no * times;
-    } else if (accommodation.per_person) {
-      return accommodation.rate * no;
-    } else if (accommodation.per_day) {
-      return accommodation.rate * times;
-    } else {
-      return accommodation.rate * no * times;
-    }
+    return calculateRowTotal(accommodation, no, times);
   };
 
   const calculateTransportationTotal = (transportation: any, no: number, times: number) => {
-    if (transportation.one_time) {
-      return transportation.rate;
-    } else if (transportation.per_person && transportation.per_day) {
-      return transportation.rate * no * times;
-    } else if (transportation.per_person) {
-      return transportation.rate * no;
-    } else if (transportation.per_day) {
-      return transportation.rate * times;
-    } else {
-      return transportation.rate * no * times;
-    }
+    return calculateRowTotal(transportation, no, times);
   };
 
   useEffect(() => {
@@ -279,24 +250,33 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
             const shortName = getTrekShortName(trek.name);
             const timestamp = getCurrentTimestamp();
             fullReport.groupName = `${shortName}-${timestamp}`;
-            // Also ensure trekName is set if missing
             if (!fullReport.trekName) {
               fullReport.trekName = trek.name;
             }
           }
         }
 
-        // If we already have a trekId and it matches, merge the data instead of replacing
+        const selectedTrek = treks?.find(t => t.id === initialData.trekId);
+        const trekTimes = selectedTrek?.times || 1;
+
+        const updateRowsWithTripTimes = (rows: CostRow[]) => {
+          return rows.map(row => {
+            const newNo = calculateRowQuantity(row, fullReport.groupSize || 1);
+            // If it's a per_day item, use trek duration, otherwise 1
+            const newTimes = row.per_day ? trekTimes : 1;
+            return { ...row, no: newNo, times: newTimes, total: calculateRowTotal({ ...row, times: newTimes }, newNo, newTimes) };
+          });
+        };
+
         if (prev.trekId === initialData.trekId) {
           const updatedReport = {
             ...prev,
-            // Update permits if they're provided in initialData
-            permits: initialData.permits || prev.permits,
-            services: initialData.services || prev.services,
-            accommodation: initialData.accommodation || prev.accommodation,
-            transportation: initialData.transportation || prev.transportation,
-            extraDetails: initialData.extraDetails || prev.extraDetails,
-            extraServices: initialData.extraServices || prev.extraServices,
+            permits: initialData.permits ? { ...initialData.permits, rows: updateRowsWithTripTimes(initialData.permits.rows || []) } : prev.permits,
+            services: initialData.services ? { ...initialData.services, rows: updateRowsWithTripTimes(initialData.services.rows || []) } : prev.services,
+            accommodation: initialData.accommodation ? { ...initialData.accommodation, rows: updateRowsWithTripTimes(initialData.accommodation.rows || []) } : prev.accommodation,
+            transportation: initialData.transportation ? { ...initialData.transportation, rows: updateRowsWithTripTimes(initialData.transportation.rows || []) } : prev.transportation,
+            extraDetails: initialData.extraDetails ? { ...initialData.extraDetails, rows: updateRowsWithTripTimes(initialData.extraDetails.rows || []) } : prev.extraDetails,
+            extraServices: initialData.extraServices ? { ...initialData.extraServices, rows: updateRowsWithTripTimes(initialData.extraServices.rows || []) } : prev.extraServices,
           };
 
           console.log('TrekCostingPage: Merging data for same trek', {
@@ -307,88 +287,100 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           return updatedReport;
         }
 
+        const finalReport = {
+          ...fullReport,
+          permits: fullReport.permits ? { ...fullReport.permits, rows: updateRowsWithTripTimes(fullReport.permits.rows || []) } : fullReport.permits,
+          services: fullReport.services ? { ...fullReport.services, rows: updateRowsWithTripTimes(fullReport.services.rows || []) } : fullReport.services,
+          accommodation: fullReport.accommodation ? { ...fullReport.accommodation, rows: updateRowsWithTripTimes(fullReport.accommodation.rows || []) } : fullReport.accommodation,
+          transportation: fullReport.transportation ? { ...fullReport.transportation, rows: updateRowsWithTripTimes(fullReport.transportation.rows || []) } : fullReport.transportation,
+          extraDetails: fullReport.extraDetails ? { ...fullReport.extraDetails, rows: updateRowsWithTripTimes(fullReport.extraDetails.rows || []) } : fullReport.extraDetails,
+          extraServices: fullReport.extraServices ? { ...fullReport.extraServices, rows: updateRowsWithTripTimes(fullReport.extraServices.rows || []) } : fullReport.extraServices,
+        };
+
         console.log('TrekCostingPage: Using full report for new trek');
-        // If it's a different trek or first load, replace everything
-        return fullReport;
+        return finalReport;
       });
 
-      // Special handling for new extra invoices - start at trek selection if no trekId
       if (initialData.isNew && !initialData.trekId) {
         setCurrentStep(0);
       }
     }
-  }, [initialData, report.trekId]);
+  }, [initialData, report.trekId, treks]);
 
-  // Update accommodation data when it changes and trekId matches
+  // Update accom modation data when it changes and trekId matches
   useEffect(() => {
     if (accommodationData && report.trekId && accommodationData.length > 0) {
       setReport(prev => {
         if (prev.trekId !== report.trekId) return prev; // Only update for current trek
 
-        // Filter default accommodations from API data
-        const defaultAccommodations = accommodationData.filter(acc => acc.is_default).map(acc => ({
-          id: crypto.randomUUID(),
-          description: acc.name,
-          rate: acc.rate,
-          no: prev.groupSize,
-          times: acc.times,
-          total: calculateAccommodationTotal(acc, prev.groupSize, acc.times),
-          per_person: acc.per_person,
-          per_day: acc.per_day,
-          one_time: acc.one_time,
-          is_default: acc.is_default,
-          is_editable: acc.is_editable,
-          max_capacity: acc.max_capacity,
-          from_place: acc.from_place,
-          to_place: acc.to_place
-        }));
-
-        // Apply max_capacity splitting logic
-        const splitAccommodations = defaultAccommodations.flatMap(row => splitRowByMaxCapacity(row, prev.groupSize));
+        const defaultAccommodations = accommodationData.filter(acc => acc.is_default).map(acc => {
+          const accTimes = acc.per_day ? (selectedTrek?.times || acc.times || 1) : 1;
+          const accNo = calculateRowQuantity(acc, prev.groupSize);
+          const row = {
+            id: crypto.randomUUID(),
+            description: acc.name,
+            rate: acc.rate,
+            no: accNo,
+            times: accTimes,
+            total: calculateAccommodationTotal(acc, accNo, accTimes),
+            per_person: acc.per_person,
+            per_day: acc.per_day,
+            one_time: acc.one_time,
+            is_default: acc.is_default,
+            is_compulsory: (acc as any).is_compulsory || false,
+            is_editable: acc.is_editable,
+            max_capacity: acc.max_capacity,
+            from_place: acc.from_place,
+            to_place: acc.to_place
+          };
+          return row;
+        });
 
         return {
           ...prev,
           accommodation: {
             ...prev.accommodation,
-            rows: splitAccommodations
+            rows: defaultAccommodations
           }
         };
       });
     }
   }, [accommodationData, report.trekId, report.groupSize]);
 
-  // Update transportation data when it changes and trekId matches
   useEffect(() => {
     if (transportationData && report.trekId && transportationData.length > 0) {
       setReport(prev => {
         if (prev.trekId !== report.trekId) return prev; // Only update for current trek
 
         // Filter default transportation from API data
-        const defaultTransportations = transportationData.filter(trans => trans.is_default).map(trans => ({
-          id: crypto.randomUUID(),
-          description: trans.name,
-          rate: trans.rate,
-          no: prev.groupSize,
-          times: trans.times,
-          total: calculateTransportationTotal(trans, prev.groupSize, trans.times),
-          per_person: trans.per_person,
-          per_day: trans.per_day,
-          one_time: trans.one_time,
-          is_default: trans.is_default,
-          is_editable: trans.is_editable,
-          max_capacity: trans.max_capacity,
-          from_place: trans.from_place,
-          to_place: trans.to_place
-        }));
-
-        // Apply max_capacity splitting logic
-        const splitTransportations = defaultTransportations.flatMap(row => splitRowByMaxCapacity(row, prev.groupSize));
+        const defaultTransportations = transportationData.filter(trans => trans.is_default).map(trans => {
+          const transTimes = trans.per_day ? (selectedTrek?.times || trans.times || 1) : 1;
+          const transNo = calculateRowQuantity(trans, prev.groupSize);
+          const row = {
+            id: crypto.randomUUID(),
+            description: trans.name,
+            rate: trans.rate,
+            no: transNo,
+            times: transTimes,
+            total: calculateTransportationTotal(trans, transNo, transTimes),
+            per_person: trans.per_person,
+            per_day: trans.per_day,
+            one_time: trans.one_time,
+            is_default: trans.is_default,
+            is_compulsory: (trans as any).is_compulsory || false,
+            is_editable: trans.is_editable,
+            max_capacity: trans.max_capacity,
+            from_place: trans.from_place,
+            to_place: trans.to_place
+          };
+          return row;
+        });
 
         return {
           ...prev,
           transportation: {
             ...prev.transportation,
-            rows: splitTransportations
+            rows: defaultTransportations
           }
         };
       });
@@ -424,110 +416,21 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
     return subtotalBeforeOverallDiscount - overallDiscountAmount;
   }, [subtotalBeforeOverallDiscount, overallDiscountAmount]);
 
-  // Function to consolidate rows that were split due to max_capacity
-  const consolidateSplitRows = (rows: CostRow[]): CostRow[] => {
-    // Group rows by their original ID (before splitting)
-    const groupedRows: Record<string, CostRow[]> = {};
-
-    for (const row of rows) {
-      // Extract the original ID from split row IDs (e.g., originalId-split-1 -> originalId)
-      const originalId = row.id.replace(/-split-\d+$/, '');
-      if (!groupedRows[originalId]) {
-        groupedRows[originalId] = [];
-      }
-      groupedRows[originalId].push(row);
-    }
-
-    const consolidatedRows: CostRow[] = [];
-
-    for (const [originalId, group] of Object.entries(groupedRows)) {
-      if (group.length === 1) {
-        // Not a split row, add as is
-        consolidatedRows.push(group[0]);
-      } else {
-        // This is a split row, consolidate it
-        const originalRow = { ...group[0] };
-        // Remove the split suffix from ID
-        originalRow.id = originalId;
-        // Remove 'Additional ' prefix and split-specific description suffixes if present
-        originalRow.description = originalRow.description.replace(/^Additional /, '').replace(/ \(max capacity\)| \(additional capacity\)$/g, '');
-
-        // Sum up the quantities
-        const totalNo = group.reduce((sum, row) => sum + (row.no || 0), 0);
-        originalRow.no = totalNo;
-
-        consolidatedRows.push(originalRow);
-      }
-    }
-
-    return consolidatedRows;
-  };
-
-  // Function to split rows based on max_capacity and group size
-  const splitRowByMaxCapacity = (row: CostRow, groupSize: number) => {
-    const rows: CostRow[] = [];
-
-    // If max_capacity is not defined or group size is less than or equal to max_capacity, return original row
-    if (!row.max_capacity || groupSize <= row.max_capacity) {
-      return [{ ...row, no: groupSize }];
-    }
-
-    // Calculate total number of rows needed using Math.ceil
-    const totalRows = Math.ceil(groupSize / row.max_capacity);
-
-    for (let i = 0; i < totalRows; i++) {
-      // Calculate quantity for this row (max_capacity for all but potentially last row)
-      const quantity = i === totalRows - 1 ?
-        // For the last row, use remaining capacity if there's a remainder
-        (groupSize % row.max_capacity === 0 ? row.max_capacity : groupSize % row.max_capacity) :
-        // For other rows, use max_capacity
-        row.max_capacity;
-
-      rows.push({
-        ...row,
-        id: `${row.id}-split-${i + 1}`,
-        no: quantity,
-        description: `${row.description} ${i + 1}`
-      });
-    }
-
-    return rows;
-  };
 
   const handleGroupSizeChange = useCallback((size: number) => {
     setReport(currentReport => {
       const newReport = { ...currentReport, groupSize: size };
 
       const updateSectionForPax = (section: SectionState) => {
-        // First, consolidate any existing split rows to get back to original state
-        const consolidatedRows = consolidateSplitRows(section.rows);
-
         return {
           ...section,
-          rows: consolidatedRows.flatMap(row => {
-            let newTotal;
-            if (section.id === 'permits' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-              newTotal = calculatePermitTotal(row, size, row.times || 0);
-            } else if (section.id === 'services' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-              newTotal = calculateServiceTotal(row, size, row.times || 0);
-            } else if (section.id === 'accommodation' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-              newTotal = calculateAccommodationTotal(row, size, row.times || 0);
-            } else if (section.id === 'transportation' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-              newTotal = calculateServiceTotal(row, size, row.times || 0);
-            } else if (section.id === 'extraDetails' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-              newTotal = calculateExtraServiceTotal(row, size, row.times || 0);
-            } else {
-              newTotal = (row.rate || 0) * size * (row.times || 0);
-            }
-
-            // Apply max_capacity logic
-            const updatedRow: CostRow = {
+          rows: section.rows.map(row => {
+            const newNo = calculateRowQuantity(row, size);
+            return {
               ...row,
-              no: size,
-              total: newTotal
+              no: newNo,
+              total: calculateRowTotal(row, newNo, row.times)
             };
-
-            return splitRowByMaxCapacity(updatedRow, size);
           })
         };
       };
@@ -537,12 +440,12 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       newReport.accommodation = updateSectionForPax(newReport.accommodation);
       newReport.transportation = updateSectionForPax(newReport.transportation);
       newReport.extraDetails = updateSectionForPax(newReport.extraDetails);
-      newReport.extraServices = updateSectionForPax(newReport.extraServices);
-      newReport.customSections = newReport.customSections.map(updateSectionForPax);
+      newReport.extraServices = updateSectionForPax(newReport.extraServices || { id: 'extraServices', name: 'Extra Services', rows: [] });
+      newReport.customSections = (newReport.customSections || []).map(updateSectionForPax);
 
       return newReport;
     });
-  }, []);
+  }, [calculateRowQuantity, calculateRowTotal]);
 
   const handleDetailChange = useCallback((field: keyof ReportState, value: any) => {
     setReport(prev => ({ ...prev, [field]: value }));
@@ -564,87 +467,17 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, []);
 
   const handleRowChange = useCallback((id: string, field: keyof CostRow, value: any, sectionId: string) => {
-    handleSectionUpdate(sectionId, (section) => {
-      // Find the row to update
-      const rowToUpdate = section.rows.find(row => row.id === id);
-
-      if (!rowToUpdate) {
-        return section; // If row not found, return section unchanged
-      }
-
-      // Create updated row
-      const updatedRow = { ...rowToUpdate, [field]: value };
-
-      // If quantity (no) field is being changed, check max_capacity constraint
-      if (field === 'no' && updatedRow.max_capacity && updatedRow.no > updatedRow.max_capacity) {
-        // Remove the original row and create new rows based on max_capacity
-        const newRows = section.rows.filter(row => row.id !== id);
-
-        // Calculate total number of rows needed using Math.ceil
-        const totalRows = Math.ceil(updatedRow.no / updatedRow.max_capacity);
-
-        // Create split rows based on max_capacity
-        const splitRows = [];
-        for (let i = 0; i < totalRows; i++) {
-          const quantity = i === totalRows - 1 ?
-            (updatedRow.no % updatedRow.max_capacity === 0 ? updatedRow.max_capacity : updatedRow.no % updatedRow.max_capacity) :
-            updatedRow.max_capacity;
-
-          const row = {
-            ...updatedRow,
-            id: `${updatedRow.id}-split-${i + 1}`,
-            no: quantity,
-            description: `${updatedRow.description} ${i + 1}`
-          };
-
-          // Calculate total for the row
-          if (sectionId === 'permits' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-            row.total = calculatePermitTotal(row, row.no, row.times);
-          } else if (sectionId === 'services' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-            row.total = calculateServiceTotal(row, row.no, row.times);
-          } else if (sectionId === 'accommodation' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-            row.total = calculateAccommodationTotal(row, row.no, row.times);
-          } else if (sectionId === 'extraDetails' && row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined) {
-            row.total = calculateExtraServiceTotal(row, row.no, row.times);
-          } else {
-            row.total = (row.rate || 0) * row.no * (row.times || 0);
-          }
-
-          splitRows.push(row);
+    handleSectionUpdate(sectionId, (section) => ({
+      ...section,
+      rows: section.rows.map((row) => {
+        if (row.id === id) {
+          const newRow = { ...row, [field]: value };
+          newRow.total = calculateRowTotal(newRow, newRow.no, newRow.times);
+          return newRow;
         }
-
-        return {
-          ...section,
-          rows: [...newRows, ...splitRows]
-        };
-      } else {
-        const updatedRows = section.rows.map(row => {
-          if (row.id === id) {
-            const newRow = { ...row, [field]: value };
-            if (field === 'no' || field === 'rate' || field === 'times') {
-              if (sectionId === 'permits' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
-                newRow.total = calculatePermitTotal(newRow, newRow.no || 0, newRow.times || 0);
-              } else if (sectionId === 'services' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
-                newRow.total = calculateServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
-              } else if (sectionId === 'accommodation' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
-                newRow.total = calculateAccommodationTotal(newRow, newRow.no || 0, newRow.times || 0);
-              } else if (sectionId === 'extraDetails' && newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
-                newRow.total = calculateExtraServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
-              } else {
-                newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
-              }
-            }
-            return newRow;
-          }
-          return row;
-        });
-
-        return {
-          ...section,
-          rows: updatedRows
-        };
-      }
-    });
+        return row;
+      })
+    }));
   }, [handleSectionUpdate]);
 
   const handleDiscountTypeChange = useCallback((sectionId: string, type: 'amount' | 'percentage') => {
@@ -685,26 +518,59 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
     // Always update local state regardless of callback
     setReport(prev => {
-      const initialPermits = newSelectedTrek.permits?.map(p => ({
-        id: crypto.randomUUID(),
-        description: p.name,
-        rate: p.rate,
-        no: prev.groupSize,
-        times: 1,
-        total: p.rate * prev.groupSize,
-      })) || [];
+      const initialPermits = newSelectedTrek.permits?.map(p => {
+        const permitTimes = p.per_day ? (newSelectedTrek.times || p.times || 1) : 1;
+        const permitNo = calculateRowQuantity(p, prev.groupSize);
+        return {
+          id: crypto.randomUUID(),
+          description: p.name,
+          rate: p.rate,
+          no: permitNo,
+          times: permitTimes,
+          total: calculatePermitTotal(p, permitNo, permitTimes),
+          is_compulsory: p.is_compulsory || false,
+          per_person: p.per_person,
+          per_day: p.per_day,
+          one_time: p.one_time,
+          max_capacity: p.max_capacity,
+          from_place: p.from_place,
+          to_place: p.to_place
+        };
+      }) || [];
 
       const initialExtraDetails = [
-        { id: crypto.randomUUID(), description: 'Satellite device', rate: 0, no: prev.groupSize, times: 12, total: 0 },
-        { id: crypto.randomUUID(), description: 'Adv less', rate: 0, no: prev.groupSize, times: 0, total: 0 }
-      ];
+        {
+          id: crypto.randomUUID(),
+          description: 'Satellite device',
+          rate: 0,
+          no: prev.groupSize,
+          times: 1, // Satellite device usually one time or handled per day, let's stick to 1 by default unless per_day is set
+          total: 0,
+          is_compulsory: false,
+          per_person: false,
+          per_day: false
+        },
+        {
+          id: crypto.randomUUID(),
+          description: 'Adv less',
+          rate: 0,
+          no: prev.groupSize,
+          times: 1,
+          total: 0,
+          is_compulsory: false,
+          per_person: false,
+          per_day: false
+        }
+      ].map(e => ({
+        ...e,
+        times: e.per_day ? (newSelectedTrek.times || 1) : 1,
+        no: calculateRowQuantity(e, prev.groupSize)
+      })).map(e => ({
+        ...e,
+        total: calculateRowTotal(e, e.no, e.times)
+      }));
 
-      // Apply splitting logic
-      const splitPermits = initialPermits.flatMap(p => splitRowByMaxCapacity(p, prev.groupSize));
-      const splitExtraDetails = initialExtraDetails.flatMap(e => splitRowByMaxCapacity(e, prev.groupSize));
-
-
-      // Initialize accommodation data - start with empty rows, accommodation data will be loaded separately
+      // Initialize accommodation data - start with empty rows
       const initialAccommodation: CostRow[] = [];
 
       const trekShortName = getTrekShortName(newSelectedTrek.name);
@@ -716,9 +582,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         trekId: newSelectedTrek.id,
         trekName: newSelectedTrek.name,
         groupName: defaultGroupName,
-        permits: { ...prev.permits, rows: splitPermits },
-        extraDetails: { ...prev.extraDetails, rows: splitExtraDetails },
-        accommodation: { ...prev.accommodation, rows: initialAccommodation as CostRow[] },
+        permits: { ...prev.permits, rows: initialPermits },
+        extraDetails: { ...prev.extraDetails, rows: initialExtraDetails },
+        accommodation: { ...prev.accommodation, rows: initialAccommodation },
       };
     });
     // Trek selection is complete, do not change the current step
@@ -731,19 +597,141 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       description: "",
       rate: 0,
       no: report.groupSize,
-      times: 1,
-      total: 0,
-      is_editable: true, // Allow editing of all fields for custom rows
-      per_person: false, // Default to not per person
-      per_day: false,    // Default to not per day
-      one_time: false    // Default to not one time
+      times: selectedTrek?.times || 1,
+      total: 0, // Will be calculated after adding to section
+      is_editable: true,
+      per_person: false,
+      per_day: false,
+      one_time: false
     };
     handleSectionUpdate(sectionId, (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
-  }, [handleSectionUpdate, report.groupSize]);
+  }, [handleSectionUpdate, report.groupSize, selectedTrek?.times]);
+
+  const localOnAddPermit = useCallback((permit: any) => {
+    const permitTimes = permit.per_day ? (selectedTrek?.times || permit.times || 1) : 1;
+    const permitNo = calculateRowQuantity(permit, report.groupSize);
+    const row: CostRow = {
+      id: crypto.randomUUID(),
+      description: permit.name,
+      rate: permit.rate,
+      no: permitNo,
+      times: permitTimes,
+      total: calculatePermitTotal(permit, permitNo, permitTimes),
+      per_person: permit.per_person,
+      per_day: permit.per_day,
+      one_time: permit.one_time,
+      is_default: permit.is_default,
+      is_editable: permit.is_editable,
+      max_capacity: permit.max_capacity,
+      from_place: permit.from_place,
+      to_place: permit.to_place
+    };
+    handleSectionUpdate('permits', (prev) => ({ ...prev, rows: [...prev.rows, row] }));
+    if (onAddPermit) onAddPermit(permit);
+  }, [handleSectionUpdate, report.groupSize, onAddPermit, selectedTrek?.times]);
+
+  const localOnAddService = useCallback((service: any) => {
+    const serviceTimes = service.per_day ? (selectedTrek?.times || service.times || 1) : 1;
+    const serviceNo = calculateRowQuantity(service, report.groupSize);
+    const row: CostRow = {
+      id: crypto.randomUUID(),
+      description: service.name,
+      rate: service.rate,
+      no: serviceNo,
+      times: serviceTimes,
+      total: calculateServiceTotal(service, serviceNo, serviceTimes),
+      per_person: service.per_person,
+      per_day: service.per_day,
+      one_time: service.one_time,
+      is_default: service.is_default,
+      is_editable: service.is_editable,
+      max_capacity: service.max_capacity,
+      from_place: service.from_place,
+      to_place: service.to_place
+    };
+    handleSectionUpdate('services', (prev) => ({ ...prev, rows: [...prev.rows, row] }));
+    if (onAddService) onAddService(service);
+  }, [handleSectionUpdate, report.groupSize, onAddService, selectedTrek?.times]);
+
+  const localOnAddExtraService = useCallback((extraService: any) => {
+    const extraServiceTimes = extraService.per_day ? (selectedTrek?.times || extraService.times || 1) : 1;
+    const extraServiceNo = calculateRowQuantity(extraService, report.groupSize);
+    const row: CostRow = {
+      id: crypto.randomUUID(),
+      description: extraService.description || `${extraService.serviceName} - ${extraService.name}`,
+      rate: extraService.rate,
+      no: extraServiceNo,
+      times: extraServiceTimes,
+      total: calculateExtraServiceTotal(extraService, extraServiceNo, extraServiceTimes),
+      per_person: extraService.per_person,
+      per_day: extraService.per_day,
+      one_time: extraService.one_time,
+      is_default: extraService.is_default,
+      is_editable: extraService.is_editable,
+      max_capacity: extraService.max_capacity,
+      from_place: extraService.from_place,
+      to_place: extraService.to_place
+    };
+    handleSectionUpdate('extraDetails', (prev) => ({ ...prev, rows: [...prev.rows, row] }));
+    if (onAddExtraService) onAddExtraService(extraService);
+  }, [handleSectionUpdate, report.groupSize, onAddExtraService, selectedTrek?.times]);
+
+  const localOnAddAccommodation = useCallback((accommodation: any) => {
+    const accommodationTimes = accommodation.per_day ? (selectedTrek?.times || accommodation.times || 1) : 1;
+    const accommodationNo = calculateRowQuantity(accommodation, report.groupSize);
+    const row: CostRow = {
+      id: crypto.randomUUID(),
+      description: accommodation.name,
+      rate: accommodation.rate,
+      no: accommodationNo,
+      times: accommodationTimes,
+      total: calculateAccommodationTotal(accommodation, accommodationNo, accommodationTimes),
+      per_person: accommodation.per_person,
+      per_day: accommodation.per_day,
+      one_time: accommodation.one_time,
+      is_default: accommodation.is_default,
+      is_editable: accommodation.is_editable,
+      max_capacity: accommodation.max_capacity,
+      from_place: accommodation.from_place,
+      to_place: accommodation.to_place
+    };
+    handleSectionUpdate('accommodation', (prev) => ({ ...prev, rows: [...prev.rows, row] }));
+    if (onAddAccommodation) onAddAccommodation(accommodation);
+  }, [handleSectionUpdate, report.groupSize, onAddAccommodation, selectedTrek?.times]);
+
+  const localOnAddTransportation = useCallback((transportation: any) => {
+    const transportationTimes = transportation.per_day ? (selectedTrek?.times || transportation.times || 1) : 1;
+    const transportationNo = calculateRowQuantity(transportation, report.groupSize);
+    const row: CostRow = {
+      id: crypto.randomUUID(),
+      description: transportation.name,
+      rate: transportation.rate,
+      no: transportationNo,
+      times: transportationTimes,
+      total: calculateTransportationTotal(transportation, transportationNo, transportationTimes),
+      per_person: transportation.per_person,
+      per_day: transportation.per_day,
+      one_time: transportation.one_time,
+      is_default: transportation.is_default,
+      is_editable: transportation.is_editable,
+      max_capacity: transportation.max_capacity,
+      from_place: transportation.from_place,
+      to_place: transportation.to_place
+    };
+    handleSectionUpdate('transportation', (prev) => ({ ...prev, rows: [...prev.rows, row] }));
+    if (onAddTransportation) onAddTransportation(transportation);
+  }, [handleSectionUpdate, report.groupSize, onAddTransportation, selectedTrek?.times]);
 
   const removeRow = useCallback((id: string, sectionId: string) => {
-    handleSectionUpdate(sectionId, (prev) => ({ ...prev, rows: prev.rows.filter((row) => row.id !== id) }));
-  }, [handleSectionUpdate]);
+    handleSectionUpdate(sectionId, (prev) => {
+      const rowToRemove = prev.rows.find(r => r.id === id);
+      if (rowToRemove?.is_compulsory) {
+        toast({ variant: "destructive", title: "Error", description: "Compulsory items cannot be deleted." });
+        return prev;
+      }
+      return { ...prev, rows: prev.rows.filter((row) => row.id !== id) };
+    });
+  }, [handleSectionUpdate, toast]);
 
   const removeSection = useCallback((sectionId: string) => {
     setReport(prev => ({ ...prev, customSections: prev.customSections.filter(s => s.id !== sectionId) }));
@@ -922,12 +910,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
     const extraServicesData = Array.from(extraServicesMap.values());
 
-    // Transform accommodation data
     const accommodationData = report.accommodation.rows.map(row => ({
       name: row.description,
-      rate: row.rate?.toString() || '0', // Keep rate as string as required by API
-      times: parseInt(row.times?.toString() || '1'), // Convert times to integer
-      numbers: parseInt(row.no?.toString() || '1'), // Convert numbers to integer
+      rate: row.rate?.toString() || '0',
+      times: parseInt(row.times?.toString() || '1'),
+      numbers: parseInt(row.no?.toString() || '1'),
       per_person: row.per_person || false,
       per_day: row.per_day || false,
       one_time: row.one_time || false,
@@ -1120,9 +1107,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           isSubmitting={isSaving}
           onSubmit={handleFinish}
           isRateReadOnly={false}
-          hideAddRow={false}
-          // Additional props for extra services section
-          onAddExtraService={onAddExtraService}
+          hideAddRow={true}
+          onAddExtraService={localOnAddExtraService}
           allExtraServices={allExtraServices}
           isLoadingAllExtraServices={isLoadingAllExtraServices}
         />
@@ -1147,7 +1133,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           isRateReadOnly={false}
           hideAddRow={true}
           // Additional props for permits section
-          onAddPermit={onAddPermit}
+          onAddPermit={localOnAddPermit}
           allPermits={allPermits}
           isLoadingAllPermits={isLoadingAllPermits}
         />
@@ -1169,12 +1155,11 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           onEditSection={isReadOnly ? undefined : handleOpenEditSectionModal}
           onRemoveSection={isReadOnly ? undefined : removeSection}
           isRateReadOnly={activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation'}
-          hideAddRow={activeStepData.id === 'accommodation'}
-          // Additional props for services, accommodation, transportation, and extra services sections
-          onAddService={activeStepData.id === 'services' ? onAddService : undefined}
-          onAddExtraService={activeStepData.id === 'extraDetails' ? onAddExtraService : undefined}
-          onAddAccommodation={activeStepData.id === 'accommodation' ? onAddAccommodation : undefined}
-          onAddTransportation={activeStepData.id === 'transportation' ? onAddTransportation : undefined}
+          hideAddRow={true}
+          onAddService={activeStepData.id === 'services' ? localOnAddService : undefined}
+          onAddExtraService={activeStepData.id === 'extraDetails' ? localOnAddExtraService : undefined}
+          onAddAccommodation={activeStepData.id === 'accommodation' ? localOnAddAccommodation : undefined}
+          onAddTransportation={activeStepData.id === 'transportation' ? localOnAddTransportation : undefined}
           allServices={activeStepData.id === 'services' ? allServices : undefined}
           allExtraServices={activeStepData.id === 'extraDetails' ? allExtraServices : undefined}
           allAccommodations={activeStepData.id === 'accommodation' ? allAccommodations : undefined}
@@ -1191,12 +1176,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   };
 
   const breadcrumbItems = useMemo(() => {
-    // If no trek is selected, show only "Select Trek"
     if (!report.trekId) {
       return [{ label: "Select Trek", isCurrent: true, stepIndex: 0 }];
     }
 
-    // Once trek is selected, show: Trek Name > Group Details > Permits > Services > ... > Summary
     const steps = [
       { label: selectedTrek?.name || 'Trek', isCurrent: false, stepIndex: -1 }, // Trek is not a real step, just a label
       ...allCostingStepsMetadata.map((s, i) => ({

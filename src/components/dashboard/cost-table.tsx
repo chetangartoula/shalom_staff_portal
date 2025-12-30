@@ -127,13 +127,6 @@ export function CostTable({
     setTempDescription('');
   };
 
-  // Function to enforce max_capacity constraint
-  const enforceMaxCapacity = (row: CostRow, newValue: number) => {
-    if (row.max_capacity !== undefined && newValue > row.max_capacity) {
-      return row.max_capacity;
-    }
-    return newValue;
-  };
 
   const calculateSectionTotals = () => {
     const subtotal = section.rows.reduce((acc, row) => acc + (row.total || 0), 0);
@@ -155,7 +148,7 @@ export function CostTable({
       (permit.to_place && permit.to_place.toLowerCase().includes(searchLower))
     );
   });
-  
+
   // Filter services based on search term
   const filteredServices = allServices?.filter(service => {
     const searchLower = searchTerm.toLowerCase();
@@ -165,7 +158,7 @@ export function CostTable({
       (service.to_place && service.to_place.toLowerCase().includes(searchLower))
     );
   });
-  
+
   // Filter extra services based on search term
   const filteredExtraServices = allExtraServices?.filter(extraService => {
     const searchLower = searchTerm.toLowerCase();
@@ -178,7 +171,7 @@ export function CostTable({
       (extraService.to_place && extraService.to_place.toLowerCase().includes(searchLower))
     );
   });
-  
+
   // Filter accommodations based on search term
   const filteredAccommodations = allAccommodations?.filter(accommodation => {
     const searchLower = searchTerm.toLowerCase();
@@ -187,7 +180,7 @@ export function CostTable({
       (accommodation.from_place && accommodation.from_place.toLowerCase().includes(searchLower))
     );
   });
-  
+
   // Filter transportations based on search term
   const filteredTransportations = allTransportations?.filter(transportation => {
     const searchLower = searchTerm.toLowerCase();
@@ -197,7 +190,7 @@ export function CostTable({
       (transportation.to_place && transportation.to_place.toLowerCase().includes(searchLower))
     );
   });
-  
+
   const totals = calculateSectionTotals();
 
   return (
@@ -348,9 +341,7 @@ export function CostTable({
                     type="number"
                     value={row.no || 0}
                     onChange={(e) => {
-                      const newValue = Number(e.target.value);
-                      const finalValue = enforceMaxCapacity(row, newValue);
-                      onRowChange(row.id, 'no', finalValue, section.id);
+                      onRowChange(row.id, 'no', Number(e.target.value), section.id);
                     }}
                     className="text-right"
                     readOnly={isReadOnly}
@@ -375,14 +366,16 @@ export function CostTable({
                 </td>
                 {!isReadOnly && (
                   <td className="p-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onRemoveRow && onRemoveRow(row.id, section.id)}
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!row.is_compulsory && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onRemoveRow && onRemoveRow(row.id, section.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </td>
                 )}
               </tr>
@@ -455,7 +448,7 @@ export function CostTable({
                 Select permits to add to your cost calculation
               </DialogDescription>
             </DialogHeader>
-            
+
             {isLoadingAllPermits ? (
               <div className="flex justify-center items-center h-32">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -472,8 +465,8 @@ export function CostTable({
                 <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
                   {filteredPermits && filteredPermits.length > 0 ? (
                     filteredPermits.map((permit) => (
-                      <div 
-                        key={permit.id} 
+                      <div
+                        key={permit.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
@@ -491,7 +484,7 @@ export function CostTable({
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => {
                             const newSelected = new Set(selectedPermits);
                             if (selectedPermits.has(permit.id)) {
@@ -514,15 +507,15 @@ export function CostTable({
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex justify-between">
-              <Button 
+              <Button
                 onClick={() => setIsAddPermitDialogOpen(false)}
                 variant="outline"
               >
                 Close
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   // Add all selected permits
                   if (allPermits && selectedPermits.size > 0) {
@@ -555,7 +548,7 @@ export function CostTable({
                 Select services to add to your cost calculation
               </DialogDescription>
             </DialogHeader>
-            
+
             {isLoadingAllServices ? (
               <div className="flex justify-center items-center h-32">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -572,8 +565,8 @@ export function CostTable({
                 <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
                   {filteredServices && filteredServices.length > 0 ? (
                     filteredServices.map((service) => (
-                      <div 
-                        key={service.id} 
+                      <div
+                        key={service.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
@@ -591,7 +584,7 @@ export function CostTable({
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => {
                             const newSelected = new Set(selectedServices);
                             if (selectedServices.has(service.id)) {
@@ -614,15 +607,15 @@ export function CostTable({
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex justify-between">
-              <Button 
+              <Button
                 onClick={() => setIsAddServiceDialogOpen(false)}
                 variant="outline"
               >
                 Close
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   // Add all selected services
                   if (allServices && selectedServices.size > 0) {
@@ -655,7 +648,7 @@ export function CostTable({
                 Select extra services to add to your cost calculation
               </DialogDescription>
             </DialogHeader>
-            
+
             {isLoadingAllExtraServices ? (
               <div className="flex justify-center items-center h-32">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -672,8 +665,8 @@ export function CostTable({
                 <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
                   {filteredExtraServices && filteredExtraServices.length > 0 ? (
                     filteredExtraServices.map((extraService) => (
-                      <div 
-                        key={extraService.id} 
+                      <div
+                        key={extraService.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
@@ -691,7 +684,7 @@ export function CostTable({
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => {
                             const newSelected = new Set(selectedExtraServices);
                             if (selectedExtraServices.has(extraService.id)) {
@@ -714,15 +707,15 @@ export function CostTable({
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex justify-between">
-              <Button 
+              <Button
                 onClick={() => setIsAddExtraServiceDialogOpen(false)}
                 variant="outline"
               >
                 Close
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   // Add all selected extra services
                   if (allExtraServices && selectedExtraServices.size > 0) {
@@ -755,7 +748,7 @@ export function CostTable({
                 Select accommodations to add to your cost calculation
               </DialogDescription>
             </DialogHeader>
-            
+
             {isLoadingAllAccommodations ? (
               <div className="flex justify-center items-center h-32">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -772,8 +765,8 @@ export function CostTable({
                 <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
                   {filteredAccommodations && filteredAccommodations.length > 0 ? (
                     filteredAccommodations.map((accommodation) => (
-                      <div 
-                        key={accommodation.id} 
+                      <div
+                        key={accommodation.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
@@ -791,7 +784,7 @@ export function CostTable({
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => {
                             const newSelected = new Set(selectedAccommodations);
                             if (selectedAccommodations.has(accommodation.id)) {
@@ -814,15 +807,15 @@ export function CostTable({
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex justify-between">
-              <Button 
+              <Button
                 onClick={() => setIsAddAccommodationDialogOpen(false)}
                 variant="outline"
               >
                 Close
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   // Add all selected accommodations
                   if (allAccommodations && selectedAccommodations.size > 0) {
@@ -855,7 +848,7 @@ export function CostTable({
                 Select transportation options to add to your cost calculation
               </DialogDescription>
             </DialogHeader>
-            
+
             {isLoadingAllTransportations ? (
               <div className="flex justify-center items-center h-32">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -872,8 +865,8 @@ export function CostTable({
                 <div className="grid gap-4 max-h-[calc(96vh-200px)] overflow-y-auto">
                   {filteredTransportations && filteredTransportations.length > 0 ? (
                     filteredTransportations.map((transportation) => (
-                      <div 
-                        key={transportation.id} 
+                      <div
+                        key={transportation.id}
                         className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                       >
                         <div>
@@ -891,7 +884,7 @@ export function CostTable({
                             )}
                           </div>
                         </div>
-                        <Button 
+                        <Button
                           onClick={() => {
                             const newSelected = new Set(selectedTransportations);
                             if (selectedTransportations.has(transportation.id)) {
@@ -914,15 +907,15 @@ export function CostTable({
                 </div>
               </div>
             )}
-            
+
             <DialogFooter className="flex justify-between">
-              <Button 
+              <Button
                 onClick={() => setIsAddTransportationDialogOpen(false)}
                 variant="outline"
               >
                 Close
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   // Add all selected transportation options
                   if (allTransportations && selectedTransportations.size > 0) {
