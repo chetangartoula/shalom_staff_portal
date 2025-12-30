@@ -47,6 +47,16 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     return 1;
   }, []);
 
+  const calculateRowTimes = useCallback((item: any, trekTimes: number) => {
+    if (item.per_day) {
+      return trekTimes;
+    }
+    if (item.one_time) {
+      return 1;
+    }
+    return 1;
+  }, []);
+
   const calculateRowTotal = useCallback((item: any, no: number, times: number) => {
     const rate = item.rate || 0;
     return rate * no * times;
@@ -72,7 +82,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
   const updateRowsWithTripTimes = useCallback((rows: any[], trekTimes: number, groupSize: number) => {
     return rows.map(row => {
       const newNo = calculateRowQuantity(row, groupSize);
-      const newTimes = row.per_day ? trekTimes : 1;
+      const newTimes = calculateRowTimes(row, trekTimes);
       return {
         ...row,
         no: newNo,
@@ -171,7 +181,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     const selectedTrek = displayTreks?.find((t: any) => t.id === selectedTrekId);
     const trekTimes = selectedTrek?.times || 1;
     const groupSize = initialData.groupSize || 1;
-    const itemTimes = item.per_day ? trekTimes : 1;
+    const itemTimes = calculateRowTimes(item, trekTimes);
     const itemNo = calculateRowQuantity(item, groupSize);
 
     const newRow = {
@@ -195,7 +205,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     const selectedTrek = displayTreks?.find((t: any) => t.id === selectedTrekId);
     const trekTimes = selectedTrek?.times || 1;
     const groupSize = initialData.groupSize || 1;
-    const itemTimes = item.per_day ? trekTimes : 1;
+    const itemTimes = calculateRowTimes(item, trekTimes);
     const itemNo = calculateRowQuantity(item, groupSize);
 
     const newRow = {
@@ -219,7 +229,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     const selectedTrek = displayTreks?.find((t: any) => t.id === selectedTrekId);
     const trekTimes = selectedTrek?.times || 1;
     const groupSize = initialData.groupSize || 1;
-    const itemTimes = item.per_day ? trekTimes : 1;
+    const itemTimes = calculateRowTimes(item, trekTimes);
     const itemNo = calculateRowQuantity(item, groupSize);
 
     const newRow = {
@@ -242,7 +252,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     const selectedTrek = displayTreks?.find((t: any) => t.id === selectedTrekId);
     const trekTimes = selectedTrek?.times || 1;
     const groupSize = initialData.groupSize || 1;
-    const itemTimes = item.per_day ? trekTimes : 1;
+    const itemTimes = calculateRowTimes(item, trekTimes);
     const itemNo = calculateRowQuantity(item, groupSize);
 
     const newRow = {
@@ -266,7 +276,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     const selectedTrek = displayTreks?.find((t: any) => t.id === selectedTrekId);
     const trekTimes = selectedTrek?.times || 1;
     const groupSize = initialData.groupSize || 1;
-    const itemTimes = item.per_day ? trekTimes : 1;
+    const itemTimes = calculateRowTimes(item, trekTimes);
     const itemNo = calculateRowQuantity(item, groupSize);
 
     const newRow = {

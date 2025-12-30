@@ -34,6 +34,16 @@ const calculateRowQuantity = (item: any, groupSize: number) => {
     return 1;
 };
 
+const calculateRowTimes = (item: any, trekTimes: number) => {
+    if (item.per_day) {
+        return trekTimes;
+    }
+    if (item.one_time) {
+        return 1;
+    }
+    return 1;
+};
+
 // Function to calculate extra service total: rate * no * times
 const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
     const rate = extraService.rate || 0;
@@ -81,7 +91,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     service.params.forEach((param: any) => {
                         const no = calculateRowQuantity(param, groupSize);
                         const trekTimes = selectedTrek?.times || 1;
-                        const times = param.per_day ? trekTimes : (Number(param.times) || 1);
+                        const times = calculateRowTimes(param, trekTimes);
                         extraRows.push({
                             id: crypto.randomUUID(),
                             description: `${service.service_name} - ${param.name}`,
@@ -265,7 +275,7 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             permits: {
                 ...prev.permits,
                 rows: newSelectedTrek.permits?.map(p => {
-                    const permitTimes = p.per_day ? trekTimes : 1;
+                    const permitTimes = calculateRowTimes(p, trekTimes);
                     const permitNo = calculateRowQuantity(p, prev.groupSize);
                     return {
                         id: crypto.randomUUID(),
@@ -280,27 +290,23 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             services: {
                 ...prev.services,
                 rows: prev.services.rows.map(row => {
-                    if (row.per_day) {
-                        return {
-                            ...row,
-                            times: trekTimes,
-                            total: calculateExtraServiceTotal(row, row.no, trekTimes)
-                        };
-                    }
-                    return row;
+                    const newTimes = calculateRowTimes(row, trekTimes);
+                    return {
+                        ...row,
+                        times: newTimes,
+                        total: calculateExtraServiceTotal(row, row.no, newTimes)
+                    };
                 })
             },
             extraDetails: {
                 ...prev.extraDetails,
                 rows: prev.extraDetails.rows.map(row => {
-                    if (row.per_day) {
-                        return {
-                            ...row,
-                            times: trekTimes,
-                            total: calculateExtraServiceTotal(row, row.no, trekTimes)
-                        };
-                    }
-                    return row;
+                    const newTimes = calculateRowTimes(row, trekTimes);
+                    return {
+                        ...row,
+                        times: newTimes,
+                        total: calculateExtraServiceTotal(row, row.no, newTimes)
+                    };
                 })
             }
         }));
@@ -406,7 +412,8 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             times: 1,
             total: 0,
             per_person: false,
-            per_day: false
+            per_day: false,
+            one_time: true
         };
     }, [report.groupSize, selectedTrek?.times]);
 
