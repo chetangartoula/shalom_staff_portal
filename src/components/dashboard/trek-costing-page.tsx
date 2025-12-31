@@ -435,10 +435,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           ...section,
           rows: section.rows.map(row => {
             const newNo = calculateRowQuantity(row, size);
+            // Also recalculate times in case max_capacity affects duration calculations
+            const newTimes = calculateRowTimes(row, selectedTrek?.times || 1);
             return {
               ...row,
               no: newNo,
-              total: calculateRowTotal(row, newNo, row.times)
+              times: newTimes,
+              total: calculateRowTotal(row, newNo, newTimes)
             };
           })
         };
@@ -454,7 +457,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
       return newReport;
     });
-  }, [calculateRowQuantity, calculateRowTotal]);
+  }, [calculateRowQuantity, calculateRowTotal, selectedTrek?.times]);
 
   const handleDetailChange = useCallback((field: keyof ReportState, value: any) => {
     setReport(prev => ({ ...prev, [field]: value }));
@@ -480,14 +483,33 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       ...section,
       rows: section.rows.map((row) => {
         if (row.id === id) {
-          const newRow = { ...row, [field]: value };
-          newRow.total = calculateRowTotal(newRow, newRow.no, newRow.times);
+          // Update the field value
+          const updatedRow = { ...row, [field]: value };
+          
+          // If the changed field affects times or quantity calculations, recalculate them
+          let newNo = updatedRow.no;
+          let newTimes = updatedRow.times;
+          
+          if (field === 'per_person' || field === 'per_day' || field === 'one_time' || field === 'max_capacity') {
+            // Recalculate no and times based on the updated flags
+            newNo = calculateRowQuantity(updatedRow, report.groupSize);
+            newTimes = calculateRowTimes(updatedRow, selectedTrek?.times || 1);
+          }
+          
+          // Update the row with new values and recalculate total
+          const newRow = {
+            ...updatedRow,
+            no: newNo,
+            times: newTimes,
+            total: calculateRowTotal(updatedRow, newNo, newTimes)
+          };
+          
           return newRow;
         }
         return row;
       })
     }));
-  }, [handleSectionUpdate]);
+  }, [handleSectionUpdate, report.groupSize, selectedTrek?.times]);
 
   const handleDiscountTypeChange = useCallback((sectionId: string, type: 'amount' | 'percentage') => {
     handleSectionUpdate(sectionId, (section) => ({ ...section, discountType: type }));
@@ -583,15 +605,17 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
       const updateRowsForTrekChange = (rows: CostRow[]) => {
         return rows.map(row => {
-          if (row.per_day) {
-            const newTimes = newSelectedTrek.times || 1;
-            return {
-              ...row,
-              times: newTimes,
-              total: calculateRowTotal(row, row.no, newTimes)
-            };
-          }
-          return row;
+          // Calculate the appropriate times value based on the item's flags and the new trek's duration
+          const newTimes = calculateRowTimes(row, newSelectedTrek.times || 1);
+          // Calculate the appropriate quantity value based on the item's flags and current group size
+          const newNo = calculateRowQuantity(row, prev.groupSize);
+          
+          return {
+            ...row,
+            no: newNo,
+            times: newTimes,
+            total: calculateRowTotal(row, newNo, newTimes)
+          };
         });
       };
 

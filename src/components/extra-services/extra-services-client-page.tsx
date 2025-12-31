@@ -379,6 +379,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           id: 'extra-services',
           name: 'Extra Services',
           description: 'Extra Services Invoice',
+          times: 1,
           permits: []
         },
         report: {
