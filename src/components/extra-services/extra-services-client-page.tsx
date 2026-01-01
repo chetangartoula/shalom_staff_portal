@@ -207,7 +207,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
           ? calculateExtraServiceTotal(row, newNo, row.times || 0)
           : (row.rate || 0) * newNo * (row.times || 0);
-        return { ...row, no: newNo, total };
+        return { ...row, no: newNo, total, description: row.description || (row as any).name || '' };
       };
 
       const updateSection = (section: SectionState) => ({
@@ -239,7 +239,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
               const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
                 ? calculateExtraServiceTotal(row, size, row.times || 0)
                 : (row.rate || 0) * size * (row.times || 0);
-              return { ...row, no: size, total };
+              return { ...row, no: size, total, description: row.description || (row as any).name || '' };
             })
           };
         }
@@ -278,16 +278,17 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       ...section,
       rows: section.rows.map((row) => {
         if (row.id === id) {
-          const newRow = { ...row, [field]: value };
-          if (field === 'no' || field === 'rate' || field === 'times') {
+          const updatedRow = { ...row, [field]: value };
+          if (field === 'no' || field === 'rate' || field === 'times' || 
+              field === 'per_person' || field === 'per_day' || field === 'one_time') {
             // Calculate total based on properties if it has boolean flags
-            if (newRow.per_person !== undefined && newRow.per_day !== undefined && newRow.one_time !== undefined) {
-              newRow.total = calculateExtraServiceTotal(newRow, newRow.no || 0, newRow.times || 0);
+            if (updatedRow.per_person !== undefined && updatedRow.per_day !== undefined && updatedRow.one_time !== undefined) {
+              updatedRow.total = calculateExtraServiceTotal(updatedRow, updatedRow.no || 0, updatedRow.times || 0);
             } else {
-              newRow.total = (newRow.rate || 0) * (newRow.no || 0) * (newRow.times || 0);
+              updatedRow.total = (updatedRow.rate || 0) * (updatedRow.no || 0) * (updatedRow.times || 0);
             }
           }
-          return newRow;
+          return updatedRow;
         }
         return row;
       })

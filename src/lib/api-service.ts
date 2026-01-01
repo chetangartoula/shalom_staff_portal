@@ -1,4 +1,4 @@
-import type { Trek, Report, SectionState } from '@/lib/types';
+import type { Trek, Report, SectionState, CostRow } from '@/lib/types';
 import type {
   APITrip,
   APIPermit,
@@ -30,6 +30,39 @@ import type {
 
 // Base URL for the external API - use environment variable with fallback
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
+
+// Helper function to calculate row total based on boolean flags
+function calculateRowTotal(item: any, no: number, times: number): number {
+  const rate = Number(item.rate) || 0;
+  
+  // Apply calculation based on boolean flags
+  if (item.one_time) {
+    // If one_time is true, the total is just the rate (single occurrence regardless of other factors)
+    return rate;
+  } else {
+    // For non-one_time items, use the calculated no and times values
+    return rate * no * times;
+  }
+}
+
+// Helper function to calculate row quantity based on max_capacity and per_person
+function calculateRowQuantity(item: any, groupSize: number): number {
+  if (item.one_time) {
+    // If one_time is true, quantity is always 1 regardless of other factors
+    return 1;
+  }
+  
+  if (item.max_capacity && item.max_capacity > 0) {
+    // Calculate quantity based on max_capacity
+    return Math.ceil(groupSize / item.max_capacity);
+  }
+
+  if (item.per_person) {
+    return groupSize;
+  }
+
+  return 1;
+}
 
 // Generic fetch function with error handling
 export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
@@ -434,14 +467,31 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       permits: {
         id: 'permits',
         name: 'Permits & Documents',
-        rows: item.permits.map((permit, index) => ({
-          id: `permit-${index}`,
-          description: permit.name,
-          rate: permit.rate,
-          no: permit.numbers,
-          times: permit.times,
-          total: permit.rate * permit.numbers * permit.times
-        })),
+        rows: item.permits.map((permit, index) => {
+          // Calculate quantity based on group size and max_capacity
+          const calculatedNo = calculateRowQuantity(permit, item.package.total_space);
+          // Calculate times based on package duration and per_day flag
+          const calculatedTimes = permit.per_day ? item.package.times : 1;
+          // Calculate total based on flags
+          const calculatedTotal = calculateRowTotal(permit, calculatedNo, calculatedTimes);
+              
+          return {
+            id: `permit-${index}`,
+            description: permit.name,
+            rate: permit.rate,
+            no: calculatedNo,
+            times: calculatedTimes,
+            per_person: permit.per_person,
+            per_day: permit.per_day,
+            one_time: permit.one_time,
+            max_capacity: permit.max_capacity,
+            is_default: permit.is_default,
+            is_editable: permit.is_editable,
+            from_place: permit.from_place,
+            to_place: permit.to_place,
+            total: calculatedTotal
+          };
+        }),
         discountType: item.permit_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.permit_discount),
         discountRemarks: item.permit_discount_remarks
@@ -449,14 +499,31 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       services: {
         id: 'services',
         name: 'Services',
-        rows: item.services.map((service, index) => ({
-          id: `service-${index}`,
-          description: service.name,
-          rate: service.rate,
-          no: service.numbers,
-          times: service.times,
-          total: service.rate * service.numbers * service.times
-        })),
+        rows: item.services.map((service, index) => {
+          // Calculate quantity based on group size and max_capacity
+          const calculatedNo = calculateRowQuantity(service, item.package.total_space);
+          // Calculate times based on package duration and per_day flag
+          const calculatedTimes = service.per_day ? item.package.times : 1;
+          // Calculate total based on flags
+          const calculatedTotal = calculateRowTotal(service, calculatedNo, calculatedTimes);
+              
+          return {
+            id: `service-${index}`,
+            description: service.name,
+            rate: service.rate,
+            no: calculatedNo,
+            times: calculatedTimes,
+            per_person: service.per_person,
+            per_day: service.per_day,
+            one_time: service.one_time,
+            max_capacity: service.max_capacity,
+            is_default: service.is_default,
+            is_editable: service.is_editable,
+            from_place: service.from_place,
+            to_place: service.to_place,
+            total: calculatedTotal
+          };
+        }),
         discountType: item.service_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.service_discount),
         discountRemarks: item.service_discount_remarks
@@ -465,14 +532,31 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
         id: 'extraDetails',
         name: 'Extra Details',
         rows: item.extra_services.flatMap((extraService, serviceIndex) =>
-          extraService.params.map((param, paramIndex) => ({
-            id: `extra-${serviceIndex}-${paramIndex}`,
-            description: `${extraService.service_name} - ${param.name}`,
-            rate: param.rate,
-            no: param.numbers,
-            times: param.times,
-            total: param.rate * param.numbers * param.times
-          }))
+          extraService.params.map((param, paramIndex) => {
+            // Calculate quantity based on group size and max_capacity
+            const calculatedNo = calculateRowQuantity(param, item.package.total_space);
+            // Calculate times based on package duration and per_day flag
+            const calculatedTimes = param.per_day ? item.package.times : 1;
+            // Calculate total based on flags
+            const calculatedTotal = calculateRowTotal(param, calculatedNo, calculatedTimes);
+                
+            return {
+              id: `extra-${serviceIndex}-${paramIndex}`,
+              description: `${extraService.service_name} - ${param.name}`,
+              rate: param.rate,
+              no: calculatedNo,
+              times: calculatedTimes,
+              per_person: param.per_person,
+              per_day: param.per_day,
+              one_time: param.one_time,
+              max_capacity: param.max_capacity,
+              is_default: param.is_default,
+              is_editable: param.is_editable,
+              from_place: param.from_place,
+              to_place: param.to_place,
+              total: calculatedTotal
+            };
+          })
         ),
         discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.extra_service_discount),
@@ -481,14 +565,31 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       accommodation: {
         id: 'accommodation',
         name: 'Accommodation',
-        rows: item.accommodation?.map((acc, index) => ({
-          id: `accommodation-${index}`,
-          description: acc.name,
-          rate: acc.rate,
-          no: acc.numbers,
-          times: acc.times,
-          total: acc.rate * acc.numbers * acc.times
-        })) || [],
+        rows: item.accommodation?.map((acc, index) => {
+          // Calculate quantity based on group size and max_capacity
+          const calculatedNo = calculateRowQuantity(acc, item.package.total_space);
+          // Calculate times based on package duration and per_day flag
+          const calculatedTimes = acc.per_day ? item.package.times : 1;
+          // Calculate total based on flags
+          const calculatedTotal = calculateRowTotal(acc, calculatedNo, calculatedTimes);
+          
+          return {
+            id: `accommodation-${index}`,
+            description: acc.name,
+            rate: acc.rate,
+            no: calculatedNo,
+            times: calculatedTimes,
+            per_person: acc.per_person,
+            per_day: acc.per_day,
+            one_time: acc.one_time,
+            max_capacity: acc.max_capacity,
+            is_default: acc.is_default,
+            is_editable: acc.is_editable,
+            from_place: acc.from_place,
+            to_place: acc.to_place,
+            total: calculatedTotal
+          };
+        }) || [],
         discountType: item.accommodation_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.accommodation_discount || '0'),
         discountRemarks: item.accommodation_discount_remarks
@@ -496,14 +597,31 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
       transportation: {
         id: 'transportation',
         name: 'Transportation',
-        rows: item.transportation?.map((trans, index) => ({
-          id: `transportation-${index}`,
-          description: trans.name,
-          rate: trans.rate,
-          no: trans.numbers,
-          times: trans.times,
-          total: trans.rate * trans.numbers * trans.times
-        })) || [],
+        rows: item.transportation?.map((trans, index) => {
+          // Calculate quantity based on group size and max_capacity
+          const calculatedNo = calculateRowQuantity(trans, item.package.total_space);
+          // Calculate times based on package duration and per_day flag
+          const calculatedTimes = trans.per_day ? item.package.times : 1;
+          // Calculate total based on flags
+          const calculatedTotal = calculateRowTotal(trans, calculatedNo, calculatedTimes);
+          
+          return {
+            id: `transportation-${index}`,
+            description: trans.name,
+            rate: trans.rate,
+            no: calculatedNo,
+            times: calculatedTimes,
+            per_person: trans.per_person,
+            per_day: trans.per_day,
+            one_time: trans.one_time,
+            max_capacity: trans.max_capacity,
+            is_default: trans.is_default,
+            is_editable: trans.is_editable,
+            from_place: trans.from_place,
+            to_place: trans.to_place,
+            total: calculatedTotal
+          };
+        }) || [],
         discountType: item.transportation_discount_type === 'percentage' ? 'percentage' : 'amount',
         discountValue: parseFloat(item.transportation_discount || '0'),
         discountRemarks: item.transportation_discount_remarks
@@ -563,14 +681,31 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
     permits: {
       id: 'permits',
       name: 'Permits & Documents',
-      rows: item.permits.map((permit, index) => ({
-        id: `permit-${index}`,
-        description: permit.name,
-        rate: permit.rate,
-        no: permit.numbers,
-        times: permit.times,
-        total: permit.rate * permit.numbers * permit.times
-      })),
+      rows: item.permits.map((permit, index) => {
+        // Calculate quantity based on group size and max_capacity
+        const calculatedNo = calculateRowQuantity(permit, item.package.total_space);
+        // Calculate times based on package duration and per_day flag
+        const calculatedTimes = permit.per_day ? item.package.times : 1;
+        // Calculate total based on flags
+        const calculatedTotal = calculateRowTotal(permit, calculatedNo, calculatedTimes);
+        
+        return {
+          id: `permit-${index}`,
+          description: permit.name,
+          rate: permit.rate,
+          no: calculatedNo,
+          times: calculatedTimes,
+          per_person: permit.per_person,
+          per_day: permit.per_day,
+          one_time: permit.one_time,
+          max_capacity: permit.max_capacity,
+          is_default: permit.is_default,
+          is_editable: permit.is_editable,
+          from_place: permit.from_place,
+          to_place: permit.to_place,
+          total: calculatedTotal
+        };
+      }),
       discountType: item.permit_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.permit_discount || '0'),
       discountRemarks: item.permit_discount_remarks
@@ -578,14 +713,31 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
     services: {
       id: 'services',
       name: 'Services',
-      rows: item.services.map((service, index) => ({
-        id: `service-${index}`,
-        description: service.name,
-        rate: service.rate,
-        no: service.numbers,
-        times: service.times,
-        total: service.rate * service.numbers * service.times
-      })),
+      rows: item.services.map((service, index) => {
+        // Calculate quantity based on group size and max_capacity
+        const calculatedNo = calculateRowQuantity(service, item.package.total_space);
+        // Calculate times based on package duration and per_day flag
+        const calculatedTimes = service.per_day ? item.package.times : 1;
+        // Calculate total based on flags
+        const calculatedTotal = calculateRowTotal(service, calculatedNo, calculatedTimes);
+        
+        return {
+          id: `service-${index}`,
+          description: service.name,
+          rate: service.rate,
+          no: calculatedNo,
+          times: calculatedTimes,
+          per_person: service.per_person,
+          per_day: service.per_day,
+          one_time: service.one_time,
+          max_capacity: service.max_capacity,
+          is_default: service.is_default,
+          is_editable: service.is_editable,
+          from_place: service.from_place,
+          to_place: service.to_place,
+          total: calculatedTotal
+        };
+      }),
       discountType: item.service_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.service_discount || '0'),
       discountRemarks: item.service_discount_remarks
@@ -594,14 +746,31 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
       id: 'extraDetails',
       name: 'Extra Details',
       rows: item.extra_services.flatMap((extraService, serviceIndex) =>
-        extraService.params.map((param, paramIndex) => ({
-          id: `extra-${serviceIndex}-${paramIndex}`,
-          description: `${extraService.service_name} - ${param.name}`,
-          rate: param.rate,
-          no: param.numbers,
-          times: param.times,
-          total: param.rate * param.numbers * param.times
-        }))
+        extraService.params.map((param, paramIndex) => {
+          // Calculate quantity based on group size and max_capacity
+          const calculatedNo = calculateRowQuantity(param, item.package.total_space);
+          // Calculate times based on package duration and per_day flag
+          const calculatedTimes = param.per_day ? item.package.times : 1;
+          // Calculate total based on flags
+          const calculatedTotal = calculateRowTotal(param, calculatedNo, calculatedTimes);
+          
+          return {
+            id: `extra-${serviceIndex}-${paramIndex}`,
+            description: `${extraService.service_name} - ${param.name}`,
+            rate: param.rate,
+            no: calculatedNo,
+            times: calculatedTimes,
+            per_person: param.per_person,
+            per_day: param.per_day,
+            one_time: param.one_time,
+            max_capacity: param.max_capacity,
+            is_default: param.is_default,
+            is_editable: param.is_editable,
+            from_place: param.from_place,
+            to_place: param.to_place,
+            total: calculatedTotal
+          };
+        })
       ),
       discountType: item.extra_service_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.extra_service_discount || '0'),
@@ -610,14 +779,31 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
     accommodation: {
       id: 'accommodation',
       name: 'Accommodation',
-      rows: item.accommodation?.map((acc, index) => ({
-        id: `accommodation-${index}`,
-        description: acc.name,
-        rate: acc.rate,
-        no: acc.numbers,
-        times: acc.times,
-        total: acc.rate * acc.numbers * acc.times
-      })) || [],
+      rows: item.accommodation?.map((acc, index) => {
+        // Calculate quantity based on group size and max_capacity
+        const calculatedNo = calculateRowQuantity(acc, item.package.total_space);
+        // Calculate times based on package duration and per_day flag
+        const calculatedTimes = acc.per_day ? item.package.times : 1;
+        // Calculate total based on flags
+        const calculatedTotal = calculateRowTotal(acc, calculatedNo, calculatedTimes);
+        
+        return {
+          id: `accommodation-${index}`,
+          description: acc.name,
+          rate: acc.rate,
+          no: calculatedNo,
+          times: calculatedTimes,
+          per_person: acc.per_person,
+          per_day: acc.per_day,
+          one_time: acc.one_time,
+          max_capacity: acc.max_capacity,
+          is_default: acc.is_default,
+          is_editable: acc.is_editable,
+          from_place: acc.from_place,
+          to_place: acc.to_place,
+          total: calculatedTotal
+        };
+      }) || [],
       discountType: item.accommodation_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.accommodation_discount || '0'),
       discountRemarks: item.accommodation_discount_remarks
@@ -625,14 +811,31 @@ function transformAPIGroupToReport(item: APIGroupAndPackage, isExtraInvoice: boo
     transportation: {
       id: 'transportation',
       name: 'Transportation',
-      rows: item.transportation?.map((trans, index) => ({
-        id: `transportation-${index}`,
-        description: trans.name,
-        rate: trans.rate,
-        no: trans.numbers,
-        times: trans.times,
-        total: trans.rate * trans.numbers * trans.times
-      })) || [],
+      rows: item.transportation?.map((trans, index) => {
+        // Calculate quantity based on group size and max_capacity
+        const calculatedNo = calculateRowQuantity(trans, item.package.total_space);
+        // Calculate times based on package duration and per_day flag
+        const calculatedTimes = trans.per_day ? item.package.times : 1;
+        // Calculate total based on flags
+        const calculatedTotal = calculateRowTotal(trans, calculatedNo, calculatedTimes);
+        
+        return {
+          id: `transportation-${index}`,
+          description: trans.name,
+          rate: trans.rate,
+          no: calculatedNo,
+          times: calculatedTimes,
+          per_person: trans.per_person,
+          per_day: trans.per_day,
+          one_time: trans.one_time,
+          max_capacity: trans.max_capacity,
+          is_default: trans.is_default,
+          is_editable: trans.is_editable,
+          from_place: trans.from_place,
+          to_place: trans.to_place,
+          total: calculatedTotal
+        };
+      }) || [],
       discountType: item.transportation_discount_type === 'percentage' ? 'percentage' : 'amount',
       discountValue: parseFloat(item.transportation_discount || '0'),
       discountRemarks: item.transportation_discount_remarks

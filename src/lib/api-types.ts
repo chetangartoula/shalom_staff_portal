@@ -174,6 +174,7 @@ export interface APIGroupAndPackage {
         start_date: string;
         end_date: string;
         trip: number;
+        times: number;
     };
     status: string;
     permits: Array<{
@@ -181,24 +182,56 @@ export interface APIGroupAndPackage {
         rate: number;
         times: number;
         numbers: number;
+        per_person: boolean;
+        per_day: boolean;
+        one_time: boolean;
+        max_capacity: number | undefined;
+        is_default: boolean;
+        is_editable: boolean;
+        from_place: string;
+        to_place: string;
     }>;
     services: Array<{
         name: string;
         rate: number;
         times: number;
         numbers: number;
+        per_person: boolean;
+        per_day: boolean;
+        one_time: boolean;
+        max_capacity: number | undefined;
+        is_default: boolean;
+        is_editable: boolean;
+        from_place: string;
+        to_place: string;
     }>;
     accommodation: Array<{
         name: string;
         rate: number;
         times: number;
         numbers: number;
+        per_person: boolean;
+        per_day: boolean;
+        one_time: boolean;
+        max_capacity: number | undefined;
+        is_default: boolean;
+        is_editable: boolean;
+        from_place: string;
+        to_place: string;
     }>;
     transportation: Array<{
         name: string;
         rate: number;
         times: number;
         numbers: number;
+        per_person: boolean;
+        per_day: boolean;
+        one_time: boolean;
+        max_capacity: number | undefined;
+        is_default: boolean;
+        is_editable: boolean;
+        from_place: string;
+        to_place: string;
     }>;
     extra_services: Array<{
         service_name: string;
@@ -207,6 +240,14 @@ export interface APIGroupAndPackage {
             rate: number;
             times: number;
             numbers: number;
+            per_person: boolean;
+            per_day: boolean;
+            one_time: boolean;
+            max_capacity: number | undefined;
+            is_default: boolean;
+            is_editable: boolean;
+            from_place: string;
+            to_place: string;
         }>;
     }>;
     service_discount: string;

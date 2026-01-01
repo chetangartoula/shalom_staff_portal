@@ -44,10 +44,27 @@ const calculateRowTimes = (item: any, trekTimes: number) => {
     return 1;
 };
 
-// Function to calculate row total: rate * no * times
+// Function to calculate row total based on boolean flags
 const calculateRowTotal = (item: any, no: number, times: number) => {
     const rate = item.rate || 0;
-    return rate * no * times;
+    
+    // Apply calculation based on boolean flags
+    if (item.one_time) {
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return rate;
+    } else if (item.per_person && item.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return rate * no * times;
+    } else if (item.per_person) {
+      // If per_person is true, calculate as rate * no
+      return rate * no;
+    } else if (item.per_day) {
+      // If per_day is true, calculate as rate * times
+      return rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return rate * no * times;
+    }
 };
 
 const LoadingStep = () => (
@@ -210,7 +227,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                         return {
                             ...row,
                             no: newNo,
-                            total: calculateRowTotal(row, newNo, row.times)
+                            total: calculateRowTotal(row, newNo, row.times),
+                            // Ensure description is properly mapped from name if missing
+                            description: row.description || (row as any).name || '',
                         };
                     })
                 });
@@ -247,15 +266,18 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
             ...section,
             rows: section.rows.map((row) => {
                 if (row.id === id) {
-                    const newRow = { ...row, [field]: value };
-                    if (field === 'no' || field === 'rate' || field === 'times') {
-                        const rate = Number(newRow.rate || 0);
-                        const no = Number(newRow.no || 0);
-                        const times = Number(newRow.times || 0);
+                    const updatedRow = { ...row, [field]: value };
+                    
+                    // If the changed field affects the calculation flags, recalculate total
+                    if (field === 'no' || field === 'rate' || field === 'times' || 
+                        field === 'per_person' || field === 'per_day' || field === 'one_time') {
+                        const rate = Number(updatedRow.rate || 0);
+                        const no = Number(updatedRow.no || 0);
+                        const times = Number(updatedRow.times || 0);
                         // Calculate using the proper boolean flag logic
-                        newRow.total = calculateRowTotal(newRow, no, times);
+                        updatedRow.total = calculateRowTotal(updatedRow, no, times);
                     }
-                    return newRow;
+                    return updatedRow;
                 }
                 return row;
             })
@@ -294,7 +316,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateRowTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes),
+                        // Ensure description is properly mapped from name if missing
+                        description: row.description || (row as any).name || '',
                     };
                 })
             },
@@ -305,7 +329,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateRowTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes),
+                        // Ensure description is properly mapped from name if missing
+                        description: row.description || (row as any).name || '',
                     };
                 })
             },
@@ -316,7 +342,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateRowTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes),
+                        // Ensure description is properly mapped from name if missing
+                        description: row.description || (row as any).name || '',
                     };
                 })
             },
@@ -327,7 +355,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateRowTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes),
+                        // Ensure description is properly mapped from name if missing
+                        description: row.description || (row as any).name || '',
                     };
                 })
             },
@@ -338,7 +368,9 @@ function ExtraServiceCostingPageComponent({ initialData, treks = [], user = null
                     return {
                         ...row,
                         times: newTimes,
-                        total: calculateRowTotal(row, row.no, newTimes)
+                        total: calculateRowTotal(row, row.no, newTimes),
+                        // Ensure description is properly mapped from name if missing
+                        description: row.description || (row as any).name || '',
                     };
                 })
             }))
