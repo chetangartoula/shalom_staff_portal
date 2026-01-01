@@ -59,7 +59,24 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
 
   const calculateRowTotal = useCallback((item: any, no: number, times: number) => {
     const rate = item.rate || 0;
-    return rate * no * times;
+    
+    // Apply calculation based on boolean flags
+    if (item.one_time) {
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return rate;
+    } else if (item.per_person && item.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return rate * no * times;
+    } else if (item.per_person) {
+      // If per_person is true, calculate as rate * no
+      return rate * no;
+    } else if (item.per_day) {
+      // If per_day is true, calculate as rate * times
+      return rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return rate * no * times;
+    }
   }, []);
 
   // Hooks
@@ -87,7 +104,9 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
         ...row,
         no: newNo,
         times: newTimes,
-        total: calculateRowTotal(row, newNo, newTimes)
+        total: calculateRowTotal(row, newNo, newTimes),
+        // Ensure description is properly mapped from name if missing
+        description: row.description || (row as any).name || '',
       };
     });
   }, [calculateRowQuantity, calculateRowTotal]);

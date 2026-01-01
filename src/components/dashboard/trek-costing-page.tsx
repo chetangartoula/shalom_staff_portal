@@ -180,11 +180,26 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
   const calculateRowTotal = (item: any, no: number, times: number) => {
     const rate = item.rate || 0;
-    // New simplified logic: Always rate * no * times
-    return rate * no * times;
+    
+    // Apply calculation based on boolean flags
+    if (item.one_time) {
+      // If one_time is true, calculate as rate (single occurrence regardless of other factors)
+      return rate;
+    } else if (item.per_person && item.per_day) {
+      // If both per_person and per_day are true, calculate as rate * no * times
+      return rate * no * times;
+    } else if (item.per_person) {
+      // If per_person is true, calculate as rate * no
+      return rate * no;
+    } else if (item.per_day) {
+      // If per_day is true, calculate as rate * times
+      return rate * times;
+    } else {
+      // If none of the above flags are true, calculate as rate * no * times (default)
+      return rate * no * times;
+    }
   };
 
-  // Function to calculate quantity (no) based on groupSize and max_capacity
   const calculateRowQuantity = (item: any, groupSize: number) => {
     if (item.max_capacity && item.max_capacity > 0) {
       // Jeep max capacity 7 means it can hold a max of 7 people, if people +7, jeep number should be 2
@@ -247,9 +262,13 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         });
 
         // Create a new report with the initialData
+        // Extract groupSize from total_space if it exists in initialData
+        const extractedGroupSize = initialData.total_space || initialData.groupSize || 1;
+        
         const fullReport = {
           ...createInitialReportState(initialData.groupId),
           ...initialData,
+          groupSize: extractedGroupSize,
           startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
         };
 
@@ -267,13 +286,25 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         }
 
         const selectedTrek = treks?.find(t => t.id === initialData.trekId);
-        const trekTimes = selectedTrek?.times || 1;
+        // Use package.times if available in initialData, otherwise use selectedTrek.times
+        const trekTimes = initialData.package?.times || selectedTrek?.times || 1;
 
         const updateRowsWithTripTimes = (rows: CostRow[]) => {
           return rows.map(row => {
             const newNo = calculateRowQuantity(row, fullReport.groupSize || 1);
-            const newTimes = calculateRowTimes(row, trekTimes);
-            return { ...row, no: newNo, times: newTimes, total: calculateRowTotal({ ...row, times: newTimes }, newNo, newTimes) };
+            // For initial data loading, preserve the times value from the API response
+            // The API already calculates the correct times based on per_day and one_time flags
+            // Only recalculate if we're creating new items (no existing times value)
+            const newTimes = ('times' in row && row.times !== undefined && row.times !== null) ? row.times : (row.per_day ? trekTimes : (row.one_time ? 1 : 1));
+            // Preserve all original properties and update calculated ones
+            return { 
+              ...row,
+              no: newNo, 
+              times: newTimes, 
+              total: calculateRowTotal({ ...row, times: newTimes }, newNo, newTimes),
+              // Ensure description is properly mapped from name if missing
+              description: row.description || (row as any).name || '',
+            };
           });
         };
 
@@ -323,7 +354,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
         if (prev.trekId !== report.trekId) return prev; // Only update for current trek
 
         const defaultAccommodations = accommodationData.filter(acc => acc.is_default).map(acc => {
-          const accTimes = calculateRowTimes(acc, selectedTrek?.times || acc.times || 1);
+          // For initial data loading, preserve the times value from the API response
+          // The API already calculates the correct times based on per_day and one_time flags
+          const accTimes = ('times' in acc && acc.times !== undefined && acc.times !== null) ? acc.times : (acc.per_day ? (selectedTrek?.times || 1) : (acc.one_time ? 1 : 1));
           const accNo = calculateRowQuantity(acc, prev.groupSize);
           const row = {
             id: crypto.randomUUID(),
@@ -363,7 +396,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
 
         // Filter default transportation from API data
         const defaultTransportations = transportationData.filter(trans => trans.is_default).map(trans => {
-          const transTimes = calculateRowTimes(trans, selectedTrek?.times || trans.times || 1);
+          // For initial data loading, preserve the times value from the API response
+          // The API already calculates the correct times based on per_day and one_time flags
+          const transTimes = ('times' in trans && trans.times !== undefined && trans.times !== null) ? trans.times : (trans.per_day ? (selectedTrek?.times || 1) : (trans.one_time ? 1 : 1));
           const transNo = calculateRowQuantity(trans, prev.groupSize);
           const row = {
             id: crypto.randomUUID(),
@@ -435,13 +470,15 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           ...section,
           rows: section.rows.map(row => {
             const newNo = calculateRowQuantity(row, size);
-            // Also recalculate times in case max_capacity affects duration calculations
-            const newTimes = calculateRowTimes(row, selectedTrek?.times || 1);
+            // Calculate times based on per_day flag and trek times
+            const newTimes = row.per_day ? (selectedTrek?.times || 1) : (row.one_time ? 1 : 1);
             return {
               ...row,
               no: newNo,
               times: newTimes,
-              total: calculateRowTotal(row, newNo, newTimes)
+              total: calculateRowTotal(row, newNo, newTimes),
+              // Ensure description is properly mapped from name if missing
+              description: row.description || (row as any).name || '',
             };
           })
         };
@@ -491,9 +528,10 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
           let newTimes = updatedRow.times;
           
           if (field === 'per_person' || field === 'per_day' || field === 'one_time' || field === 'max_capacity') {
-            // Recalculate no and times based on the updated flags
+            // Recalculate no based on the updated flags
             newNo = calculateRowQuantity(updatedRow, report.groupSize);
-            newTimes = calculateRowTimes(updatedRow, selectedTrek?.times || 1);
+            // Recalculate times based on the updated flags
+            newTimes = updatedRow.per_day ? (selectedTrek?.times || 1) : (updatedRow.one_time ? 1 : 1);
           }
           
           // Update the row with new values and recalculate total
@@ -606,7 +644,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       const updateRowsForTrekChange = (rows: CostRow[]) => {
         return rows.map(row => {
           // Calculate the appropriate times value based on the item's flags and the new trek's duration
-          const newTimes = calculateRowTimes(row, newSelectedTrek.times || 1);
+          const newTimes = row.per_day ? (newSelectedTrek.times || 1) : (row.one_time ? 1 : 1);
           // Calculate the appropriate quantity value based on the item's flags and current group size
           const newNo = calculateRowQuantity(row, prev.groupSize);
           
@@ -614,7 +652,9 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
             ...row,
             no: newNo,
             times: newTimes,
-            total: calculateRowTotal(row, newNo, newTimes)
+            total: calculateRowTotal(row, newNo, newTimes),
+            // Ensure description is properly mapped from name if missing
+            description: row.description || (row as any).name || '',
           };
         });
       };
@@ -647,7 +687,7 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
       description: "",
       rate: 0,
       no: report.groupSize,
-      times: selectedTrek?.times || 1,
+      times: 1, // Default to 1, will be updated based on per_day/one_time flags
       total: 0, // Will be calculated after adding to section
       is_editable: true,
       per_person: false,
@@ -658,7 +698,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [handleSectionUpdate, report.groupSize, selectedTrek?.times]);
 
   const localOnAddPermit = useCallback((permit: any) => {
-    const permitTimes = calculateRowTimes(permit, selectedTrek?.times || permit.times || 1);
+    // For new items, preserve the times value from API response if available, otherwise calculate
+    const permitTimes = ('times' in permit && permit.times !== undefined && permit.times !== null) ? permit.times : (permit.per_day ? (selectedTrek?.times || 1) : (permit.one_time ? 1 : 1));
     const permitNo = calculateRowQuantity(permit, report.groupSize);
     const row: CostRow = {
       id: crypto.randomUUID(),
@@ -681,7 +722,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [handleSectionUpdate, report.groupSize, onAddPermit, selectedTrek?.times]);
 
   const localOnAddService = useCallback((service: any) => {
-    const serviceTimes = calculateRowTimes(service, selectedTrek?.times || service.times || 1);
+    // For new items, preserve the times value from API response if available, otherwise calculate
+    const serviceTimes = ('times' in service && service.times !== undefined && service.times !== null) ? service.times : (service.per_day ? (selectedTrek?.times || 1) : (service.one_time ? 1 : 1));
     const serviceNo = calculateRowQuantity(service, report.groupSize);
     const row: CostRow = {
       id: crypto.randomUUID(),
@@ -704,7 +746,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [handleSectionUpdate, report.groupSize, onAddService, selectedTrek?.times]);
 
   const localOnAddExtraService = useCallback((extraService: any) => {
-    const extraServiceTimes = calculateRowTimes(extraService, selectedTrek?.times || extraService.times || 1);
+    // For new items, preserve the times value from API response if available, otherwise calculate
+    const extraServiceTimes = ('times' in extraService && extraService.times !== undefined && extraService.times !== null) ? extraService.times : (extraService.per_day ? (selectedTrek?.times || 1) : (extraService.one_time ? 1 : 1));
     const extraServiceNo = calculateRowQuantity(extraService, report.groupSize);
     const row: CostRow = {
       id: crypto.randomUUID(),
@@ -727,7 +770,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [handleSectionUpdate, report.groupSize, onAddExtraService, selectedTrek?.times]);
 
   const localOnAddAccommodation = useCallback((accommodation: any) => {
-    const accommodationTimes = calculateRowTimes(accommodation, selectedTrek?.times || accommodation.times || 1);
+    // For new items, preserve the times value from API response if available, otherwise calculate
+    const accommodationTimes = ('times' in accommodation && accommodation.times !== undefined && accommodation.times !== null) ? accommodation.times : (accommodation.per_day ? (selectedTrek?.times || 1) : (accommodation.one_time ? 1 : 1));
     const accommodationNo = calculateRowQuantity(accommodation, report.groupSize);
     const row: CostRow = {
       id: crypto.randomUUID(),
@@ -750,7 +794,8 @@ function TrekCostingPageComponent({ initialData, treks = [], user = null, onTrek
   }, [handleSectionUpdate, report.groupSize, onAddAccommodation, selectedTrek?.times]);
 
   const localOnAddTransportation = useCallback((transportation: any) => {
-    const transportationTimes = calculateRowTimes(transportation, selectedTrek?.times || transportation.times || 1);
+    // For new items, preserve the times value from API response if available, otherwise calculate
+    const transportationTimes = ('times' in transportation && transportation.times !== undefined && transportation.times !== null) ? transportation.times : (transportation.per_day ? (selectedTrek?.times || 1) : (transportation.one_time ? 1 : 1));
     const transportationNo = calculateRowQuantity(transportation, report.groupSize);
     const row: CostRow = {
       id: crypto.randomUUID(),
