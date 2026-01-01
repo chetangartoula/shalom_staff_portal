@@ -33,23 +33,44 @@ import { postExtraInvoice } from '@/lib/api-service';
 
 // Function to calculate extra service total based on the boolean flags
 const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
+  const rate = Number(extraService.rate) || 0;
+  
   // Apply calculation based on boolean flags
   if (extraService.one_time) {
     // If one_time is true, calculate as rate (single occurrence regardless of other factors)
-    return extraService.rate;
+    return rate;
   } else if (extraService.per_person && extraService.per_day) {
     // If both per_person and per_day are true, calculate as rate * no * times
-    return extraService.rate * no * times;
+    return rate * no * times;
   } else if (extraService.per_person) {
     // If per_person is true, calculate as rate * no
-    return extraService.rate * no;
+    return rate * no;
   } else if (extraService.per_day) {
     // If per_day is true, calculate as rate * times
-    return extraService.rate * times;
+    return rate * times;
   } else {
     // If none of the above flags are true, calculate as rate * no * times (default)
-    return extraService.rate * no * times;
+    return rate * no * times;
   }
+};
+
+// Helper function to calculate row quantity based on max_capacity and per_person
+const calculateRowQuantity = (item: any, groupSize: number): number => {
+  if (item.one_time) {
+    // If one_time is true, quantity is always 1 regardless of other factors
+    return 1;
+  }
+  
+  if (item.max_capacity && item.max_capacity > 0) {
+    // Calculate quantity based on max_capacity
+    return Math.ceil(groupSize / item.max_capacity);
+  }
+
+  if (item.per_person) {
+    return groupSize;
+  }
+
+  return 1;
 };
 
 type ReportState = {
@@ -59,6 +80,8 @@ type ReportState = {
   startDate: Date | undefined;
   permits: SectionState;
   services: SectionState;
+  accommodation: SectionState;
+  transportation: SectionState;
   extraDetails: SectionState;
   customSections: SectionState[];
   serviceCharge: number;
@@ -84,6 +107,8 @@ const createInitialReportState = (groupId?: string): ReportState => ({
   startDate: new Date(),
   permits: createInitialSectionState('permits', 'Permits & Food'),
   services: createInitialSectionState('services', 'Services'),
+  accommodation: createInitialSectionState('accommodation', 'Accommodation'),
+  transportation: createInitialSectionState('transportation', 'Transportation'),
   extraDetails: createInitialSectionState('extraDetails', 'Extra Details'),
   customSections: [],
   serviceCharge: 10,
@@ -134,18 +159,131 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           ...createInitialReportState(initialData.groupId),
           ...initialData,
           startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
-          // Use the permits and services data from initialData with unique row IDs
+          // Use the permits and services data from initialData with unique row IDs and proper calculations
           permits: initialData.permits ? {
             ...initialData.permits,
-            rows: initialData.permits.rows.map((row: any) => ({ ...row, id: crypto.randomUUID() }))
+            rows: initialData.permits.rows.map((row: any) => {
+              // Calculate no based on max_capacity and per_person
+              const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
+              // Calculate times based on per_day and one_time flags
+              let calculatedTimes = 1;
+              if (row.per_day) {
+                calculatedTimes = initialData.package?.times || 1;
+              } else if (row.one_time) {
+                calculatedTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                calculatedTimes = row.times || 1;
+              }
+              return {
+                ...row,
+                id: crypto.randomUUID(),
+                no: calculatedNo,
+                times: calculatedTimes,
+                total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
+                description: row.description || (row as any).name || '',
+              };
+            })
           } : createInitialSectionState('permits', 'Permits & Food'),
           services: initialData.services ? {
             ...initialData.services,
-            rows: initialData.services.rows.map((row: any) => ({ ...row, id: crypto.randomUUID() }))
+            rows: initialData.services.rows.map((row: any) => {
+              // Calculate no based on max_capacity and per_person
+              const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
+              // Calculate times based on per_day and one_time flags
+              let calculatedTimes = 1;
+              if (row.per_day) {
+                calculatedTimes = initialData.package?.times || 1;
+              } else if (row.one_time) {
+                calculatedTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                calculatedTimes = row.times || 1;
+              }
+              return {
+                ...row,
+                id: crypto.randomUUID(),
+                no: calculatedNo,
+                times: calculatedTimes,
+                total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
+                description: row.description || (row as any).name || '',
+              };
+            })
           } : createInitialSectionState('services', 'Services'),
+          accommodation: initialData.accommodation ? {
+            ...initialData.accommodation,
+            rows: initialData.accommodation.rows.map((row: any) => {
+              // Calculate no based on max_capacity and per_person
+              const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
+              // Calculate times based on per_day and one_time flags
+              let calculatedTimes = 1;
+              if (row.per_day) {
+                calculatedTimes = initialData.package?.times || 1;
+              } else if (row.one_time) {
+                calculatedTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                calculatedTimes = row.times || 1;
+              }
+              return {
+                ...row,
+                id: crypto.randomUUID(),
+                no: calculatedNo,
+                times: calculatedTimes,
+                total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
+                description: row.description || (row as any).name || '',
+              };
+            })
+          } : createInitialSectionState('accommodation', 'Accommodation'),
+          transportation: initialData.transportation ? {
+            ...initialData.transportation,
+            rows: initialData.transportation.rows.map((row: any) => {
+              // Calculate no based on max_capacity and per_person
+              const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
+              // Calculate times based on per_day and one_time flags
+              let calculatedTimes = 1;
+              if (row.per_day) {
+                calculatedTimes = initialData.package?.times || 1;
+              } else if (row.one_time) {
+                calculatedTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                calculatedTimes = row.times || 1;
+              }
+              return {
+                ...row,
+                id: crypto.randomUUID(),
+                no: calculatedNo,
+                times: calculatedTimes,
+                total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
+                description: row.description || (row as any).name || '',
+              };
+            })
+          } : createInitialSectionState('transportation', 'Transportation'),
           extraDetails: initialData.extraDetails ? {
             ...initialData.extraDetails,
-            rows: initialData.extraDetails.rows.map((row: any) => ({ ...row, id: crypto.randomUUID() }))
+            rows: initialData.extraDetails.rows.map((row: any) => {
+              // Calculate no based on max_capacity and per_person
+              const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
+              // Calculate times based on per_day and one_time flags
+              let calculatedTimes = 1;
+              if (row.per_day) {
+                calculatedTimes = initialData.package?.times || 1;
+              } else if (row.one_time) {
+                calculatedTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                calculatedTimes = row.times || 1;
+              }
+              return {
+                ...row,
+                id: crypto.randomUUID(),
+                no: calculatedNo,
+                times: calculatedTimes,
+                total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
+                description: row.description || (row as any).name || '',
+              };
+            })
           } : createInitialSectionState('extraDetails', 'Extra Details'),
         };
 
@@ -157,6 +295,10 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
             permits: initialData.permits || prev.permits,
             // Update services if they're provided in initialData
             services: initialData.services || prev.services,
+            // Update accommodation if they're provided in initialData
+            accommodation: initialData.accommodation || prev.accommodation,
+            // Update transportation if they're provided in initialData
+            transportation: initialData.transportation || prev.transportation,
             // Update extraDetails if they're provided in initialData
             extraDetails: initialData.extraDetails || prev.extraDetails,
           };
@@ -202,12 +344,29 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
 
     setReport(currentReport => {
       const updateRowPax = (row: CostRow) => {
-        const newNo = value ? currentReport.groupSize : 1;
+        // Calculate quantity based on max_capacity and per_person
+        const newNo = calculateRowQuantity(row, value ? currentReport.groupSize : 1);
+        // Calculate times based on per_day and one_time flags using package.times
+        let newTimes = 1;
+        if (row.per_day) {
+          newTimes = initialData?.package?.times || 1;
+        } else if (row.one_time) {
+          newTimes = 1;
+        } else {
+          // For items that are neither per_day nor one_time, use the original times value
+          newTimes = row.times || 1;
+        }
         // Calculate total based on properties if it has boolean flags
         const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
-          ? calculateExtraServiceTotal(row, newNo, row.times || 0)
-          : (row.rate || 0) * newNo * (row.times || 0);
-        return { ...row, no: newNo, total, description: row.description || (row as any).name || '' };
+          ? calculateExtraServiceTotal(row, newNo, newTimes)
+          : (row.rate || 0) * newNo * newTimes;
+        return { 
+          ...row, 
+          no: newNo, 
+          times: newTimes,
+          total, 
+          description: row.description || (row as any).name || '' 
+        };
       };
 
       const updateSection = (section: SectionState) => ({
@@ -215,8 +374,16 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         rows: section.rows.map(updateRowPax)
       });
 
-      if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
-        return { ...currentReport, [sectionId]: updateSection(currentReport[sectionId as 'permits' | 'services' | 'extraDetails'] as SectionState) };
+      if (sectionId === 'permits') {
+        return { ...currentReport, permits: updateSection(currentReport.permits) };
+      } else if (sectionId === 'services') {
+        return { ...currentReport, services: updateSection(currentReport.services) };
+      } else if (sectionId === 'accommodation') {
+        return { ...currentReport, accommodation: updateSection(currentReport.accommodation) };
+      } else if (sectionId === 'transportation') {
+        return { ...currentReport, transportation: updateSection(currentReport.transportation) };
+      } else if (sectionId === 'extraDetails') {
+        return { ...currentReport, extraDetails: updateSection(currentReport.extraDetails) };
       } else {
         return {
           ...currentReport,
@@ -235,11 +402,29 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           return {
             ...section,
             rows: section.rows.map(row => {
+              // Calculate quantity based on max_capacity and per_person
+              const newNo = calculateRowQuantity(row, size);
+              // Calculate times based on per_day and one_time flags
+              let newTimes = 1;
+              if (row.per_day) {
+                newTimes = initialData?.package?.times || 1;
+              } else if (row.one_time) {
+                newTimes = 1;
+              } else {
+                // For items that are neither per_day nor one_time, use the original times value
+                newTimes = row.times || 1;
+              }
               // Calculate total based on properties if it has boolean flags
               const total = (row.per_person !== undefined && row.per_day !== undefined && row.one_time !== undefined)
-                ? calculateExtraServiceTotal(row, size, row.times || 0)
-                : (row.rate || 0) * size * (row.times || 0);
-              return { ...row, no: size, total, description: row.description || (row as any).name || '' };
+                ? calculateExtraServiceTotal(row, newNo, newTimes)
+                : (row.rate || 0) * newNo * newTimes;
+              return { 
+                ...row, 
+                no: newNo, 
+                times: newTimes,
+                total, 
+                description: row.description || (row as any).name || '' 
+              };
             })
           };
         }
@@ -248,6 +433,8 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
 
       newReport.permits = updateSectionForPax(newReport.permits);
       newReport.services = updateSectionForPax(newReport.services);
+      newReport.accommodation = updateSectionForPax(newReport.accommodation);
+      newReport.transportation = updateSectionForPax(newReport.transportation);
       newReport.extraDetails = updateSectionForPax(newReport.extraDetails);
       newReport.customSections = newReport.customSections.map(updateSectionForPax);
 
@@ -262,8 +449,18 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   const handleSectionUpdate = (sectionId: string, updater: (s: SectionState) => SectionState) => {
     setReport(prevReport => {
       const newReport = { ...prevReport };
-      if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'extraDetails') {
-        newReport[sectionId as 'permits' | 'services' | 'extraDetails'] = updater(newReport[sectionId as 'permits' | 'services' | 'extraDetails']);
+      if (sectionId === 'permits' || sectionId === 'services' || sectionId === 'accommodation' || sectionId === 'transportation' || sectionId === 'extraDetails') {
+        if (sectionId === 'permits') {
+          newReport.permits = updater(newReport.permits);
+        } else if (sectionId === 'services') {
+          newReport.services = updater(newReport.services);
+        } else if (sectionId === 'accommodation') {
+          newReport.accommodation = updater(newReport.accommodation);
+        } else if (sectionId === 'transportation') {
+          newReport.transportation = updater(newReport.transportation);
+        } else if (sectionId === 'extraDetails') {
+          newReport.extraDetails = updater(newReport.extraDetails);
+        }
       } else {
         newReport.customSections = newReport.customSections.map(s =>
           s.id === sectionId ? updater(s) : s
@@ -279,16 +476,32 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       rows: section.rows.map((row) => {
         if (row.id === id) {
           const updatedRow = { ...row, [field]: value };
+          
+          // Recalculate no based on the updated flags
+          let newNo = calculateRowQuantity(updatedRow, report.groupSize);
+          
+          // Calculate times based on per_day and one_time flags using package.times
+          let newTimes = 1;
+          if (updatedRow.per_day) {
+            newTimes = initialData?.package?.times || 1;
+          } else if (updatedRow.one_time) {
+            newTimes = 1;
+          } else {
+            // For items that are neither per_day nor one_time, use the original times value
+            newTimes = updatedRow.times || 1;
+          }
+          
+          // Calculate total based on properties if it has boolean flags
           if (field === 'no' || field === 'rate' || field === 'times' || 
               field === 'per_person' || field === 'per_day' || field === 'one_time') {
-            // Calculate total based on properties if it has boolean flags
             if (updatedRow.per_person !== undefined && updatedRow.per_day !== undefined && updatedRow.one_time !== undefined) {
-              updatedRow.total = calculateExtraServiceTotal(updatedRow, updatedRow.no || 0, updatedRow.times || 0);
+              updatedRow.total = calculateExtraServiceTotal(updatedRow, newNo || 0, newTimes || 0);
             } else {
-              updatedRow.total = (updatedRow.rate || 0) * (updatedRow.no || 0) * (updatedRow.times || 0);
+              updatedRow.total = (updatedRow.rate || 0) * (newNo || 0) * (newTimes || 0);
             }
           }
-          return updatedRow;
+          
+          return { ...updatedRow, no: newNo, times: newTimes };
         }
         return row;
       })
@@ -323,7 +536,14 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   const addRow = (sectionId: string) => {
     const isPax = usePax[sectionId] ?? false;
     const groupSize = report.groupSize;
-    const newRow: CostRow = { id: crypto.randomUUID(), description: "", rate: 0, no: isPax ? groupSize : 1, times: 1, total: 0 };
+    const newRow: CostRow = { 
+      id: crypto.randomUUID(), 
+      description: "", 
+      rate: 0, 
+      no: isPax ? groupSize : 1, 
+      times: 1, // Default to 1, will be recalculated based on flags
+      total: 0 
+    };
     handleSectionUpdate(sectionId, (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   };
 
@@ -460,7 +680,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         name: row.description,
         rate: row.rate,
         numbers: row.no,
-        times: row.times
+        times: row.times,
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        max_capacity: row.max_capacity || null
       }));
 
       // Transform services data
@@ -468,7 +692,35 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         name: row.description,
         rate: row.rate,
         numbers: row.no,
-        times: row.times
+        times: row.times,
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        max_capacity: row.max_capacity || null
+      }));
+
+      // Transform accommodation data
+      const accommodationData = report.accommodation.rows.map(row => ({
+        name: row.description,
+        rate: row.rate,
+        numbers: row.no,
+        times: row.times,
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        max_capacity: row.max_capacity || null
+      }));
+
+      // Transform transportation data
+      const transportationData = report.transportation.rows.map(row => ({
+        name: row.description,
+        rate: row.rate,
+        numbers: row.no,
+        times: row.times,
+        per_person: row.per_person || false,
+        per_day: row.per_day || false,
+        one_time: row.one_time || false,
+        max_capacity: row.max_capacity || null
       }));
 
       // Transform extra services data
@@ -490,7 +742,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           name: param_name,
           rate: row.rate,
           numbers: row.no,
-          times: row.times
+          times: row.times,
+          per_person: row.per_person || false,
+          per_day: row.per_day || false,
+          one_time: row.one_time || false,
+          max_capacity: row.max_capacity || null
         });
       });
 
@@ -502,10 +758,18 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         status: "draft",
         permits: permitsData,
         services: servicesData,
+        accommodation: accommodationData,
+        transportation: transportationData,
         extra_services: extraServicesData,
         service_discount: String(report.services.discountValue || 0),  // String format
         service_discount_type: report.services.discountType === 'percentage' ? 'percentage' : 'flat',
         service_discount_remarks: report.services.discountRemarks || "",
+        accommodation_discount: String(report.accommodation.discountValue || 0),  // String format
+        accommodation_discount_type: report.accommodation.discountType === 'percentage' ? 'percentage' : 'flat',
+        accommodation_discount_remarks: report.accommodation.discountRemarks || "",
+        transportation_discount: String(report.transportation.discountValue || 0),  // String format
+        transportation_discount_type: report.transportation.discountType === 'percentage' ? 'percentage' : 'flat',
+        transportation_discount_remarks: report.transportation.discountRemarks || "",
         extra_service_discount: String(report.extraDetails.discountValue || 0),  // String format
         extra_service_discount_type: report.extraDetails.discountType === 'percentage' ? 'percentage' : 'flat',
         extra_service_discount_remarks: report.extraDetails.discountRemarks || "",
@@ -546,6 +810,8 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   const allCostingStepsMetadata = [
     { ...report.permits },
     { ...report.services },
+    { ...report.accommodation },
+    { ...report.transportation },
     ...report.customSections,
     { id: 'final', name: 'Final Summary' }
   ];
@@ -593,7 +859,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       />;
     }
 
-    if (activeStepData.id === 'permits' || activeStepData.id === 'services' || report.customSections.some(cs => cs.id === activeStepData.id)) {
+    if (activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation' || report.customSections.some(cs => cs.id === activeStepData.id)) {
       return (
         <CostTable
           section={report[activeStepData.id as keyof ReportState] as SectionState || report.customSections.find(cs => cs.id === activeStepData.id)!}
@@ -609,6 +875,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           onRemoveRow={removeRow}
           onEditSection={handleOpenEditSectionModal}
           onRemoveSection={removeSection}
+          hideAddRow={activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation'}
         />
       );
     }
