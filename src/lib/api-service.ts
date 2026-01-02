@@ -1,34 +1,22 @@
-import type { Trek, Report, SectionState, CostRow } from '@/lib/types';
+import type { Trek, Report } from '@/lib/types';
 import type {
   APITrip,
   APIPermit,
   APIService,
-  APIExtraServiceParam,
   APIExtraService,
   APIGuide,
   APIPorter,
-  APIAssignmentGuide,
-  APIAssignmentPorter,
   APIAssignment,
-  APIAssignTeamResponse,
-  APIAirportPickUp,
   APIGroupAndPackage,
-  APITransactionResult,
-  APITransactionsResults,
   APITransactionsResponse,
   APITransaction,
-  APIAllTransactionsResponse,
-  APIMergedPackage,
+  APIMergedPackage, 
   APIMergePackagesResponse,
-  APIPayment,
-  APIPaymentRequest,
-  APIPaymentDetailResponse,
   APICreateTravelerRequest,
   APITraveler,
-  APIDashboardStats
+  APIDashboardStats,APIAssignTeamResponse,APIPaymentDetailResponse,APIPaymentRequest
 } from '@/lib/api-types';
 import { getAccessToken, clearAuthTokens, isAccessTokenExpired, getRefreshToken } from '@/lib/auth-utils';
-import { getServerAccessTokenFromRequest, isServerAccessTokenExpired, serverRefreshToken as serverSideRefreshToken } from '@/lib/server-auth-utils';
 
 // Authentication types
 export interface OtpRequestResponse {
@@ -57,6 +45,18 @@ export interface RefreshTokenResponse {
 
 // Base URL for the external API - use environment variable with fallback
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
+
+// Lightweight in-memory request coordination and caching
+const IN_FLIGHT_REQUESTS = new Map<string, Promise<any>>();
+const GET_RESPONSE_CACHE = new Map<string, { expiry: number; data: any }>();
+const DEFAULT_GET_CACHE_TTL_MS = 30_000; // 30 seconds
+
+function buildCacheKey(endpoint: string, options: RequestInit = {}): string {
+  const method = (options.method || 'GET').toUpperCase();
+  // Only include serializable parts likely to affect response identity
+  const body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body || null);
+  return `${method} ${endpoint} ${body ?? ''}`;
+}
 
 // A distinct error type so callers can handle session expiry explicitly
 export class SessionExpiredError extends Error {
@@ -131,132 +131,180 @@ function calculateRowQuantity(item: any, groupSize: number): number {
 // Replace the fetchFromAPI function with this corrected version
 
 export async function fetchFromAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const controller = new AbortController();
-  const TIMEOUT_MS = 30000; // 30 seconds timeout
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = buildCacheKey(endpoint, options);
 
-  try {
-    // 1. Determine if we're on the client or server and get appropriate token
-    let token: string | null = null;
-    let isServer = typeof window === 'undefined';
-    let isRefreshed = false;
+  const noStore = (options as any)?.cache === 'no-store';
 
-    if (isServer) {
-      // Server-side: try to read Authorization header from the current Next.js request context
-      try {
-        const nextHeadersModule = await import('next/headers');
-        const reqHeaders = await nextHeadersModule.headers();
-        const authHeader = reqHeaders.get('authorization') || reqHeaders.get('Authorization');
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          token = authHeader.substring(7).trim();
-        } else {
+  // Serve from short-lived cache for GET requests
+  if (method === 'GET' && !noStore) {
+    const cached = GET_RESPONSE_CACHE.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.data as T;
+    }
+  }
+
+  // De-duplicate identical in-flight requests (unless no-store)
+  if (!noStore) {
+    const existing = IN_FLIGHT_REQUESTS.get(cacheKey);
+    if (existing) {
+      return existing as Promise<T>;
+    }
+  }
+
+  const requestPromise: Promise<T> = (async () => {
+    const controller = new AbortController();
+    const TIMEOUT_MS = 30000; // 30 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      // 1. Determine if we're on the client or server and get appropriate token
+      let token: string | null = null;
+      let isServer = typeof window === 'undefined';
+      let isRefreshed = false;
+
+      if (isServer) {
+        // Server-side: try to read Authorization header from the current Next.js request context
+        try {
+          const nextHeadersModule = await import('next/headers');
+          const reqHeaders = await nextHeadersModule.headers();
+          const authHeader = reqHeaders.get('authorization') || reqHeaders.get('Authorization');
+          if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7).trim();
+          } else {
+            token = null;
+          }
+        } catch {
+          // If next/headers is unavailable (e.g., non-Next server context), proceed without token
           token = null;
         }
-      } catch {
-        // If next/headers is unavailable (e.g., non-Next server context), proceed without token
-        token = null;
-      }
-    } else {
-      // Client-side: use localStorage-based authentication
-      if (isAccessTokenExpired()) {
-        try {
-          const refreshResult = await refreshToken();
-          if (refreshResult) {
-            token = getAccessToken();
-            isRefreshed = true;
-          } else {
-            // No refresh token available, redirect to login
+      } else {
+        // Client-side: use localStorage-based authentication
+        if (isAccessTokenExpired()) {
+          try {
+            const refreshResult = await refreshToken();
+            if (refreshResult) {
+              token = getAccessToken();
+              isRefreshed = true;
+            } else {
+              // No refresh token available, redirect to login
+              return handleSessionExpired<T>();
+            }
+          } catch (error) {
             return handleSessionExpired<T>();
           }
+        } else {
+          token = getAccessToken();
+        }
+      }
+
+      // 2. Set up headers
+      const headers = new Headers();
+      headers.set('Content-Type', 'application/json');
+      headers.set('Accept', 'application/json');
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+
+      // 3. Make the request
+      const response = await fetch(`${BASE_URL}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers,
+      });
+
+      // 4. Handle 401 Unauthorized responses
+      if (response.status === 401) {
+        // Check if we're on server or client for refresh token check
+        let refreshTokenAvailable = isServer ? null : getRefreshToken(); // Server-side refresh token handling is different
+        
+        // If we already tried to refresh, or there's no refresh token
+        if (isRefreshed || !refreshTokenAvailable) {
+          return handleSessionExpired<T>();
+        }
+
+        // Try to refresh the token and retry once
+        try {
+          if (isServer) {
+            // Server-side token refresh is handled differently in API routes
+            // For now, we'll return session expired since we can't refresh server-side tokens here
+            return handleSessionExpired<T>();
+          } else {
+            const refreshResult = await refreshToken();
+            if (refreshResult) {
+              token = getAccessToken();
+              if (token) {
+                headers.set('Authorization', `Bearer ${token}`);
+                const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
+                  ...options,
+                  signal: controller.signal,
+                  headers,
+                });
+                return await handleResponse<T>(retryResponse);
+              }
+            }
+          }
+          return handleSessionExpired<T>();
         } catch (error) {
           return handleSessionExpired<T>();
         }
-      } else {
-        token = getAccessToken();
       }
-    }
 
-    // 2. Set up headers
-    const headers = new Headers();
-    headers.set('Content-Type', 'application/json');
-    headers.set('Accept', 'application/json');
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    // 3. Make the request
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-      headers,
-    });
-
-    // 4. Handle 401 Unauthorized responses
-    if (response.status === 401) {
-      // Check if we're on server or client for refresh token check
-      let refreshTokenAvailable = isServer ? null : getRefreshToken(); // Server-side refresh token handling is different
+      // 5. Handle the response
+      return await handleResponse<T>(response);
+    } catch (error) {
+      clearTimeout(timeoutId);
       
-      // If we already tried to refresh, or there's no refresh token
-      if (isRefreshed || !refreshTokenAvailable) {
-        return handleSessionExpired<T>();
-      }
-
-      // Try to refresh the token and retry once
-      try {
-        if (isServer) {
-          // Server-side token refresh is handled differently in API routes
-          // For now, we'll return session expired since we can't refresh server-side tokens here
-          return handleSessionExpired<T>();
-        } else {
-          const refreshResult = await refreshToken();
-          if (refreshResult) {
-            token = getAccessToken();
-            if (token) {
-              headers.set('Authorization', `Bearer ${token}`);
-              const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
-                ...options,
-                signal: controller.signal,
-                headers,
-              });
-              return await handleResponse<T>(retryResponse);
-            }
-          }
+      if (error instanceof Error) {
+        // Handle network errors
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your connection and try again.');
         }
-        return handleSessionExpired<T>();
-      } catch (error) {
-        return handleSessionExpired<T>();
+        
+        // Handle network connectivity issues
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Unable to connect to the server. Please check your internet connection.');
+        }
+        
+        // Re-throw the original error if it's already meaningful (from handleResponse)
+        if (error.message) {
+          throw error;
+        }
+        
+        // Fallback generic message
+        throw new Error('An unexpected error occurred while processing your request.');
       }
+      
+      // Fallback for non-Error throws
+      throw new Error('An unexpected error occurred');
+    } finally {
+      clearTimeout(timeoutId);
     }
+  })();
 
-    // 5. Handle the response
-    return await handleResponse<T>(response);
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error instanceof Error) {
-      // Handle network errors
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out. Please check your connection and try again.');
-      }
-      
-      // Handle network connectivity issues
-      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        throw new Error('Unable to connect to the server. Please check your internet connection.');
-      }
-      
-      // Re-throw the original error if it's already meaningful (from handleResponse)
-      if (error.message) {
-        throw error;
-      }
-      
-      // Fallback generic message
-      throw new Error('An unexpected error occurred while processing your request.');
+  if (!noStore) {
+    IN_FLIGHT_REQUESTS.set(cacheKey, requestPromise);
+  }
+
+  try {
+    const result = await requestPromise;
+    if (method === 'GET' && !noStore) {
+      GET_RESPONSE_CACHE.set(cacheKey, { expiry: Date.now() + DEFAULT_GET_CACHE_TTL_MS, data: result });
     }
-    
-    // Fallback for non-Error throws
-    throw new Error('An unexpected error occurred');
+    // On mutating requests, invalidate related GET cache entries for this endpoint
+    if (method !== 'GET') {
+      const prefix = `GET ${endpoint}`;
+      for (const key of Array.from(GET_RESPONSE_CACHE.keys())) {
+        if (key.startsWith(prefix)) {
+          GET_RESPONSE_CACHE.delete(key);
+        }
+      }
+    }
+    return result;
   } finally {
-    clearTimeout(timeoutId);
+    if (!noStore) {
+      IN_FLIGHT_REQUESTS.delete(cacheKey);
+    }
   }
 }
 
@@ -1326,30 +1374,6 @@ export async function fetchTransactions(page: number = 1): Promise<APITransactio
   }
 }
 
-
-
-// Fetch all transactions from the real API
-export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
-  try {
-    const data = await fetchFromAPI<APIAllTransactionsResponse>(`/staff/transactions/all/`);
-
-    // Transform the API response to match our Transaction type
-    const transformedTransactions = data.transactions.map(transaction => ({
-      id: transaction.id,
-      groupId: transaction.groupId,
-      amount: transaction.amount,
-      type: transaction.type,
-      date: transaction.date,
-      note: transaction.note
-    }));
-
-    return { transactions: transformedTransactions };
-  } catch (error) {
-    throw error;
-  }
-}
-
-// Fetch transactions for a specific group from the real API
 export async function fetchTransactionsByGroupId(groupId: string): Promise<{ transactions: any[] }> {
   try {
     const data = await fetchFromAPI<APITransaction[]>(`/staff/transactions/${groupId}/`);

@@ -13,7 +13,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
-import { getAccessToken } from '@/lib/auth-utils';
+import { fetchPaymentDetails, fetchGroupAndPackageById, fetchGroupsAndPackages, fetchExtraInvoicesByGroupId } from '@/lib/api-service';
 import { handleExportPDF } from '@/lib/export';
 import Link from 'next/link';
 import {
@@ -59,14 +59,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: reportData, isLoading: isLoadingReport, error: reportError } = useQuery<Report, Error>({
         queryKey: ['report', initialReport.groupId],
         queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch(`/api/reports/${initialReport.groupId}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch report');
-            }
-            return response.json();
+            // Fetch directly from external backend
+            return await fetchGroupAndPackageById(initialReport.groupId);
         },
         initialData: initialReport,
         staleTime: 1000 * 60 * 5, // 5 minutes
@@ -77,79 +71,62 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: paymentDetailData, isLoading: isLoadingPaymentDetails } = useQuery<PaymentDetailResponse, Error>({
         queryKey: ['paymentDetails', initialReport.groupId],
         queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch(`/api/payment-details/${initialReport.groupId}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch payment details');
-            }
-            return response.json();
+            // Fetch directly from external backend
+            const data = await fetchPaymentDetails(initialReport.groupId);
+            // Map backend response to local type used in this component
+            return {
+                total_amount: data.total_cost,
+                payments: data.payments,
+                total_paid: data.total_paid,
+                total_refund: data.total_refund,
+                balance: data.balance,
+            } as PaymentDetailResponse;
         },
         staleTime: 1000 * 30, // 30 seconds - reduced from 2 minutes to ensure fresher data
         retry: 2
     });
 
-    const { data: transactionData, isLoading: isLoadingTransactions, error: transactionError } = useQuery<{ transactions: Transaction[] }, Error>({
-        queryKey: ['transactions', initialReport.groupId],
-        queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch(`/api/transactions/${initialReport.groupId}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch transactions');
-            }
-            return response.json();
-        },
-        staleTime: 1000 * 30, // 30 seconds - reduced from 2 minutes to ensure fresher data
-        retry: 2
-    });
+    // We can derive transactions from payment details; drop separate group transactions fetch
+    const isLoadingTransactions = isLoadingPaymentDetails;
+    const transactionError: Error | null = null;
+    const transactionData: { transactions: Transaction[] } | undefined = paymentDetailData
+        ? {
+            transactions: paymentDetailData.payments.map(payment => ({
+                id: String(payment.id),
+                groupId: initialReport.groupId,
+                amount: payment.amount,
+                type: payment.payment_types === 'pay' ? 'payment' : 'refund',
+                date: payment.date,
+                note: payment.remarks,
+                paymentMethod: payment.payment_method,
+            })),
+        }
+        : undefined;
 
     // Fetch all reports and transactions for merge calculations
     const { data: allReportsData } = useQuery<{ reports: Report[] }, Error>({
         queryKey: ['allReports'],
         queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch('/api/reports?limit=1000', {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch all reports');
-            }
-            return response.json();
+            // Load many reports directly from backend
+            return await fetchGroupsAndPackages(1, 1000);
         },
         staleTime: 1000 * 60 * 10, // 10 minutes
         retry: 2
     });
 
-    const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
-        queryKey: ['allTransactions'],
-        queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch('/api/transactions/all?all=true', {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch all transactions');
-            }
-            return response.json();
-        },
-        staleTime: 1000 * 60 * 10, // 10 minutes
-        retry: 2
-    });
+    // const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
+    //     queryKey: ['allTransactions'],
+    //     queryFn: async () => {
+    //         return await fetchAllTransactions();
+    //     },
+    //     staleTime: 1000 * 60 * 10, // 10 minutes
+    //     retry: 2
+    // });
 
     const { data: extraInvoices, isLoading: isLoadingExtraInvoices } = useQuery<Report[], Error>({
         queryKey: ['extraInvoices', initialReport.groupId],
         queryFn: async () => {
-            const token = getAccessToken();
-            const response = await fetch(`/api/extra-invoices/${initialReport.groupId}`, {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-            if (!response.ok) {
-                throw new Error('Failed to fetch extra invoices');
-            }
-            return response.json();
+            return await fetchExtraInvoicesByGroupId(initialReport.groupId);
         },
         staleTime: 1000 * 60 * 5,
         retry: 2
@@ -164,24 +141,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         return { subtotal, total, discountAmount };
     };
 
-    // Calculate total amount from merged groups
-    const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
-        if (!mergeGroups || mergeGroups.length === 0 || !allTransactionsData) {
-            return 0;
-        }
+    
 
-        // Get all transactions for the merged groups
-        const mergedGroupTransactions = allTransactionsData.transactions.filter(
-            (t: Transaction) => mergeGroups.includes(t.groupId)
-        );
-
-        // Sum up all payment amounts (exclude refunds)
-        return mergedGroupTransactions
-            .filter((t: Transaction) => t.type === 'payment')
-            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-    };
-
-    // Use payment details from the new API if available, otherwise fallback to report data
     const paymentDetails: (PaymentDetails & { totalRefund: number }) | undefined = paymentDetailData ? {
         totalCost: paymentDetailData.total_amount,
         totalPaid: paymentDetailData.total_paid,

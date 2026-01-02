@@ -14,42 +14,12 @@ import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import { Loader2, Save, Search, User, X, Users2, Backpack } from 'lucide-react';
 import type { Guide, Porter, Assignment } from '@/lib/types';
-import { fetchGuides, fetchPorters, fetchAssignedTeam } from '@/lib/api-service';
+import { fetchGuides, fetchPorters, fetchAssignedTeam, assignTeam } from '@/lib/api-service';
 import { cn } from '@/lib/utils';
-import { getAccessToken } from '@/lib/auth-utils';
 
-// Add this function to call the assign team API
+// Use centralized API service to assign team directly to backend
 const assignTeamToPackage = async (guides: number[], porters: number[], packageId: number) => {
-  try {
-    const token = getAccessToken();
-    const response = await fetch('/api/assign-team', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ guides, porters, package: packageId }),
-    });
-
-    if (!response.ok) {
-      // Try to get error details from the response
-      let errorMessage = 'Failed to assign team';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (parseError) {
-        // If we can't parse the error, use the status text
-        errorMessage = `Failed to assign team: ${response.status} ${response.statusText}`;
-      }
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error assigning team:', error);
-    throw error;
-  }
+  return await assignTeam(guides, porters, packageId);
 };
 
 interface Report {
