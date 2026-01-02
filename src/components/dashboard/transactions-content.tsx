@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAccessToken } from '@/lib/auth-utils';
+import { useQuery } from '@tanstack/react-query';
+import { fetchFromAPI } from '@/lib/api-service';
 import { Search, Loader2, PlusCircle, MinusCircle, ArrowDown, ArrowUp, DollarSign, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/shadcn/card';
@@ -82,14 +82,9 @@ export function TransactionsContent() {
   const { data, error, isLoading, refetch } = useQuery<TransactionsResponse, Error>({
     queryKey: ['transactions', page, typeFilter, dateRange],
     queryFn: async () => {
-        const token = getAccessToken();
-        const response = await fetch(`/api/transactions?${queryParams.toString()}` , {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (!response.ok) {
-            throw new Error('Failed to fetch transactions');
-        }
-        return response.json();
+        // Call external backend directly via shared API service
+        const data = await fetchFromAPI<TransactionsResponse>(`/staff/payments/?${queryParams.toString()}`);
+        return data;
     },
     placeholderData: (prevData) => prevData,
     staleTime: 1000 * 60 * 2, // 2 minutes
