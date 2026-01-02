@@ -1,34 +1,22 @@
-import type { Trek, Report, SectionState, CostRow } from '@/lib/types';
+import type { Trek, Report } from '@/lib/types';
 import type {
   APITrip,
   APIPermit,
   APIService,
-  APIExtraServiceParam,
   APIExtraService,
   APIGuide,
   APIPorter,
-  APIAssignmentGuide,
-  APIAssignmentPorter,
   APIAssignment,
-  APIAssignTeamResponse,
-  APIAirportPickUp,
   APIGroupAndPackage,
-  APITransactionResult,
-  APITransactionsResults,
   APITransactionsResponse,
   APITransaction,
-  APIAllTransactionsResponse,
-  APIMergedPackage,
+  APIMergedPackage, 
   APIMergePackagesResponse,
-  APIPayment,
-  APIPaymentRequest,
-  APIPaymentDetailResponse,
   APICreateTravelerRequest,
   APITraveler,
-  APIDashboardStats
+  APIDashboardStats,APIAssignTeamResponse,APIPaymentDetailResponse,APIPaymentRequest
 } from '@/lib/api-types';
 import { getAccessToken, clearAuthTokens, isAccessTokenExpired, getRefreshToken } from '@/lib/auth-utils';
-import { getServerAccessTokenFromRequest, isServerAccessTokenExpired, serverRefreshToken as serverSideRefreshToken } from '@/lib/server-auth-utils';
 
 // Authentication types
 export interface OtpRequestResponse {
@@ -1386,30 +1374,6 @@ export async function fetchTransactions(page: number = 1): Promise<APITransactio
   }
 }
 
-
-
-// Fetch all transactions from the real API
-export async function fetchAllTransactions(): Promise<{ transactions: any[] }> {
-  try {
-    const data = await fetchFromAPI<APIAllTransactionsResponse>(`/staff/transactions/all/`);
-
-    // Transform the API response to match our Transaction type
-    const transformedTransactions = data.transactions.map(transaction => ({
-      id: transaction.id,
-      groupId: transaction.groupId,
-      amount: transaction.amount,
-      type: transaction.type,
-      date: transaction.date,
-      note: transaction.note
-    }));
-
-    return { transactions: transformedTransactions };
-  } catch (error) {
-    throw error;
-  }
-}
-
-// Fetch transactions for a specific group from the real API
 export async function fetchTransactionsByGroupId(groupId: string): Promise<{ transactions: any[] }> {
   try {
     const data = await fetchFromAPI<APITransaction[]>(`/staff/transactions/${groupId}/`);

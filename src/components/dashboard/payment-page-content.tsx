@@ -13,8 +13,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
-import { getAccessToken } from '@/lib/auth-utils';
-import { fetchPaymentDetails, fetchGroupAndPackageById, fetchGroupsAndPackages, fetchAllTransactions, fetchExtraInvoicesByGroupId } from '@/lib/api-service';
+import { fetchPaymentDetails, fetchGroupAndPackageById, fetchGroupsAndPackages, fetchExtraInvoicesByGroupId } from '@/lib/api-service';
 import { handleExportPDF } from '@/lib/export';
 import Link from 'next/link';
 import {
@@ -115,14 +114,14 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         retry: 2
     });
 
-    const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
-        queryKey: ['allTransactions'],
-        queryFn: async () => {
-            return await fetchAllTransactions();
-        },
-        staleTime: 1000 * 60 * 10, // 10 minutes
-        retry: 2
-    });
+    // const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
+    //     queryKey: ['allTransactions'],
+    //     queryFn: async () => {
+    //         return await fetchAllTransactions();
+    //     },
+    //     staleTime: 1000 * 60 * 10, // 10 minutes
+    //     retry: 2
+    // });
 
     const { data: extraInvoices, isLoading: isLoadingExtraInvoices } = useQuery<Report[], Error>({
         queryKey: ['extraInvoices', initialReport.groupId],
@@ -142,24 +141,8 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
         return { subtotal, total, discountAmount };
     };
 
-    // Calculate total amount from merged groups
-    const calculateMergedGroupsTotal = (mergeGroups: string[] | undefined): number => {
-        if (!mergeGroups || mergeGroups.length === 0 || !allTransactionsData) {
-            return 0;
-        }
+    
 
-        // Get all transactions for the merged groups
-        const mergedGroupTransactions = allTransactionsData.transactions.filter(
-            (t: Transaction) => mergeGroups.includes(t.groupId)
-        );
-
-        // Sum up all payment amounts (exclude refunds)
-        return mergedGroupTransactions
-            .filter((t: Transaction) => t.type === 'payment')
-            .reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-    };
-
-    // Use payment details from the new API if available, otherwise fallback to report data
     const paymentDetails: (PaymentDetails & { totalRefund: number }) | undefined = paymentDetailData ? {
         totalCost: paymentDetailData.total_amount,
         totalPaid: paymentDetailData.total_paid,
