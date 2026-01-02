@@ -10,17 +10,11 @@ export interface User {
   role: string;
 }
 
-// In a real application, you would fetch this from a database or session.
-// For this demo, we'll use a hardcoded user.
-const mockUser: User = {
-  name: 'Admin User',
-  email: 'admin@shalom.com',
-  role: 'Admin',
-};
-
-// This function simulates fetching the currently authenticated user on the server.
+// This function fetches the currently authenticated user on the server.
+// In a real application, you would validate a session token or cookie here.
 export const getUser = async (): Promise<User | null> => {
-  // In a real app, you would validate a cookie or session here.
-  // For now, we'll just return the mock user to simulate a logged-in state.
-  return mockUser;
+  // For now, we'll return null since we're using localStorage-based authentication
+  // Server-side rendering doesn't have access to localStorage
+  // In a real app, you would implement server-side session management
+  return null;
 };

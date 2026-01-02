@@ -12,7 +12,16 @@ export async function GET(
         try {
             const extraInvoices = await fetchExtraInvoicesByGroupId(groupId);
             return NextResponse.json(extraInvoices);
-        } catch (apiError) {
+        } catch (apiError: any) {
+            // Check if the error is related to session expiration
+            if (apiError.message && (apiError.message.includes('Session expired') || apiError.message.includes('Authentication'))) {
+                console.error('Authentication error in extra invoices API:', apiError.message);
+                return NextResponse.json(
+                    { message: 'Authentication required', error: apiError.message },
+                    { status: 401 }
+                );
+            }
+            
             console.error('Error fetching extra invoices from API:', apiError);
             return NextResponse.json({ message: 'Failed to fetch extra invoices from API' }, { status: 500 });
         }

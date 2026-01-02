@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { usePermits } from '@/hooks/use-permits';
 import { useServices } from '@/hooks/use-services';
 import { useExtraServices } from '@/hooks/use-extra-services';
+import { useAllAccommodations } from '@/hooks/use-all-accommodations';
+import { useAllTransportations } from '@/hooks/use-all-transportations';
 import { fetchGroupAndPackageById } from '@/lib/api-service';
 import { Loader2 } from 'lucide-react';
 import { getUserClient } from '@/lib/auth-client';
@@ -42,8 +44,10 @@ export function ExtraServicesWrapper({ user: initialUser, groupId }: ExtraServic
   const { data: permits, isLoading: isLoadingPermits } = usePermits(trekId);
   const { data: services, isLoading: isLoadingServices } = useServices(trekId);
   const { data: extraServices, isLoading: isLoadingExtraServices } = useExtraServices(trekId);
+  const { data: accommodations, isLoading: isLoadingAccommodations } = useAllAccommodations(trekId);
+  const { data: transportations, isLoading: isLoadingTransportations } = useAllTransportations(trekId);
   
-  const isLoading = isLoadingGroup || (trekId ? (isLoadingPermits || isLoadingServices || isLoadingExtraServices) : false);
+  const isLoading = isLoadingGroup || (trekId ? (isLoadingPermits || isLoadingServices || isLoadingExtraServices || isLoadingAccommodations || isLoadingTransportations) : false);
 
   // Prepare initialData with fetched data (same structure as cost-estimator)
   const initialData = useMemo(() => {
@@ -56,14 +60,16 @@ export function ExtraServicesWrapper({ user: initialUser, groupId }: ExtraServic
       hasTrekId: !!trekId,
       hasPermits: !!permits,
       hasServices: !!services,
-      hasExtraServices: !!extraServices
+      hasExtraServices: !!extraServices,
+      hasAccommodations: !!accommodations,
+      hasTransportations: !!transportations
     });
     
     // If we have fetched permits, populate them (same as cost-estimator)
     if (permits && permits.length > 0) {
       data.permits = {
         id: 'permits',
-        name: 'Permits & Food',
+        name: 'Permits & Documents',
         rows: permits.map((permit: any) => ({
           id: permit.id,
           description: permit.name,
@@ -129,14 +135,54 @@ export function ExtraServicesWrapper({ user: initialUser, groupId }: ExtraServic
       };
     }
     
+    // If we have fetched accommodations, populate them (same as cost-estimator)
+    if (accommodations && accommodations.length > 0) {
+      data.accommodation = {
+        id: 'accommodation',
+        name: 'Accommodation',
+        rows: accommodations.map((accommodation: any) => ({
+          id: accommodation.id,
+          description: accommodation.name,
+          rate: accommodation.rate,
+          no: 1,
+          times: accommodation.times,
+          total: accommodation.rate * accommodation.times
+        })),
+        discountType: 'amount' as const,
+        discountValue: 0,
+        discountRemarks: ''
+      };
+    }
+    
+    // If we have fetched transportations, populate them (same as cost-estimator)
+    if (transportations && transportations.length > 0) {
+      data.transportation = {
+        id: 'transportation',
+        name: 'Transportation',
+        rows: transportations.map((transportation: any) => ({
+          id: transportation.id,
+          description: transportation.name,
+          rate: transportation.rate,
+          no: 1,
+          times: transportation.times,
+          total: transportation.rate * transportation.times
+        })),
+        discountType: 'amount' as const,
+        discountValue: 0,
+        discountRemarks: ''
+      };
+    }
+    
     console.log('ExtraServicesWrapper: Final initialData', {
       permitsCount: data.permits?.rows?.length || 0,
       servicesCount: data.services?.rows?.length || 0,
-      extraDetailsCount: data.extraDetails?.rows?.length || 0
+      extraDetailsCount: data.extraDetails?.rows?.length || 0,
+      accommodationCount: data.accommodation?.rows?.length || 0,
+      transportationCount: data.transportation?.rows?.length || 0
     });
     
     return data;
-  }, [groupData, trekId, permits, services, extraServices]);
+  }, [groupData, trekId, permits, services, extraServices, accommodations, transportations]);
 
   useEffect(() => {
     async function fetchUser() {

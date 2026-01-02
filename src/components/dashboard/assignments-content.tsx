@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/shadcn/button';
 import { Badge } from '@/components/ui/shadcn/badge';
 import type { Guide, Porter, AirportPickUp } from '@/lib/types';
 import { useQuery } from '@tanstack/react-query';
+import { getAccessToken } from '@/lib/auth-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,10 @@ export function AssignmentsContent() {
     const { data, error, isLoading } = useQuery({
         queryKey: ['assignments'],
         queryFn: async () => {
-            const response = await fetch('/api/assignments');
+            const token = getAccessToken();
+            const response = await fetch('/api/assignments', {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch assignments');
             }

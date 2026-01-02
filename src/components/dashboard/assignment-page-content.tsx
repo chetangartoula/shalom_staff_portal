@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/shadcn/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/shadcn/card';
 import { Checkbox } from '@/components/ui/shadcn/checkbox';
@@ -14,14 +14,20 @@ import { Input } from '@/components/ui/shadcn/input';
 import { Badge } from '@/components/ui/shadcn/badge';
 import { Loader2, Save, Search, User, X, Users2, Backpack } from 'lucide-react';
 import type { Guide, Porter, Assignment } from '@/lib/types';
+import { fetchGuides, fetchPorters, fetchAssignedTeam } from '@/lib/api-service';
 import { cn } from '@/lib/utils';
+import { getAccessToken } from '@/lib/auth-utils';
 
 // Add this function to call the assign team API
 const assignTeamToPackage = async (guides: number[], porters: number[], packageId: number) => {
   try {
+    const token = getAccessToken();
     const response = await fetch('/api/assign-team', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify({ guides, porters, package: packageId }),
     });
 
@@ -69,6 +75,40 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     const { toast } = useToast();
     const router = useRouter();
 
+    // Client-side fetch of guides and porters (auth via fetchFromAPI)
+    const { data: guidesQuery } = useQuery({
+        queryKey: ['guides'],
+        queryFn: async () => {
+            const res = await fetchGuides();
+            return res.guides as any as Guide[];
+        },
+        staleTime: 1000 * 60 * 5,
+        retry: 2
+    });
+    const { data: portersQuery } = useQuery({
+        queryKey: ['porters'],
+        queryFn: async () => {
+            const res = await fetchPorters();
+            return res.porters as any as Porter[];
+        },
+        staleTime: 1000 * 60 * 5,
+        retry: 2
+    });
+
+    // If initialAssignments are not provided, try to prefill by fetching assigned team client-side
+    useEffect(() => {
+        if (!initialAssignments && report?.groupId) {
+            fetchAssignedTeam(parseInt(report.groupId, 10))
+                .then((assigned) => {
+                    if (assigned && assigned.id !== 0) {
+                        setSelectedGuideIds(assigned.guides.map((id: number) => id.toString()));
+                        setSelectedPorterIds(assigned.porters.map((id: number) => id.toString()));
+                    }
+                })
+                .catch(() => {/* ignore; user can select manually */});
+        }
+    }, [initialAssignments, report?.groupId]);
+
     // Show a message when no existing assignment is found
     useEffect(() => {
         if (initialAssignments === null) {
@@ -94,17 +134,20 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
     const isGuideAssigned = (guideId: string) => selectedGuideIds.includes(guideId);
     const isPorterAssigned = (porterId: string) => selectedPorterIds.includes(porterId);
 
+    const effectiveGuides = (guidesQuery && guidesQuery.length > 0) ? guidesQuery : allGuides;
+    const effectivePorters = (portersQuery && portersQuery.length > 0) ? portersQuery : allPorters;
+
     const availableGuides = useMemo(() => {
-        return allGuides.filter(guide => 
+        return effectiveGuides.filter(guide => 
             guide.status.toLowerCase() === 'available' || isGuideAssigned(guide.id)
         );
-    }, [allGuides, selectedGuideIds]);
+    }, [effectiveGuides, selectedGuideIds]);
 
     const availablePorters = useMemo(() => {
-        return allPorters.filter(porter => 
+        return effectivePorters.filter(porter => 
             porter.status.toLowerCase() === 'available' || isPorterAssigned(porter.id)
         );
-    }, [allPorters, selectedPorterIds]);
+    }, [effectivePorters, selectedPorterIds]);
 
     const filteredGuides = useMemo(() => {
         return availableGuides.filter(guide =>
@@ -118,8 +161,8 @@ export function AssignmentPageContent({ report, allGuides, allPorters, initialAs
         );
     }, [availablePorters, porterSearch]);
     
-    const selectedGuides = useMemo(() => allGuides.filter(g => selectedGuideIds.includes(g.id)), [allGuides, selectedGuideIds]);
-    const selectedPorters = useMemo(() => allPorters.filter(p => selectedPorterIds.includes(p.id)), [allPorters, selectedPorterIds]);
+    const selectedGuides = useMemo(() => effectiveGuides.filter(g => selectedGuideIds.includes(g.id)), [effectiveGuides, selectedGuideIds]);
+    const selectedPorters = useMemo(() => effectivePorters.filter(p => selectedPorterIds.includes(p.id)), [effectivePorters, selectedPorterIds]);
 
     const handleSave = async () => {
         setIsSaving(true);
