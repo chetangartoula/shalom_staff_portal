@@ -13,6 +13,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { logoUrl } from '@/components/logo';
 import { TransactionForm } from './transaction-form';
+import { getAccessToken } from '@/lib/auth-utils';
 import { handleExportPDF } from '@/lib/export';
 import Link from 'next/link';
 import {
@@ -58,7 +59,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: reportData, isLoading: isLoadingReport, error: reportError } = useQuery<Report, Error>({
         queryKey: ['report', initialReport.groupId],
         queryFn: async () => {
-            const response = await fetch(`/api/reports/${initialReport.groupId}`);
+            const token = getAccessToken();
+            const response = await fetch(`/api/reports/${initialReport.groupId}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch report');
             }
@@ -73,7 +77,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: paymentDetailData, isLoading: isLoadingPaymentDetails } = useQuery<PaymentDetailResponse, Error>({
         queryKey: ['paymentDetails', initialReport.groupId],
         queryFn: async () => {
-            const response = await fetch(`/api/payment-details/${initialReport.groupId}`);
+            const token = getAccessToken();
+            const response = await fetch(`/api/payment-details/${initialReport.groupId}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch payment details');
             }
@@ -86,7 +93,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: transactionData, isLoading: isLoadingTransactions, error: transactionError } = useQuery<{ transactions: Transaction[] }, Error>({
         queryKey: ['transactions', initialReport.groupId],
         queryFn: async () => {
-            const response = await fetch(`/api/transactions/${initialReport.groupId}`);
+            const token = getAccessToken();
+            const response = await fetch(`/api/transactions/${initialReport.groupId}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch transactions');
             }
@@ -100,7 +110,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: allReportsData } = useQuery<{ reports: Report[] }, Error>({
         queryKey: ['allReports'],
         queryFn: async () => {
-            const response = await fetch('/api/reports?limit=1000');
+            const token = getAccessToken();
+            const response = await fetch('/api/reports?limit=1000', {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch all reports');
             }
@@ -113,7 +126,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: allTransactionsData } = useQuery<{ transactions: Transaction[] }, Error>({
         queryKey: ['allTransactions'],
         queryFn: async () => {
-            const response = await fetch('/api/transactions/all?all=true');
+            const token = getAccessToken();
+            const response = await fetch('/api/transactions/all?all=true', {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch all transactions');
             }
@@ -126,7 +142,10 @@ export function PaymentPageContent({ initialReport }: PaymentPageContentProps) {
     const { data: extraInvoices, isLoading: isLoadingExtraInvoices } = useQuery<Report[], Error>({
         queryKey: ['extraInvoices', initialReport.groupId],
         queryFn: async () => {
-            const response = await fetch(`/api/extra-invoices/${initialReport.groupId}`);
+            const token = getAccessToken();
+            const response = await fetch(`/api/extra-invoices/${initialReport.groupId}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!response.ok) {
                 throw new Error('Failed to fetch extra invoices');
             }

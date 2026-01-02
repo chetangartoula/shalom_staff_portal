@@ -12,7 +12,16 @@ export async function GET(
     try {
       const paymentDetails = await fetchPaymentDetails(groupId);
       return NextResponse.json(paymentDetails);
-    } catch (apiError) {
+    } catch (apiError: any) {
+      // Check if the error is related to session expiration
+      if (apiError.message && (apiError.message.includes('Session expired') || apiError.message.includes('Authentication'))) {
+        console.error('Authentication error in payment details API:', apiError.message);
+        return NextResponse.json(
+          { message: 'Authentication required', error: apiError.message },
+          { status: 401 }
+        );
+      }
+      
       console.error('Error fetching payment details from API:', apiError);
       return NextResponse.json({ message: 'Failed to fetch payment details from API' }, { status: 500 });
     }

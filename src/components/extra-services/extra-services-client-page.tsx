@@ -4,17 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, PlusSquare, Check, Copy, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/shadcn/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/shadcn/dialog";
-import { Input } from "@/components/ui/shadcn/input";
-import { Label } from "@/components/ui/shadcn/label";
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -23,21 +13,26 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/shadcn/breadcrumb";
-import type { CostRow, SectionState } from "@/lib/types";
+import type { CostRow, SectionState, Trek } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { handleExportPDF, handleExportExcel } from "@/lib/export";
 import { CostTable } from "@/components/dashboard/cost-table";
 import { FinalStep } from "@/components/steps/final-step";
+import { GroupDetailsStep } from "@/components/steps/group-details-step";
+import { SelectTrekStep } from "@/components/steps/select-trek-step";
 import type { User } from '@/lib/auth';
 import { postExtraInvoice } from '@/lib/api-service';
+import { usePermits } from '@/hooks/use-permits';
+import { useServices } from '@/hooks/use-services';
+import { useAllExtraServices } from '@/hooks/use-all-extra-services';
+import { useAllAccommodations } from '@/hooks/use-all-accommodations';
+import { useAllTransportations } from '@/hooks/use-all-transportations';
+import { useTrips } from '@/hooks/use-trips';
 
-// Function to calculate extra service total based on the boolean flags
 const calculateExtraServiceTotal = (extraService: any, no: number, times: number) => {
   const rate = Number(extraService.rate) || 0;
   
-  // Apply calculation based on boolean flags
   if (extraService.one_time) {
-    // If one_time is true, calculate as rate (single occurrence regardless of other factors)
     return rate;
   } else if (extraService.per_person && extraService.per_day) {
     // If both per_person and per_day are true, calculate as rate * no * times
@@ -75,6 +70,8 @@ const calculateRowQuantity = (item: any, groupSize: number): number => {
 
 type ReportState = {
   groupId: string;
+  trekId: string | null;
+  trekName: string;
   groupName: string;
   groupSize: number;
   startDate: Date | undefined;
@@ -100,12 +97,28 @@ const createInitialSectionState = (id: string, name: string): SectionState => ({
   discountRemarks: '',
 });
 
+// Helper functions for group name generation
+const getTrekShortName = (name: string): string => {
+  return name
+    .split(' ')
+    .filter(word => word.length > 0)
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+};
+
+const getCurrentTimestamp = (): string => {
+  return Date.now().toString();
+};
+
 const createInitialReportState = (groupId?: string): ReportState => ({
   groupId: groupId || crypto.randomUUID(),
+  trekId: null,
+  trekName: '',
   groupName: 'Extra Services',
   groupSize: 1,
   startDate: new Date(),
-  permits: createInitialSectionState('permits', 'Permits & Food'),
+  permits: createInitialSectionState('permits', 'Permits & Documents'),
   services: createInitialSectionState('services', 'Services'),
   accommodation: createInitialSectionState('accommodation', 'Accommodation'),
   transportation: createInitialSectionState('transportation', 'Transportation'),
@@ -139,10 +152,41 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   const [savedReportUrl, setSavedReportUrl] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
 
-  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [editingSection, setEditingSection] = useState<any | null>(null);
-  const [newSectionName, setNewSectionName] = useState("");
+
   const [includeServiceChargeInPdf, setIncludeServiceChargeInPdf] = useState(true);
+
+  // Fetch trips data to get trek information
+  const { data: trips, isLoading: isLoadingTrips } = useTrips();
+  
+  // Fetch data for each section to populate the add dialogs
+  const { data: allPermits, isLoading: isLoadingAllPermits } = usePermits(report.trekId || '');
+  const { data: allServices, isLoading: isLoadingAllServices } = useServices(report.trekId || '');
+  const { data: allExtraServices, isLoading: isLoadingAllExtraServices } = useAllExtraServices(report.trekId || '');
+  const { data: allAccommodations, isLoading: isLoadingAllAccommodations } = useAllAccommodations(report.trekId || '');
+  const { data: allTransportations, isLoading: isLoadingAllTransportations } = useAllTransportations(report.trekId || '');
+
+  // Handle trek selection
+  const handleTrekSelect = (trekId: string) => {
+    const selectedTrek = trips?.find(t => t.id === trekId);
+    if (selectedTrek) {
+      setReport(prev => {
+        // Auto-generate group name based on trek name
+        const shortName = getTrekShortName(selectedTrek.name);
+        const timestamp = getCurrentTimestamp();
+        const defaultGroupName = `${shortName}-${timestamp}`;
+        
+        return {
+          ...prev,
+          trekId: selectedTrek.id,
+          trekName: selectedTrek.name,
+          groupName: defaultGroupName,
+        };
+      });
+      
+      // Move to the next step (Group Details)
+      setCurrentStep(1);
+    }
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -158,6 +202,13 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         const fullReport = {
           ...createInitialReportState(initialData.groupId),
           ...initialData,
+          trekId: initialData.trekId || null,
+          trekName: initialData.trekName || '',
+          // Auto-generate group name if not provided and trek name is available
+          groupName: initialData.groupName || 
+            (initialData.trekName ? 
+              `${getTrekShortName(initialData.trekName)}-${getCurrentTimestamp()}` : 
+              'Extra Services'),
           startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
           // Use the permits and services data from initialData with unique row IDs and proper calculations
           permits: initialData.permits ? {
@@ -182,9 +233,14 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
                 times: calculatedTimes,
                 total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
                 description: row.description || (row as any).name || '',
+                // Ensure boolean flags and max_capacity are properly handled
+                per_person: row.per_person,
+                per_day: row.per_day,
+                one_time: row.one_time,
+                max_capacity: row.max_capacity,
               };
             })
-          } : createInitialSectionState('permits', 'Permits & Food'),
+          } : createInitialSectionState('permits', 'Permits & Documents'),
           services: initialData.services ? {
             ...initialData.services,
             rows: initialData.services.rows.map((row: any) => {
@@ -207,6 +263,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
                 times: calculatedTimes,
                 total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
                 description: row.description || (row as any).name || '',
+                // Ensure boolean flags and max_capacity are properly handled
+                per_person: row.per_person,
+                per_day: row.per_day,
+                one_time: row.one_time,
+                max_capacity: row.max_capacity,
               };
             })
           } : createInitialSectionState('services', 'Services'),
@@ -232,6 +293,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
                 times: calculatedTimes,
                 total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
                 description: row.description || (row as any).name || '',
+                // Ensure boolean flags and max_capacity are properly handled
+                per_person: row.per_person,
+                per_day: row.per_day,
+                one_time: row.one_time,
+                max_capacity: row.max_capacity,
               };
             })
           } : createInitialSectionState('accommodation', 'Accommodation'),
@@ -257,22 +323,24 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
                 times: calculatedTimes,
                 total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
                 description: row.description || (row as any).name || '',
+                // Ensure boolean flags and max_capacity are properly handled
+                per_person: row.per_person,
+                per_day: row.per_day,
+                one_time: row.one_time,
+                max_capacity: row.max_capacity,
               };
             })
           } : createInitialSectionState('transportation', 'Transportation'),
           extraDetails: initialData.extraDetails ? {
             ...initialData.extraDetails,
             rows: initialData.extraDetails.rows.map((row: any) => {
-              // Calculate no based on max_capacity and per_person
               const calculatedNo = calculateRowQuantity(row, initialData.groupSize || 1);
-              // Calculate times based on per_day and one_time flags
               let calculatedTimes = 1;
               if (row.per_day) {
                 calculatedTimes = initialData.package?.times || 1;
               } else if (row.one_time) {
                 calculatedTimes = 1;
               } else {
-                // For items that are neither per_day nor one_time, use the original times value
                 calculatedTimes = row.times || 1;
               }
               return {
@@ -282,24 +350,22 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
                 times: calculatedTimes,
                 total: calculateExtraServiceTotal(row, calculatedNo, calculatedTimes),
                 description: row.description || (row as any).name || '',
+                per_person: row.per_person,
+                per_day: row.per_day,
+                one_time: row.one_time,
+                max_capacity: row.max_capacity,
               };
             })
           } : createInitialSectionState('extraDetails', 'Extra Details'),
         };
 
-        // If we already have a groupId and it matches, merge the data instead of replacing
         if (prev.groupId === initialData.groupId) {
           const updatedReport = {
             ...prev,
-            // Update permits if they're provided in initialData
             permits: initialData.permits || prev.permits,
-            // Update services if they're provided in initialData
             services: initialData.services || prev.services,
-            // Update accommodation if they're provided in initialData
             accommodation: initialData.accommodation || prev.accommodation,
-            // Update transportation if they're provided in initialData
             transportation: initialData.transportation || prev.transportation,
-            // Update extraDetails if they're provided in initialData
             extraDetails: initialData.extraDetails || prev.extraDetails,
           };
 
@@ -314,6 +380,13 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
         console.log('ExtraServicesClientPage: Using full report for new group');
         return fullReport;
       });
+      
+      
+      if (initialData.trekId) {
+        setCurrentStep(1);
+      } else {
+        setCurrentStep(0);
+      }
     }
   }, [initialData]);
 
@@ -443,7 +516,28 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   };
 
   const handleDetailChange = (field: keyof ReportState, value: any) => {
-    setReport(prev => ({ ...prev, [field]: value }));
+    setReport(prev => {
+      let updatedReport = { ...prev, [field]: value };
+      
+      // If trekId or trekName is being updated, auto-generate the group name
+      if (field === 'trekId' && value) {
+        // Find the trek name from the available data
+        const trekName = initialData?.trekName || '';
+        if (trekName && (!prev.groupName || prev.groupName === 'Extra Services')) { // Only auto-generate if groupName is default or not set
+          const shortName = getTrekShortName(trekName);
+          const timestamp = getCurrentTimestamp();
+          updatedReport = { ...updatedReport, groupName: `${shortName}-${timestamp}` };
+        }
+      } else if (field === 'trekName' && value) {
+        if (!prev.groupName || prev.groupName === 'Extra Services') { // Only auto-generate if groupName is default or not set
+          const shortName = getTrekShortName(value);
+          const timestamp = getCurrentTimestamp();
+          updatedReport = { ...updatedReport, groupName: `${shortName}-${timestamp}` };
+        }
+      }
+      
+      return updatedReport;
+    });
   };
 
   const handleSectionUpdate = (sectionId: string, updater: (s: SectionState) => SectionState) => {
@@ -493,7 +587,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           
           // Calculate total based on properties if it has boolean flags
           if (field === 'no' || field === 'rate' || field === 'times' || 
-              field === 'per_person' || field === 'per_day' || field === 'one_time') {
+              field === 'per_person' || field === 'per_day' || field === 'one_time' || field === 'max_capacity') {
             if (updatedRow.per_person !== undefined && updatedRow.per_day !== undefined && updatedRow.one_time !== undefined) {
               updatedRow.total = calculateExtraServiceTotal(updatedRow, newNo || 0, newTimes || 0);
             } else {
@@ -542,7 +636,11 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       rate: 0, 
       no: isPax ? groupSize : 1, 
       times: 1, // Default to 1, will be recalculated based on flags
-      total: 0 
+      total: 0,
+      per_person: false, // Default to false
+      per_day: false,    // Default to false
+      one_time: true,    // Default to true
+      max_capacity: undefined // Default to undefined
     };
     handleSectionUpdate(sectionId, (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   };
@@ -555,43 +653,105 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
     setReport(prev => ({ ...prev, customSections: prev.customSections.filter(s => s.id !== sectionId) }));
   };
 
-  const handleOpenAddSectionModal = () => {
-    setEditingSection(null);
-    setNewSectionName("");
-    setIsSectionModalOpen(true);
+  // Add functions for each section type
+  const handleAddPermit = (item: any) => {
+    const newRow: CostRow = {
+      id: crypto.randomUUID(),
+      description: item.name || item.description || 'New Permit',
+      rate: item.rate || 0,
+      no: item.per_person ? report.groupSize : 1,
+      times: item.per_day ? (initialData?.package?.times || 1) : 1,
+      total: item.rate || 0,
+      per_person: item.per_person,
+      per_day: item.per_day,
+      one_time: item.one_time,
+      is_editable: item.is_editable !== undefined ? item.is_editable : true,
+      max_capacity: item.max_capacity,
+      from_place: item.from_place,
+      to_place: item.to_place
+    };
+    handleSectionUpdate('permits', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   };
 
-  const handleOpenEditSectionModal = (section: any) => {
-    setEditingSection(section);
-    setNewSectionName(section.name);
-    setIsSectionModalOpen(true);
+  const handleAddService = (item: any) => {
+    const newRow: CostRow = {
+      id: crypto.randomUUID(),
+      description: item.name || item.description || 'New Service',
+      rate: item.rate || 0,
+      no: item.per_person ? report.groupSize : 1,
+      times: item.per_day ? (initialData?.package?.times || 1) : 1,
+      total: item.rate || 0,
+      per_person: item.per_person,
+      per_day: item.per_day,
+      one_time: item.one_time,
+      is_editable: item.is_editable !== undefined ? item.is_editable : true,
+      max_capacity: item.max_capacity,
+      from_place: item.from_place,
+      to_place: item.to_place
+    };
+    handleSectionUpdate('services', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   };
 
-  const handleSaveSection = () => {
-    if (!newSectionName.trim()) {
-      toast({ variant: "destructive", title: "Error", description: "Section name cannot be empty." });
-      return;
-    }
-
-    if (editingSection) {
-      setReport(prev => ({ ...prev, customSections: prev.customSections.map(s => s.id === editingSection.id ? { ...s, name: newSectionName } : s) }));
-    } else {
-      const newSectionId = crypto.randomUUID();
-      const newSection: SectionState = {
-        id: newSectionId,
-        name: newSectionName,
-        rows: [],
-        discountType: 'amount',
-        discountValue: 0,
-        discountRemarks: ''
-      };
-      setReport(prev => ({ ...prev, customSections: [...prev.customSections, newSection] }));
-    }
-
-    setIsSectionModalOpen(false);
-    setEditingSection(null);
-    setNewSectionName("");
+  const handleAddAccommodation = (item: any) => {
+    const newRow: CostRow = {
+      id: crypto.randomUUID(),
+      description: item.name || item.description || 'New Accommodation',
+      rate: item.rate || 0,
+      no: item.per_person ? report.groupSize : 1,
+      times: item.per_day ? (initialData?.package?.times || 1) : 1,
+      total: item.rate || 0,
+      per_person: item.per_person,
+      per_day: item.per_day,
+      one_time: item.one_time,
+      is_editable: item.is_editable !== undefined ? item.is_editable : true,
+      max_capacity: item.max_capacity,
+      from_place: item.from_place,
+      to_place: item.to_place
+    };
+    handleSectionUpdate('accommodation', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
   };
+
+  const handleAddTransportation = (item: any) => {
+    const newRow: CostRow = {
+      id: crypto.randomUUID(),
+      description: item.name || item.description || 'New Transportation',
+      rate: item.rate || 0,
+      no: item.per_person ? report.groupSize : 1,
+      times: item.per_day ? (initialData?.package?.times || 1) : 1,
+      total: item.rate || 0,
+      per_person: item.per_person,
+      per_day: item.per_day,
+      one_time: item.one_time,
+      is_editable: item.is_editable !== undefined ? item.is_editable : true,
+      max_capacity: item.max_capacity,
+      from_place: item.from_place,
+      to_place: item.to_place
+    };
+    handleSectionUpdate('transportation', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
+  };
+
+  const handleAddExtraService = (item: any) => {
+    // For extra services, the description might be combined from service_name and param name
+    const combinedDescription = item.description || `${item.service_name || item.name || 'New Extra Service'} - ${item.name || item.description || 'Item'}`;
+    const newRow: CostRow = {
+      id: crypto.randomUUID(),
+      description: combinedDescription,
+      rate: item.rate || 0,
+      no: item.per_person ? report.groupSize : 1,
+      times: item.per_day ? (initialData?.package?.times || 1) : 1,
+      total: item.rate || 0,
+      per_person: item.per_person,
+      per_day: item.per_day,
+      one_time: item.one_time,
+      is_editable: item.is_editable !== undefined ? item.is_editable : true,
+      max_capacity: item.max_capacity,
+      from_place: item.from_place,
+      to_place: item.to_place
+    };
+    handleSectionUpdate('extraDetails', (prev) => ({ ...prev, rows: [...prev.rows, newRow] }));
+  };
+
+
 
   const onExportPDF = async () => {
     try {
@@ -808,6 +968,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   };
 
   const allCostingStepsMetadata = [
+    { id: 'group-details', name: 'Group Details' },
     { ...report.permits },
     { ...report.services },
     { ...report.accommodation },
@@ -819,13 +980,31 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
   const renderStepContent = () => {
     if (isLoading) return <LoadingStep />;
 
+    // If no trek is selected yet, show the trek selection step
+    if (currentStep === 0 && !report.trekId) {
+      return <SelectTrekStep treks={trips || []} selectedTrekId={report.trekId} onSelectTrek={handleTrekSelect} />;
+    }
+
     const stepIndex = currentStep;
     if (stepIndex < 0) return <LoadingStep />;
 
-    const activeStepData = allCostingStepsMetadata[stepIndex];
+    // If a trek is selected, we need to adjust the step index by -1 since the first step is now trek selection
+    const adjustedStepIndex = report.trekId ? stepIndex - 1 : stepIndex;
+    const activeStepData = allCostingStepsMetadata[adjustedStepIndex];
     if (!activeStepData) return null;
 
-    // Group details section removed for Extra Services page
+    if (activeStepData.id === 'group-details') {
+      return <GroupDetailsStep
+        groupName={report.groupName}
+        onGroupNameChange={(name) => handleDetailChange('groupName', name)}
+        groupSize={report.groupSize}
+        onGroupSizeChange={handleGroupSizeChange}
+        startDate={report.startDate}
+        onStartDateChange={(date) => handleDetailChange('startDate', date)}
+        clientCommunicationMethod={report.clientCommunicationMethod}
+        onClientCommunicationMethodChange={(method) => handleDetailChange('clientCommunicationMethod', method)}
+      />;
+    }
 
     if (activeStepData.id === 'final') {
       return <FinalStep
@@ -859,7 +1038,7 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
       />;
     }
 
-    if (activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation' || report.customSections.some(cs => cs.id === activeStepData.id)) {
+    if (activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation' || activeStepData.id === 'extraDetails' || report.customSections.some(cs => cs.id === activeStepData.id)) {
       return (
         <CostTable
           section={report[activeStepData.id as keyof ReportState] as SectionState || report.customSections.find(cs => cs.id === activeStepData.id)!}
@@ -873,9 +1052,23 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
           onDiscountRemarksChange={handleDiscountRemarksChange}
           onAddRow={addRow}
           onRemoveRow={removeRow}
-          onEditSection={handleOpenEditSectionModal}
           onRemoveSection={removeSection}
-          hideAddRow={activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation'}
+          hideAddRow={activeStepData.id === 'permits' || activeStepData.id === 'services' || activeStepData.id === 'accommodation' || activeStepData.id === 'transportation' || activeStepData.id === 'extraDetails'}
+          onAddPermit={activeStepData.id === 'permits' ? (item) => handleAddPermit(item) : undefined}
+          onAddService={activeStepData.id === 'services' ? (item) => handleAddService(item) : undefined}
+          onAddAccommodation={activeStepData.id === 'accommodation' ? (item) => handleAddAccommodation(item) : undefined}
+          onAddTransportation={activeStepData.id === 'transportation' ? (item) => handleAddTransportation(item) : undefined}
+          onAddExtraService={activeStepData.id === 'extraDetails' ? (item) => handleAddExtraService(item) : undefined}
+          allPermits={activeStepData.id === 'permits' ? allPermits || [] : undefined}
+          allServices={activeStepData.id === 'services' ? allServices || [] : undefined}
+          allAccommodations={activeStepData.id === 'accommodation' ? allAccommodations || [] : undefined}
+          allTransportations={activeStepData.id === 'transportation' ? allTransportations || [] : undefined}
+          allExtraServices={activeStepData.id === 'extraDetails' ? allExtraServices || [] : undefined}
+          isLoadingAllPermits={activeStepData.id === 'permits' ? isLoadingAllPermits : false}
+          isLoadingAllServices={activeStepData.id === 'services' ? isLoadingAllServices : false}
+          isLoadingAllAccommodations={activeStepData.id === 'accommodation' ? isLoadingAllAccommodations : false}
+          isLoadingAllTransportations={activeStepData.id === 'transportation' ? isLoadingAllTransportations : false}
+          isLoadingAllExtraServices={activeStepData.id === 'extraDetails' ? isLoadingAllExtraServices : false}
         />
       );
     }
@@ -883,15 +1076,22 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
     return <LoadingStep />;
   };
 
-  const breadcrumbItems = [
-    ...allCostingStepsMetadata.map((s, i) => ({
-      label: s.name,
-      isCurrent: currentStep === i,
-      stepIndex: i,
-    }))
-  ];
+  const breadcrumbItems = (
+    // If no trek is selected yet, show only the trek selection step
+    !report.trekId ? [
+      { label: 'Select Trek', isCurrent: currentStep === 0, stepIndex: 0 }
+    ] : [
+      // Otherwise show the trek name as the first "step" and then all other steps
+      { label: report.trekName, isCurrent: false, stepIndex: -1 }, // Trek name is not clickable
+      ...allCostingStepsMetadata.map((s, i) => ({
+        label: s.name,
+        isCurrent: currentStep === i + 1, // Add 1 to account for trek selection step
+        stepIndex: i + 1, // Add 1 to account for trek selection step
+      }))
+    ]
+  );
 
-  const finalStepIndex = breadcrumbItems.length - 1;
+  const finalStepIndex = report.trekId ? allCostingStepsMetadata.length : 0; // When trek is selected, the final step index is the length of steps (since steps start from index 1 after trek selection)
 
   return (
     <div className="container py-6">
@@ -921,33 +1121,9 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{breadcrumbItems.find(b => b.isCurrent)?.label || 'Extra Services'}</h1>
               <p className="text-muted-foreground text-sm md:text-base">
-                Creating invoice for extra services
+                {report.trekId ? `For Trek: ${report.trekName}` : 'Select a trek to begin'}
               </p>
             </div>
-            <Dialog open={isSectionModalOpen} onOpenChange={setIsSectionModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-dashed self-start sm:self-center" onClick={handleOpenAddSectionModal}>
-                  <PlusSquare className="mr-2 h-4 w-4" /> Add Section
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{editingSection ? 'Edit Section' : 'Add New Section'}</DialogTitle>
-                  <DialogDescription>
-                    Create a new custom section to add more items to your cost calculation.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="section-name" className="text-right">Name</Label>
-                    <Input id="section-name" value={newSectionName} onChange={e => setNewSectionName(e.target.value)} className="col-span-3" />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleSaveSection}>Save Section</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
         </header>
       )}
@@ -956,7 +1132,19 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
 
       {currentStep >= 0 && (
         <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <Button onClick={() => setCurrentStep(prev => prev - 1)} variant="outline" disabled={currentStep === 0}>
+          <Button 
+            onClick={() => {
+              // If we're on the Group Details step (1) and we have a trek selected, go back to trek selection (0)
+              // Otherwise, go back normally
+              if (currentStep === 1 && report.trekId) {
+                setCurrentStep(0); // Go back to trek selection
+              } else if (currentStep > 0) {
+                setCurrentStep(prev => prev - 1);
+              }
+            }} 
+            variant="outline" 
+            disabled={currentStep === 0}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" /> Previous
           </Button>
 
@@ -975,10 +1163,31 @@ export function ExtraServicesClientPage({ user, initialData, groupId: providedGr
             <div className="flex gap-2 w-full sm:w-auto">
               {currentStep === finalStepIndex ? (
                 <Button onClick={handleFinish} disabled={isSaving} className="flex-1">
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Finish'}
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Finish
+                    </>
+                  )}
                 </Button>
               ) : (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="flex-1">
+                <Button 
+                  onClick={() => {
+                    // If we're on the trek selection step and no trek is selected, don't proceed
+                    if (currentStep === 0 && !report.trekId) {
+                      // Trek selection automatically moves to next step when a trek is selected
+                      // So this button should not do anything in this case
+                      return;
+                    }
+                    setCurrentStep(prev => prev + 1);
+                  }} 
+                  disabled={currentStep === 0 && !report.trekId} 
+                  className="flex-1"
+                >
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}

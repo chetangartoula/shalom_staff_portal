@@ -58,8 +58,29 @@ export interface RefreshTokenResponse {
 // Base URL for the external API - use environment variable with fallback
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
 
+// A distinct error type so callers can handle session expiry explicitly
+export class SessionExpiredError extends Error {
+  constructor(message: string = 'Session expired. Please log in again.') {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
+// Server-side helpers for SSR where we can supply a token explicitly
+export async function serverFetchGuides(token: string): Promise<{ guides: APIGuide[] }> {
+  return await serverFetchFromAPI<{ guides: APIGuide[] }>(`/staff/guides/`, token);
+}
+
+export async function serverFetchPorters(token: string): Promise<{ porters: APIPorter[] }> {
+  return await serverFetchFromAPI<{ porters: APIPorter[] }>(`/staff/porters/`, token);
+}
+
+export async function serverFetchAssignedTeam(packageId: number, token: string): Promise<APIAssignTeamResponse> {
+  return await serverFetchFromAPI<APIAssignTeamResponse>(`/staff/assign-teams/${packageId}/`, token);
+}
+
 // Centralized session-expired handler: clears tokens and redirects to login.
-// Returns a never-resolving promise to prevent noisy errors after redirect.
+// Returns a never-resolving promise on the client to prevent noisy errors after redirect.
 function handleSessionExpired<T>(): Promise<T> {
   clearAuthTokens();
   if (typeof window !== 'undefined') {
@@ -69,7 +90,7 @@ function handleSessionExpired<T>(): Promise<T> {
     return new Promise<T>(() => {});
   }
   // On the server, propagate an explicit error so SSR can handle it
-  return Promise.reject(new Error('Session expired. Please log in again.'));
+  return Promise.reject(new SessionExpiredError());
 }
 
 // Helper function to calculate row total based on boolean flags
@@ -121,14 +142,20 @@ export async function fetchFromAPI<T>(endpoint: string, options: RequestInit = {
     let isRefreshed = false;
 
     if (isServer) {
-      // Server-side: For API routes, we need to get the token from the request context
-      // Since fetchFromAPI might be called from different contexts, we'll handle this differently
-      // For now, we'll skip the server auth in fetchFromAPI and let API routes handle auth separately
-      token = null; // We'll handle server auth in the API routes themselves
-      
-      // For server-side requests that need auth, we expect the token to be passed in
-      // This approach is mainly for direct server-side API calls
-      // For API routes, we'll handle auth separately
+      // Server-side: try to read Authorization header from the current Next.js request context
+      try {
+        const nextHeadersModule = await import('next/headers');
+        const reqHeaders = await nextHeadersModule.headers();
+        const authHeader = reqHeaders.get('authorization') || reqHeaders.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          token = authHeader.substring(7).trim();
+        } else {
+          token = null;
+        }
+      } catch {
+        // If next/headers is unavailable (e.g., non-Next server context), proceed without token
+        token = null;
+      }
     } else {
       // Client-side: use localStorage-based authentication
       if (isAccessTokenExpired()) {
@@ -217,13 +244,13 @@ export async function fetchFromAPI<T>(endpoint: string, options: RequestInit = {
         throw new Error('Unable to connect to the server. Please check your internet connection.');
       }
       
-      // Re-throw the original error if it's already a meaningful message
-      if (error.message.includes('Session expired') || error.message.includes('Authentication')) {
+      // Re-throw the original error if it's already meaningful (from handleResponse)
+      if (error.message) {
         throw error;
       }
       
-      // For other errors, provide a generic message
-      throw new Error('An error occurred while processing your request. Please try again.');
+      // Fallback generic message
+      throw new Error('An unexpected error occurred while processing your request.');
     }
     
     // Fallback for non-Error throws
@@ -379,9 +406,22 @@ export async function assignTeam(guides: number[], porters: number[], packageId:
     };
 
     console.log('Sending assign team payload:', JSON.stringify(payload, null, 2));
-        
-    const token = getAccessToken();
-        
+
+    // Determine token depending on environment (server vs client)
+    let token: string | null = null;
+    if (typeof window === 'undefined') {
+      try {
+        const nextHeadersModule = await import('next/headers');
+        const reqHeaders = await nextHeadersModule.headers();
+        const authHeader = reqHeaders.get('authorization') || reqHeaders.get('Authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          token = authHeader.substring(7).trim();
+        }
+      } catch {}
+    } else {
+      token = getAccessToken();
+    }
+
     const headers: { [key: string]: string } = {
       'Content-Type': 'application/json',
     };
@@ -595,6 +635,11 @@ async function serverRefreshToken(refreshToken: string): Promise<RefreshTokenRes
 
   const data = await response.json();
   return data;
+}
+
+// Server-side helper to fetch payment details with a provided access token
+export async function serverFetchPaymentDetails(groupId: string, token: string): Promise<APIPaymentDetailResponse> {
+  return await serverFetchFromAPI<APIPaymentDetailResponse>(`/staff/payment-detail/${groupId}/`, token);
 }
 
 // Server-side fetch function for API requests with token
