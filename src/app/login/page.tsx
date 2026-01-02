@@ -15,12 +15,15 @@ import { Label } from "@/components/ui/shadcn/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { requestOtp, verifyOtp, storeAuthTokens } from "@/lib/api-service";
 
 export default function LoginPage() {
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
   const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("password");
+  const [password, setPassword] = useState("admin");
   const [otp, setOtp] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
+  const [otpId, setOtpId] = useState<string | null>(null); // For development purposes
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -38,41 +41,69 @@ export default function LoginPage() {
 
     setIsLoading(true);
     
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // Mock credential check
-    if (username === "admin" && password === "password") {
+    try {
+      const response = await requestOtp(username, password);
+      
+      // For development purposes, show the OTP ID
+      if (process.env.NODE_ENV === 'development') {
+        setOtpId(response.otp_id);
         toast({
-            title: "OTP Required",
-            description: "An OTP has been sent to your device.",
+          title: "OTP Request Successful",
+          description: `OTP has been sent. For development: ${response.otp_id}`,
         });
-        setStep("otp");
-    } else {
+      } else {
         toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid username or password.",
+          title: "OTP Sent",
+          description: response.message,
         });
+      }
+      
+      setUserId(response.user_id);
+      setStep("otp");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error instanceof Error ? error.message : "Failed to request OTP",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleOtpSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User ID not found. Please try logging in again.",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (otp === "123456") {
-      // In a real app, you'd finalize the session here.
-      router.push("/");
-    } else {
+    try {
+      const response = await verifyOtp(userId, otp);
+      
+      // Store tokens in localStorage
+      storeAuthTokens(response.access, response.refresh, response.user.id);
+      
+      toast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting to dashboard...",
+      });
+      
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "OTP Verification Failed",
-        description: "The OTP you entered is incorrect.",
+        description: error instanceof Error ? error.message : "Failed to verify OTP",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -146,6 +177,11 @@ export default function LoginPage() {
                     maxLength={6}
                     className="h-10 text-center text-lg tracking-widest"
                   />
+                  {process.env.NODE_ENV === 'development' && otpId && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Development: Use OTP {otpId}
+                    </p>
+                  )}
                 </div>
               </div>
               <Button type="submit" className="mt-6 w-full h-10" disabled={isLoading}>

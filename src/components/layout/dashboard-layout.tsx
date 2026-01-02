@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   ArrowRightLeft,
   BookUser,
@@ -28,6 +28,8 @@ import { cn } from '@/lib/utils';
 import type { User } from "@/lib/auth";
 import { Header } from './header';
 import { Logo } from '../logo';
+import { useEffect } from 'react';
+import { isAuthenticated } from '@/lib/auth-utils';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -81,6 +83,28 @@ const NavItem = ({ href, label, icon: Icon, isExpanded }: { href: string; label:
 
 export function DashboardLayout({ children, user }: DashboardLayoutProps) {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isAuthenticatedState, setIsAuthenticatedState] = useState<boolean | null>(null);
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Check if user is authenticated
+    const authenticated = isAuthenticated();
+    setIsAuthenticatedState(authenticated);
+    
+    if (!authenticated) {
+      router.push('/login');
+    }
+  }, [router]);
+
+  // If not authenticated, don't render the layout
+  if (isAuthenticatedState === false) {
+    return null; // The redirect happens in useEffect
+  }
+  
+  // If we haven't checked auth status yet, don't render anything
+  if (isAuthenticatedState === null) {
+    return null; // Don't render anything during initial check
+  }
 
   return (
     <div className="flex min-h-screen w-full bg-muted/40">

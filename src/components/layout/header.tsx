@@ -24,6 +24,7 @@ import { Logo } from "@/components/logo";
 import type { User } from "@/lib/auth"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { clearAuthTokens } from "@/lib/auth-utils";
 
 interface NavItem {
     href: string;
@@ -69,7 +70,9 @@ export function Header({ user, navItems }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-      // In a real app, this would call an API to invalidate the session
+      // Clear authentication tokens from localStorage
+      clearAuthTokens();
+      // In a real app, this would also call an API to invalidate the session
       router.push('/login');
   };
 

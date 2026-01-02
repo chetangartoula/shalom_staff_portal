@@ -1,7 +1,7 @@
 import { TrekCostingPage } from "@/components/dashboard/trek-costing-page";
 import { ExtraServiceCostingPage } from "@/components/dashboard/extra-service-costing-page";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getTreks } from "@/app/api/data";
 import { getUser } from "@/lib/auth";
 import { fetchGroupAndPackageById } from "@/lib/api-service";
@@ -81,8 +81,14 @@ export default async function EditCostMatrixPage({ params, searchParams }: EditC
                 // Otherwise, fetch as a regular group
                 initialData = await fetchGroupAndPackageById(groupId);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching data for groupId:', groupId, error);
+
+            // If we detect an auth/session problem on the server, redirect to login
+            const msg = typeof error?.message === 'string' ? error.message : '';
+            if (msg.includes('Session expired') || msg.includes('Unauthorized') || msg.includes('Authentication')) {
+                redirect(`/login?session_expired=true&redirect=/cost-matrix/${groupId}${parentId ? `?parentId=${parentId}` : ''}`);
+            }
 
             // If extra invoice fetch fails, try the general endpoint as fallback
             if (isEditingExtraInvoice) {
@@ -94,7 +100,11 @@ export default async function EditCostMatrixPage({ params, searchParams }: EditC
                             initialData.parentGroupId = parentId;
                         }
                     }
-                } catch (fallbackError) {
+                } catch (fallbackError: any) {
+                    const fmsg = typeof fallbackError?.message === 'string' ? fallbackError.message : '';
+                    if (fmsg.includes('Session expired') || fmsg.includes('Unauthorized') || fmsg.includes('Authentication')) {
+                        redirect(`/login?session_expired=true&redirect=/cost-matrix/${groupId}${parentId ? `?parentId=${parentId}` : ''}`);
+                    }
                     console.error('Fallback fetch also failed:', fallbackError);
                 }
             }
@@ -105,6 +115,7 @@ export default async function EditCostMatrixPage({ params, searchParams }: EditC
     const user = await getUser();
 
     if (!initialData) {
+        // If we reach here without data, assume not found only when it's not an auth issue
         notFound();
     }
 

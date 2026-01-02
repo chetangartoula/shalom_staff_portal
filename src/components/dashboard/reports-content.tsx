@@ -101,7 +101,15 @@ export function ReportsContent({ initialData, pageType = 'reports' }: ReportsCon
   const { data, error, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['reports', { page, searchTerm }],
     queryFn: async () => {
-      const response = await fetch(`/api/reports?${queryParams}`);
+      const token = localStorage.getItem('access_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`/api/reports?${queryParams}`, {
+        headers
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
       }

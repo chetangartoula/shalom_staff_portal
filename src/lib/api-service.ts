@@ -27,9 +27,50 @@ import type {
   APITraveler,
   APIDashboardStats
 } from '@/lib/api-types';
+import { getAccessToken, clearAuthTokens, isAccessTokenExpired, getRefreshToken } from '@/lib/auth-utils';
+import { getServerAccessTokenFromRequest, isServerAccessTokenExpired, serverRefreshToken as serverSideRefreshToken } from '@/lib/server-auth-utils';
+
+// Authentication types
+export interface OtpRequestResponse {
+  message: string;
+  user_id: number;
+  otp_id: string; // For development purposes only
+}
+
+export interface OtpVerifyResponse {
+  refresh: string;
+  access: string;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_staff: boolean;
+    is_active: boolean;
+  };
+}
+
+export interface RefreshTokenResponse {
+  access: string;
+}
 
 // Base URL for the external API - use environment variable with fallback
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1`;
+
+// Centralized session-expired handler: clears tokens and redirects to login.
+// Returns a never-resolving promise to prevent noisy errors after redirect.
+function handleSessionExpired<T>(): Promise<T> {
+  clearAuthTokens();
+  if (typeof window !== 'undefined') {
+    const redirectPath = window.location.pathname + window.location.search;
+    window.location.replace(`/login?session_expired=true&redirect=${encodeURIComponent(redirectPath)}`);
+    // Return a promise that never resolves to stop further processing on the page
+    return new Promise<T>(() => {});
+  }
+  // On the server, propagate an explicit error so SSR can handle it
+  return Promise.reject(new Error('Session expired. Please log in again.'));
+}
 
 // Helper function to calculate row total based on boolean flags
 function calculateRowTotal(item: any, no: number, times: number): number {
@@ -65,97 +106,169 @@ function calculateRowQuantity(item: any, groupSize: number): number {
 }
 
 // Generic fetch function with error handling
-export async function fetchFromAPI<T>(endpoint: string): Promise<T> {
+// Generic fetch function with error handling
+// Replace the fetchFromAPI function with this corrected version
+
+export async function fetchFromAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const TIMEOUT_MS = 30000; // 30 seconds timeout
-
-  // Set a timeout to abort the request if it takes too long
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
+    // 1. Determine if we're on the client or server and get appropriate token
+    let token: string | null = null;
+    let isServer = typeof window === 'undefined';
+    let isRefreshed = false;
+
+    if (isServer) {
+      // Server-side: For API routes, we need to get the token from the request context
+      // Since fetchFromAPI might be called from different contexts, we'll handle this differently
+      // For now, we'll skip the server auth in fetchFromAPI and let API routes handle auth separately
+      token = null; // We'll handle server auth in the API routes themselves
+      
+      // For server-side requests that need auth, we expect the token to be passed in
+      // This approach is mainly for direct server-side API calls
+      // For API routes, we'll handle auth separately
+    } else {
+      // Client-side: use localStorage-based authentication
+      if (isAccessTokenExpired()) {
+        try {
+          const refreshResult = await refreshToken();
+          if (refreshResult) {
+            token = getAccessToken();
+            isRefreshed = true;
+          } else {
+            // No refresh token available, redirect to login
+            return handleSessionExpired<T>();
+          }
+        } catch (error) {
+          return handleSessionExpired<T>();
+        }
+      } else {
+        token = getAccessToken();
+      }
+    }
+
+    // 2. Set up headers
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.set('Accept', 'application/json');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    // 3. Make the request
     const response = await fetch(`${BASE_URL}${endpoint}`, {
+      ...options,
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      // credentials: 'include',
+      headers,
     });
 
-    // Clear the timeout as we got a response
-    clearTimeout(timeoutId);
+    // 4. Handle 401 Unauthorized responses
+    if (response.status === 401) {
+      // Check if we're on server or client for refresh token check
+      let refreshTokenAvailable = isServer ? null : getRefreshToken(); // Server-side refresh token handling is different
+      
+      // If we already tried to refresh, or there's no refresh token
+      if (isRefreshed || !refreshTokenAvailable) {
+        return handleSessionExpired<T>();
+      }
 
-    if (!response.ok) {
-      let errorMessage = `API request failed with status ${response.status} for ${endpoint}`;
-
-      // Try to get more detailed error message from response
+      // Try to refresh the token and retry once
       try {
-        const errorData = await response.json();
-        if (errorData && errorData.message) {
-          errorMessage = `${response.status}: ${errorData.message}`;
+        if (isServer) {
+          // Server-side token refresh is handled differently in API routes
+          // For now, we'll return session expired since we can't refresh server-side tokens here
+          return handleSessionExpired<T>();
+        } else {
+          const refreshResult = await refreshToken();
+          if (refreshResult) {
+            token = getAccessToken();
+            if (token) {
+              headers.set('Authorization', `Bearer ${token}`);
+              const retryResponse = await fetch(`${BASE_URL}${endpoint}`, {
+                ...options,
+                signal: controller.signal,
+                headers,
+              });
+              return await handleResponse<T>(retryResponse);
+            }
+          }
         }
-      } catch (e) {
-        // If we can't parse the error response, use the status code
-        switch (response.status) {
-          case 400:
-            errorMessage = `400: Bad request - The request was invalid or cannot be served`;
-            break;
-          case 401:
-            errorMessage = `401: Unauthorized - Authentication is required and has failed or has not been provided`;
-            break;
-          case 403:
-            errorMessage = `403: Forbidden - The server understood the request but refuses to authorize it`;
-            break;
-          case 404:
-            errorMessage = `404: Not Found - The requested resource was not found at ${endpoint}`;
-            break;
-          case 408:
-            errorMessage = `408: Request Timeout - The server timed out waiting for the request`;
-            break;
-          case 500:
-            errorMessage = `500: Internal Server Error - The server encountered an unexpected condition`;
-            break;
-          case 502:
-            errorMessage = `502: Bad Gateway - The server received an invalid response from the upstream server`;
-            break;
-          case 503:
-            errorMessage = `503: Service Unavailable - The server is currently unavailable`;
-            break;
-          case 504:
-            errorMessage = `504: Gateway Timeout - The server did not receive a timely response from the upstream server`;
-            break;
-        }
+        return handleSessionExpired<T>();
+      } catch (error) {
+        return handleSessionExpired<T>();
       }
-
-      // Log the error for debugging
-      console.error(`API Error (${response.status}): ${errorMessage}`);
-      throw new Error(errorMessage);
     }
 
-    // Parse and return the response data
-    try {
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      throw new Error(`Failed to parse JSON response from ${endpoint}`);
-    }
+    // 5. Handle the response
+    return await handleResponse<T>(response);
   } catch (error) {
-    // Clean up the timeout if the request completes with an error
     clearTimeout(timeoutId);
-
+    
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout - The server took too long to respond (${TIMEOUT_MS / 1000} seconds)`);
-      }
-
       // Handle network errors
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error('Network error - Unable to connect to the server. Please check your internet connection.');
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please check your connection and try again.');
       }
+      
+      // Handle network connectivity issues
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Unable to connect to the server. Please check your internet connection.');
+      }
+      
+      // Re-throw the original error if it's already a meaningful message
+      if (error.message.includes('Session expired') || error.message.includes('Authentication')) {
+        throw error;
+      }
+      
+      // For other errors, provide a generic message
+      throw new Error('An error occurred while processing your request. Please try again.');
+    }
+    
+    // Fallback for non-Error throws
+    throw new Error('An unexpected error occurred');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Helper function to handle response
+async function handleResponse<T>(response: Response): Promise<T> {
+  if (!response.ok) {
+    let errorMessage = `API request failed with status ${response.status}`;
+    
+    try {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      }
+    } catch (e) {
+      // If we can't parse the error, use the status text
+      errorMessage = response.statusText || errorMessage;
     }
 
-    // Re-throw the original error if we don't have a specific handler for it
-    throw error;
+    throw new Error(errorMessage);
+  }
+
+  // Handle 204 No Content or empty responses
+  if (response.status === 204 || response.headers.get('Content-Length') === '0') {
+    return undefined as unknown as T;
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    // If we can't parse the response as JSON but the request was successful,
+    // return an empty object (useful for endpoints that don't return content)
+    if (response.ok) {
+      return {} as T;
+    }
+    throw new Error('Failed to parse response as JSON');
   }
 }
 
@@ -266,12 +379,20 @@ export async function assignTeam(guides: number[], porters: number[], packageId:
     };
 
     console.log('Sending assign team payload:', JSON.stringify(payload, null, 2));
-
+        
+    const token = getAccessToken();
+        
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+        
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+        
     const response = await fetch(`${BASE_URL}/staff/assign-teams/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(payload),
     });
 
@@ -447,24 +568,82 @@ export async function fetchExtraServices(tripId: string = '32'): Promise<any[]> 
   }
 }
 
-// Fetch groups and packages from the real API
-export async function fetchGroupsAndPackages(page: number = 1, limit: number = 10): Promise<{
-  reports: any[];
-  total: number;
-  hasMore: boolean
-}> {
-  try {
-    const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/groups-and-package/?page=${page}&limit=${limit}`);
+// Server-side refresh token function
+async function serverRefreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
+  const response = await fetch(`${BASE_URL}/auth/token/refresh/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
 
-    // Transform the API response to match our Report type
-    const transformedReports = data.map(item => ({
-      groupId: item.id.toString(),
-      trekId: item.package.trip.toString(),
-      trekName: item.package.name, // We might need to fetch the actual trek name separately
-      groupName: item.package.name,
-      groupSize: item.package.total_space,
-      startDate: item.package.start_date,
-      permits: {
+  if (!response.ok) {
+    let errorMessage = `Failed to refresh token: ${response.status} ${response.statusText}`;
+    
+    try {
+      const errorData = await response.json();
+      if (errorData && errorData.detail) {
+        errorMessage = `${response.status}: ${errorData.detail}`;
+      }
+    } catch (e) {
+      // If we can't parse the error response, use the status code
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+// Server-side fetch function for API requests with token
+async function serverFetchFromAPI<T>(endpoint: string, token: string): Promise<T> {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    // If we get a 401, try to refresh the token and retry the request
+    if (response.status === 401) {
+      // Note: In a real server-side implementation, you would need to pass the refresh token as well
+      // For now, we'll just throw the error since we can't refresh without the refresh token
+      throw new Error(`Token expired and unable to refresh: ${response.status}`);
+    }
+    
+    let errorMessage = `API request failed with status ${response.status} for ${endpoint}`;
+    
+    try {
+      const errorData = await response.json();
+      if (errorData && errorData.detail) {
+        errorMessage = `${response.status}: ${errorData.detail}`;
+      }
+    } catch (e) {
+      // If we can't parse the error response, use the status code
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+// Transform API response to match our Report type
+function transformApiResponse(data: APIGroupAndPackage[]) {
+  // Transform the API response to match our Report type
+  const transformedReports = data.map(item => ({
+    groupId: item.id.toString(),
+    trekId: item.package.trip.toString(),
+    trekName: item.package.name, // We might need to fetch the actual trek name separately
+    groupName: item.package.name,
+    groupSize: item.package.total_space,
+    startDate: item.package.start_date,
+    permits: {
         id: 'permits',
         name: 'Permits & Documents',
         rows: item.permits.map((permit, index) => {
@@ -658,10 +837,34 @@ export async function fetchGroupsAndPackages(page: number = 1, limit: number = 1
     return {
       reports: transformedReports,
       total: data.length, // This should be the total count from the API
-      hasMore: data.length === limit // This should be determined by the API
+      hasMore: data.length === 10 // This should be determined by the API - assume 10 per page for now
     };
+  }
+
+
+// Fetch groups and packages from the real API
+export async function fetchGroupsAndPackages(page: number = 1, limit: number = 10, token?: string): Promise<{
+  reports: any[];
+  total: number;
+  hasMore: boolean
+}> {
+  try {
+    // Use a server-side fetch function when token is provided
+    if (token) {
+      const data = await serverFetchFromAPI<APIGroupAndPackage[]>(`/staff/groups-and-package/?page=${page}&limit=${limit}`, token);
+      return transformApiResponse(data);
+    } else {
+      // If no token is provided, try to use the client-side function which will handle auth
+      const data = await fetchFromAPI<APIGroupAndPackage[]>(`/staff/groups-and-package/?page=${page}&limit=${limit}`);
+      return transformApiResponse(data);
+    }
   } catch (error) {
     console.error('Error fetching groups and packages:', error);
+    // If the error is related to authentication, throw a specific error
+    if (error instanceof Error && error.message.includes('Authentication required')) {
+      throw error;
+    }
+    // For other errors, re-throw as is
     throw error;
   }
 }
@@ -918,11 +1121,19 @@ export async function fetchExtraInvoiceByInvoiceId(packageId: string, parentGrou
 // Post groups and package data
 export async function postGroupsAndPackage(data: any): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/groups-and-package/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(data),
     });
 
@@ -950,11 +1161,19 @@ export async function postGroupsAndPackage(data: any): Promise<any> {
 // Update groups and package data
 export async function updateGroupsAndPackage(id: string, data: any): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/groups-and-package/${id}/`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(data),
     });
 
@@ -982,11 +1201,19 @@ export async function updateGroupsAndPackage(id: string, data: any): Promise<any
 // Update an extra invoice using PUT method (uses package ID)
 export async function updateExtraInvoice(packageId: string, data: any): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/extra-invoice-details/${packageId}/`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(data),
     });
 
@@ -1005,11 +1232,19 @@ export async function updateExtraInvoice(packageId: string, data: any): Promise<
 // Post extra invoice data (same payload structure as groups-and-package)
 export async function postExtraInvoice(groupId: string, data: any): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/extra-invoice/${groupId}/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(data),
     });
 
@@ -1093,11 +1328,19 @@ export async function fetchTransactionsByGroupId(groupId: string): Promise<{ tra
 // Add transaction to a specific group
 export async function addTransaction(groupId: string, transactionData: any): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/transactions/${groupId}/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(transactionData),
     });
 
@@ -1128,11 +1371,19 @@ export async function fetchMergePackages(groupId: string): Promise<APIMergedPack
 // Update merged packages for a specific group
 export async function updateMergePackages(groupId: string, mergePackageIds: number[]): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/merge_packages/${groupId}/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({ merge_package_ids: mergePackageIds }),
     });
 
@@ -1153,11 +1404,19 @@ export async function updateMergePackages(groupId: string, mergePackageIds: numb
 // Make payment API request
 export async function makePayment(paymentData: APIPaymentRequest): Promise<any> {
   try {
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/payments/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(paymentData),
     });
 
@@ -1203,8 +1462,17 @@ export async function createTraveler(travelerData: APICreateTravelerRequest): Pr
       }
     });
 
+    const token = getAccessToken();
+    
+    const headers: { [key: string]: string } = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${BASE_URL}/staff/create-traveler/`, {
       method: 'POST',
+      headers,
       body: formData,
     });
 
@@ -1280,5 +1548,141 @@ export async function fetchDashboardStats(): Promise<APIDashboardStats> {
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     throw error;
+  }
+}
+
+// Authentication API functions
+
+// Function to request OTP
+export async function requestOtp(username: string, password: string): Promise<OtpRequestResponse> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/otp/request/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    
+    // Extract user-friendly error message from API response
+    let errorMessage = `Failed to request OTP: ${response.status} ${response.statusText}`;
+    
+    if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+      errorMessage = errorData.non_field_errors[0] || errorMessage;
+    } else if (errorData.detail) {
+      errorMessage = errorData.detail;
+    } else if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (typeof errorData === 'string') {
+      errorMessage = errorData;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+// Function to verify OTP
+export async function verifyOtp(userId: number, otp: string): Promise<OtpVerifyResponse> {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/otp/verify/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ user_id: userId, otp }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    
+    // Extract user-friendly error message from API response
+    let errorMessage = `Failed to verify OTP: ${response.status} ${response.statusText}`;
+    
+    if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+      errorMessage = errorData.non_field_errors[0] || errorMessage;
+    } else if (errorData.detail) {
+      errorMessage = errorData.detail;
+    } else if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (errorData.otp) {
+      // Handle field-specific errors
+      errorMessage = Array.isArray(errorData.otp) ? errorData.otp[0] : errorData.otp;
+    } else if (typeof errorData === 'string') {
+      errorMessage = errorData;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+// Function to refresh access token
+export async function refreshToken(): Promise<RefreshTokenResponse | null> {
+  const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+  if (!refreshToken) {
+    // No refresh token available, clear any existing access token and return null
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('access_token');
+    }
+    return null;
+  }
+
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/auth/token/refresh/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refresh: refreshToken }),
+  });
+
+  if (!response.ok) {
+    // If refresh token is invalid, clear all tokens
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_id');
+      }
+    }
+    const errorData = await response.json().catch(() => ({}));
+    
+    // Extract user-friendly error message from API response
+    let errorMessage = `Failed to refresh token: ${response.status} ${response.statusText}`;
+    
+    if (errorData.non_field_errors && Array.isArray(errorData.non_field_errors)) {
+      errorMessage = errorData.non_field_errors[0] || errorMessage;
+    } else if (errorData.detail) {
+      errorMessage = errorData.detail;
+    } else if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (errorData.refresh) {
+      // Handle refresh token specific errors
+      errorMessage = Array.isArray(errorData.refresh) ? errorData.refresh[0] : errorData.refresh;
+    } else if (typeof errorData === 'string') {
+      errorMessage = errorData;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  const data = await response.json();
+  
+  // Update the access token in localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', data.access);
+  }
+  return data;
+}
+
+// Store tokens in localStorage
+export function storeAuthTokens(accessToken: string, refreshToken: string, userId: number) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    localStorage.setItem('user_id', userId.toString());
   }
 }
