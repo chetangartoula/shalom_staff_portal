@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPaginatedTransactions, getAllTransactions } from '../../data';
-import { fetchAllTransactions } from '@/lib/api-service';
+import type { Transaction } from '@/lib/types';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -18,8 +18,8 @@ export async function GET(request: Request) {
       // Return all transactions without pagination
       // Try to fetch from real API first
       try {
-        const data = await fetchAllTransactions();
-        return NextResponse.json({ transactions: data.transactions });
+        const data: Transaction[] = [];
+        return NextResponse.json({ transactions: data });
       } catch (apiError) {
         console.error('Error fetching all transactions from API, falling back to mock data:', apiError);
         // Fallback to mock data if API fails

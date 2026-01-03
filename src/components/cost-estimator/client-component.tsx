@@ -25,9 +25,10 @@ interface User {
 interface ClientCostEstimatorProps {
   initialTreks: Trek[];
   user: User | null;
+  onTrekSelect?: (trekId: string) => void;
 }
 
-export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }: ClientCostEstimatorProps) {
+export function ClientCostEstimatorWithData({ initialTreks, user: initialUser, onTrekSelect }: ClientCostEstimatorProps) {
   const [user, setUser] = useState<User | null>(initialUser);
   const [selectedTrekId, setSelectedTrekId] = useState<string | null>(null);
   const [permitsOverride, setPermitsOverride] = useState<any>(null);
@@ -93,7 +94,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
   const { data: allTransportations, isLoading: isLoadingAllTransportations } = useAllTransportations(selectedTrekId || '');
 
   const displayTreks = isLoadingTreks ? initialTreks : (treks || initialTreks);
-  const isLoading = isLoadingTreks || (selectedTrekId && (!permits || !services || !extraServices));
+  const isLoading = isLoadingTreks; // Only show loading when fetching treks, not when fetching data after trek selection
 
   // Row update helper
   const updateRowsWithTripTimes = useCallback((rows: any[], trekTimes: number, groupSize: number) => {
@@ -192,7 +193,11 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
 
   const handleTrekSelect = useCallback((trekId: string) => {
     setSelectedTrekId(trekId);
-  }, []);
+    // Callback to parent to handle trek selection
+    if (onTrekSelect) {
+      onTrekSelect(trekId);
+    }
+  }, [onTrekSelect]);
 
   // Handlers
   const handleAddPermit = useCallback((item: any) => {
@@ -328,7 +333,7 @@ export function ClientCostEstimatorWithData({ initialTreks, user: initialUser }:
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading data...</p>
+        <p className="mt-4 text-muted-foreground">Loading treks...</p>
       </div>
     );
   }
